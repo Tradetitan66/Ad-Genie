@@ -54,7 +54,7 @@ export default function HowItWorks() {
                   <img
                     src={step.image}
                     alt={step.title}
-                    className={`w-full ${index === 2 ? 'h-full object-cover' : 'object-contain'} group-hover:scale-105 transition-transform duration-500`}
+                    className="w-full object-contain group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute top-4 left-4 w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
                     <span className="text-white font-bold text-xl">{step.number}</span>
