@@ -50,11 +50,11 @@ export default function HowItWorks() {
               transition={{ duration: 0.5, delay: index * 0.15 }}
             >
               <div className="relative bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300">
-                <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                <div className="relative overflow-hidden bg-slate-100">
                   <img
                     src={step.image}
                     alt={step.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className={`w-full ${index === 2 ? 'h-full object-cover' : 'object-contain'} group-hover:scale-105 transition-transform duration-500`}
                   />
                   <div className="absolute top-4 left-4 w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
                     <span className="text-white font-bold text-xl">{step.number}</span>
