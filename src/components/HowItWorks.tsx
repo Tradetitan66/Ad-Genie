@@ -43,12 +43,18 @@ export default function HowItWorks() {
           {steps.map((step, index) => (
             <motion.div
               key={index}
-              className="group relative flex"
+              className="group relative flex flex-col"
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.15 }}
             >
+              <div className="flex justify-center mb-4">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
+                  <span className="text-white font-bold text-xl">{step.number}</span>
+                </div>
+              </div>
+
               <div className="relative bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col w-full">
                 <div className="relative h-80 overflow-hidden bg-slate-100 flex items-center justify-center">
                   <img
@@ -56,9 +62,6 @@ export default function HowItWorks() {
                     alt={step.title}
                     className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute top-4 left-4 w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
-                    <span className="text-white font-bold text-xl">{step.number}</span>
-                  </div>
                 </div>
 
                 <div className="p-6">
