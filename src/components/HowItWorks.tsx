@@ -39,22 +39,22 @@ export default function HowItWorks() {
           <p className="text-xl text-slate-600">From product photo to perfect campaign in minutes</p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-8 items-start mb-16">
+        <div className="grid md:grid-cols-3 gap-8 items-stretch mb-16">
           {steps.map((step, index) => (
             <motion.div
               key={index}
-              className="group relative"
+              className="group relative flex"
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.15 }}
             >
-              <div className="relative bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300">
-                <div className="relative overflow-hidden bg-slate-100">
+              <div className="relative bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col w-full">
+                <div className="relative h-80 overflow-hidden bg-slate-100 flex items-center justify-center">
                   <img
                     src={step.image}
                     alt={step.title}
-                    className="w-full object-contain group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute top-4 left-4 w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
                     <span className="text-white font-bold text-xl">{step.number}</span>
