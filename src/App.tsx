@@ -1,4 +1,3 @@
-import { AuthProvider } from './contexts/AuthContext';
 import Navigation from './components/Navigation';
 import Hero from './components/Hero';
 import HowItWorks from './components/HowItWorks';
@@ -11,19 +10,17 @@ import CursorTrail from './components/CursorTrail';
 
 function App() {
   return (
-    <AuthProvider>
-      <div className="min-h-screen bg-white">
-        <CursorTrail />
-        <Navigation />
-        <Hero />
-        <HowItWorks />
-        <Features />
-        <Audience />
-        <FAQ />
-        <FinalCTA />
-        <Footer />
-      </div>
-    </AuthProvider>
+    <div className="min-h-screen bg-white">
+      <CursorTrail />
+      <Navigation />
+      <Hero />
+      <HowItWorks />
+      <Features />
+      <Audience />
+      <FAQ />
+      <FinalCTA />
+      <Footer />
+    </div>
   );
 }
 
