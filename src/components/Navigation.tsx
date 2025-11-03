@@ -79,11 +79,11 @@ export default function Navigation() {
           </motion.div>
 
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-white hover:text-amber-400 transition-colors font-medium">
-              Features
-            </a>
             <a href="#how-it-works" className="text-white hover:text-amber-400 transition-colors font-medium">
               How It Works
+            </a>
+            <a href="#features" className="text-white hover:text-amber-400 transition-colors font-medium">
+              Features
             </a>
             <a href="#faq" className="text-white hover:text-amber-400 transition-colors font-medium">
               FAQ
