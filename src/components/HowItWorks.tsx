@@ -5,19 +5,19 @@ const steps = [
   {
     number: '1',
     title: 'Upload & Describe',
-    image: '/Screenshot 2025-10-26 at 10.32.49.png',
+    image: '/Screenshot 2025-10-26 at 10.32.49 copy.png',
     description: 'Upload your product photo and describe your target audience',
   },
   {
     number: '2',
     title: 'AI Genie Analyzes',
-    image: '/Screenshot 2025-10-26 at 10.39.20.png',
+    image: '/Screenshot 2025-10-26 at 10.39.20 copy.png',
     description: 'Our AI understands your product, market, and cultural context',
   },
   {
     number: '3',
     title: 'Campaigns Generated',
-    image: '/Screenshot 2025-10-26 at 10.40.09.png',
+    image: '/Screenshot 2025-10-26 at 10.40.09 copy.png',
     description: 'Get professional photos and videos ready to launch',
   }
 ];
