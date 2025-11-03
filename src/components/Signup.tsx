@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Mail, Lock, User, Chrome, Check, AlertCircle } from 'lucide-react';
+import { X, Mail, Lock, User, Check, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { validatePassword } from '../utils/passwordValidation';
 
@@ -49,24 +49,6 @@ export default function Signup({ onClose, onSwitchToLogin }: SignupProps) {
     }
   };
 
-  const handleGoogleSignup = async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-        },
-      });
-
-      if (error) throw error;
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign up with Google');
-      setLoading(false);
-    }
-  };
 
   return (
     <motion.div
@@ -278,24 +260,6 @@ export default function Signup({ onClose, onSwitchToLogin }: SignupProps) {
             {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
-
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-300"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-slate-500">Or continue with</span>
-          </div>
-        </div>
-
-        <button
-          onClick={handleGoogleSignup}
-          disabled={loading || success}
-          className="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-300 text-slate-700 font-semibold py-3 rounded-lg hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Chrome size={20} />
-          Sign up with Google
-        </button>
 
         <p className="mt-6 text-center text-sm text-slate-600">
           Already have an account?{' '}

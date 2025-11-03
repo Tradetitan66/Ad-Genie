@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Mail, Lock, Chrome } from 'lucide-react';
+import { X, Mail, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface LoginProps {
@@ -34,24 +34,6 @@ export default function Login({ onClose, onSwitchToSignup }: LoginProps) {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-        },
-      });
-
-      if (error) throw error;
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in with Google');
-      setLoading(false);
-    }
-  };
 
   return (
     <motion.div
@@ -127,24 +109,6 @@ export default function Login({ onClose, onSwitchToSignup }: LoginProps) {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-300"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-slate-500">Or continue with</span>
-          </div>
-        </div>
-
-        <button
-          onClick={handleGoogleLogin}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-300 text-slate-700 font-semibold py-3 rounded-lg hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Chrome size={20} />
-          Sign in with Google
-        </button>
 
         <p className="mt-6 text-center text-sm text-slate-600">
           Don't have an account?{' '}
