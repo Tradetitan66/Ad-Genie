@@ -1,16 +1,9 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, LogIn, User, LogOut } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import Login from './Login';
-import Signup from './Signup';
+import { motion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 
 export default function Navigation() {
   const [scrolled, setScrolled] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
-  const [showSignup, setShowSignup] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const { user, signOut } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,11 +12,6 @@ export default function Navigation() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const handleSignOut = async () => {
-    await signOut();
-    setShowUserMenu(false);
-  };
 
   return (
     <motion.nav
@@ -98,81 +86,9 @@ export default function Navigation() {
             >
               Join Waitlist
             </motion.a>
-
-            {user ? (
-              <div className="relative">
-                <motion.button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white hover:bg-white/20 transition-all"
-                >
-                  <User size={20} />
-                  <span className="text-sm font-medium">
-                    {user.user_metadata?.full_name || user.email?.split('@')[0]}
-                  </span>
-                </motion.button>
-
-                <AnimatePresence>
-                  {showUserMenu && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl overflow-hidden"
-                    >
-                      <div className="px-4 py-3 border-b border-slate-200">
-                        <p className="text-sm font-medium text-slate-900">{user.email}</p>
-                      </div>
-                      <button
-                        onClick={handleSignOut}
-                        className="w-full px-4 py-3 flex items-center gap-2 text-left text-slate-700 hover:bg-slate-50 transition-colors"
-                      >
-                        <LogOut size={18} />
-                        <span>Sign Out</span>
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ) : (
-              <motion.button
-                onClick={() => setShowLogin(true)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white hover:bg-white/20 transition-all"
-              >
-                <LogIn size={20} />
-                <span className="font-medium">Login</span>
-              </motion.button>
-            )}
           </div>
         </div>
       </div>
-
-      <AnimatePresence>
-        {showLogin && (
-          <Login
-            onClose={() => setShowLogin(false)}
-            onSwitchToSignup={() => {
-              setShowLogin(false);
-              setShowSignup(true);
-            }}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showSignup && (
-          <Signup
-            onClose={() => setShowSignup(false)}
-            onSwitchToLogin={() => {
-              setShowSignup(false);
-              setShowLogin(true);
-            }}
-          />
-        )}
-      </AnimatePresence>
     </motion.nav>
   );
 }
