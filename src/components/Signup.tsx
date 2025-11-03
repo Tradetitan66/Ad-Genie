@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Mail, Lock, User, Chrome } from 'lucide-react';
+import { X, Mail, Lock, User, Chrome, Check, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { validatePassword } from '../utils/passwordValidation';
 
 interface SignupProps {
   onClose: () => void;
@@ -15,6 +16,9 @@ export default function Signup({ onClose, onSwitchToLogin }: SignupProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
+
+  const passwordStrength = validatePassword(password);
 
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,13 +150,124 @@ export default function Signup({ onClose, onSwitchToLogin }: SignupProps) {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setShowPasswordRequirements(true)}
+                onBlur={() => setShowPasswordRequirements(false)}
                 className="w-full pl-11 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none transition-all"
                 placeholder="••••••••"
                 required
-                minLength={6}
+                minLength={8}
               />
             </div>
-            <p className="mt-1 text-xs text-slate-500">Must be at least 6 characters</p>
+
+            {password && (
+              <div className="mt-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        passwordStrength.color === 'green'
+                          ? 'bg-green-500'
+                          : passwordStrength.color === 'amber'
+                          ? 'bg-amber-500'
+                          : passwordStrength.color === 'orange'
+                          ? 'bg-orange-500'
+                          : 'bg-red-500'
+                      }`}
+                      style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                    ></div>
+                  </div>
+                  <span
+                    className={`text-xs font-medium ${
+                      passwordStrength.color === 'green'
+                        ? 'text-green-600'
+                        : passwordStrength.color === 'amber'
+                        ? 'text-amber-600'
+                        : passwordStrength.color === 'orange'
+                        ? 'text-orange-600'
+                        : 'text-red-600'
+                    }`}
+                  >
+                    {passwordStrength.label}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {(showPasswordRequirements || password) && (
+              <div className="mt-3 space-y-1.5">
+                <div className="flex items-center gap-2 text-xs">
+                  {passwordStrength.requirements.length ? (
+                    <Check size={14} className="text-green-500" />
+                  ) : (
+                    <AlertCircle size={14} className="text-slate-400" />
+                  )}
+                  <span
+                    className={passwordStrength.requirements.length ? 'text-green-600' : 'text-slate-500'}
+                  >
+                    At least 8 characters
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  {passwordStrength.requirements.uppercase ? (
+                    <Check size={14} className="text-green-500" />
+                  ) : (
+                    <AlertCircle size={14} className="text-slate-400" />
+                  )}
+                  <span
+                    className={passwordStrength.requirements.uppercase ? 'text-green-600' : 'text-slate-500'}
+                  >
+                    One uppercase letter
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  {passwordStrength.requirements.lowercase ? (
+                    <Check size={14} className="text-green-500" />
+                  ) : (
+                    <AlertCircle size={14} className="text-slate-400" />
+                  )}
+                  <span
+                    className={passwordStrength.requirements.lowercase ? 'text-green-600' : 'text-slate-500'}
+                  >
+                    One lowercase letter
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  {passwordStrength.requirements.number ? (
+                    <Check size={14} className="text-green-500" />
+                  ) : (
+                    <AlertCircle size={14} className="text-slate-400" />
+                  )}
+                  <span
+                    className={passwordStrength.requirements.number ? 'text-green-600' : 'text-slate-500'}
+                  >
+                    One number
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  {passwordStrength.requirements.special ? (
+                    <Check size={14} className="text-green-500" />
+                  ) : (
+                    <AlertCircle size={14} className="text-slate-400" />
+                  )}
+                  <span
+                    className={passwordStrength.requirements.special ? 'text-green-600' : 'text-slate-500'}
+                  >
+                    One special character (!@#$%^&*)
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {password && passwordStrength.score >= 4 && (
+              <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-700 flex items-start gap-2">
+                  <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+                  <span>
+                    Your password is also checked against known leaked passwords to keep your account secure.
+                  </span>
+                </p>
+              </div>
+            )}
           </div>
 
           <button
