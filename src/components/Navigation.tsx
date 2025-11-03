@@ -55,7 +55,7 @@ export default function Navigation() {
                 transition={{ duration: 2, repeat: Infinity }}
               >
                 <img
-                  src="/design_a_contemporary_professional_logo_combining_a_streamlined_genie_figure_with_modern_tech_symbo_w4ujab7xhe2kyd0v0ohh_1-removebg-preview.png"
+                  src="/enhanced_design_a_contemporary_professional_logo_combining_a_streamlined_genie_figure_with_modern_tech_symbo_g4d4ei5j85xa3vwd3mit_1 (1).png"
                   alt="Ad-Genie"
                   className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
                 />
