@@ -88,15 +88,15 @@ export default function CompanyLogos() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="relative"
+          className="relative py-8"
+          style={{ minHeight: '80px' }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-white via-transparent to-white pointer-events-none z-10"></div>
           <LogoLoop
             logos={companyLogos}
             speed={50}
             direction="left"
-            logoHeight={40}
-            gap={64}
+            logoHeight={50}
+            gap={80}
             pauseOnHover={true}
             fadeOut={true}
             fadeOutColor="rgb(248, 250, 252)"

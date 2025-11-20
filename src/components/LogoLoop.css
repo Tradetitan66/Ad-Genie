@@ -2,11 +2,13 @@
   position: relative;
   overflow: hidden;
   width: 100%;
+  min-height: var(--logoloop-logoHeight, 28px);
 }
 
 .logoloop--horizontal {
   display: flex;
   align-items: center;
+  min-height: var(--logoloop-logoHeight, 28px);
 }
 
 .logoloop--vertical {
@@ -47,9 +49,16 @@
 .logoloop__item img {
   max-height: 100%;
   width: auto;
+  height: var(--logoloop-logoHeight, 28px);
   object-fit: contain;
   user-select: none;
   pointer-events: none;
+  filter: grayscale(100%) opacity(0.6);
+  transition: filter 0.3s ease;
+}
+
+.logoloop__item:hover img {
+  filter: grayscale(0%) opacity(1);
 }
 
 .logoloop__link {
