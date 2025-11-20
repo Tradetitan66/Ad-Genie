@@ -2,12 +2,16 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
+import { userService } from '../services/database';
+import { useToast } from '../contexts/ToastContext';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { success, error: showError } = useToast();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({ name: '', email: '' });
 
   const validateEmail = (email: string) => {
@@ -15,7 +19,7 @@ export default function LoginPage() {
     return re.test(email);
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const newErrors = { name: '', email: '' };
 
     if (!name.trim()) {
@@ -33,39 +37,35 @@ export default function LoginPage() {
       return;
     }
 
-    const existingUsers = JSON.parse(localStorage.getItem('users') || '{}');
+    setLoading(true);
 
-    if (existingUsers[email]) {
+    try {
+      let user = await userService.getByEmail(email);
+
+      if (!user) {
+        user = await userService.create(email, name);
+        success('Welcome! Let\'s set up your account.');
+      } else {
+        success('Welcome back!');
+      }
+
       localStorage.setItem('currentUser', email);
 
-      if (existingUsers[email].hasCompletedOnboarding) {
+      if (rememberMe) {
+        localStorage.setItem('rememberMe', 'true');
+        localStorage.setItem('lastEmail', email);
+      }
+
+      if (user.has_completed_onboarding) {
         navigate('/dashboard/campaign-hub');
       } else {
         navigate('/onboarding/welcome');
       }
-    } else {
-      const newUser = {
-        userId: Date.now().toString(),
-        displayName: name,
-        email: email,
-        isNewUser: true,
-        hasCompletedOnboarding: false,
-        createdAt: new Date().toISOString(),
-        preferences: null,
-        brandProfile: null,
-        campaigns: []
-      };
-
-      existingUsers[email] = newUser;
-      localStorage.setItem('users', JSON.stringify(existingUsers));
-      localStorage.setItem('currentUser', email);
-
-      navigate('/onboarding/welcome');
-    }
-
-    if (rememberMe) {
-      localStorage.setItem('rememberMe', 'true');
-      localStorage.setItem('lastEmail', email);
+    } catch (err) {
+      console.error('Login error:', err);
+      showError('Failed to login. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -151,9 +151,10 @@ export default function LoginPage() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleLogin}
-              className="w-full px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] transition-all"
+              disabled={loading}
+              className="w-full px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              Continue →
+              {loading ? 'Please wait...' : 'Continue →'}
             </motion.button>
 
             <div className="text-center">

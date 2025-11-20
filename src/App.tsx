@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { ToastProvider } from './contexts/ToastContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import WelcomePage from './pages/onboarding/WelcomePage';
@@ -12,28 +14,118 @@ import CampaignHubPage from './pages/dashboard/CampaignHubPage';
 import ContentSelectionDashboard from './pages/dashboard/ContentSelectionDashboard';
 import GeneratingPage from './pages/dashboard/GeneratingPage';
 import ResultsPage from './pages/dashboard/ResultsPage';
+import SettingsPage from './pages/dashboard/SettingsPage';
+import CampaignsPage from './pages/dashboard/CampaignsPage';
 
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
+      <ToastProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
 
-          <Route path="/onboarding/welcome" element={<WelcomePage />} />
-          <Route path="/onboarding/preferences" element={<PreferencesPage />} />
-          <Route path="/onboarding/brand-details" element={<BrandDetailsPage />} />
-          <Route path="/onboarding/visual-assets" element={<VisualAssetsPage />} />
-          <Route path="/onboarding/content-selection" element={<ContentSelectionPage />} />
-          <Route path="/onboarding/review" element={<ReviewPage />} />
+            <Route
+              path="/onboarding/welcome"
+              element={
+                <ProtectedRoute requireNoOnboarding>
+                  <WelcomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/onboarding/preferences"
+              element={
+                <ProtectedRoute requireNoOnboarding>
+                  <PreferencesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/onboarding/brand-details"
+              element={
+                <ProtectedRoute requireNoOnboarding>
+                  <BrandDetailsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/onboarding/visual-assets"
+              element={
+                <ProtectedRoute requireNoOnboarding>
+                  <VisualAssetsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/onboarding/content-selection"
+              element={
+                <ProtectedRoute requireNoOnboarding>
+                  <ContentSelectionPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/onboarding/review"
+              element={
+                <ProtectedRoute requireNoOnboarding>
+                  <ReviewPage />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route path="/dashboard/campaign-hub" element={<CampaignHubPage />} />
-          <Route path="/dashboard/content-selection" element={<ContentSelectionDashboard />} />
-          <Route path="/dashboard/generating" element={<GeneratingPage />} />
-          <Route path="/dashboard/results" element={<ResultsPage />} />
-        </Routes>
-      </Router>
+            <Route
+              path="/dashboard/campaign-hub"
+              element={
+                <ProtectedRoute requireOnboarding>
+                  <CampaignHubPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/content-selection"
+              element={
+                <ProtectedRoute requireOnboarding>
+                  <ContentSelectionDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/generating"
+              element={
+                <ProtectedRoute requireOnboarding>
+                  <GeneratingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/results"
+              element={
+                <ProtectedRoute requireOnboarding>
+                  <ResultsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/settings"
+              element={
+                <ProtectedRoute requireOnboarding>
+                  <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/campaigns"
+              element={
+                <ProtectedRoute requireOnboarding>
+                  <CampaignsPage />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Router>
+      </ToastProvider>
     </AuthProvider>
   );
 }

@@ -1,0 +1,664 @@
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Save, User, Building2, Palette, Calendar, Bell } from 'lucide-react';
+import DashboardLayout from '../../components/DashboardLayout';
+import { useToast } from '../../contexts/ToastContext';
+import { userService, brandProfileService, preferencesService } from '../../services/database';
+
+const tabs = [
+  { id: 'account', label: 'Account', icon: User },
+  { id: 'brand', label: 'Brand Profile', icon: Building2 },
+  { id: 'preferences', label: 'Preferences', icon: Palette },
+  { id: 'events', label: 'Seasonal Events', icon: Calendar },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
+];
+
+const brandVoices = ['Professional', 'Casual', 'Playful', 'Authoritative', 'Inspirational'];
+const visualStyles = ['Minimalist', 'Bold', 'Elegant', 'Vintage', 'Modern', 'Colorful'];
+const industries = [
+  'E-commerce',
+  'Fashion & Apparel',
+  'Technology & Software',
+  'Food & Beverage',
+  'Health & Wellness',
+  'Finance & Banking',
+  'Real Estate',
+  'Education & E-learning',
+  'Entertainment & Media',
+  'Beauty & Cosmetics',
+  'Travel & Hospitality',
+  'Automotive',
+  'Home & Garden',
+  'Sports & Fitness',
+  'Other',
+];
+
+const localEvents = [
+  'Diwali',
+  'Holi',
+  'Independence Day (Aug 15)',
+  'Republic Day (Jan 26)',
+  'Raksha Bandhan',
+  'Navratri',
+  'Eid',
+  'Christmas',
+  'New Year',
+];
+
+const internationalEvents = [
+  "Black Friday",
+  "Cyber Monday",
+  "Valentine's Day",
+  "Mother's Day",
+  "Father's Day",
+  'Halloween',
+  'Thanksgiving',
+  'Easter',
+  'Singles Day (11/11)',
+];
+
+export default function SettingsPage() {
+  const { success, error } = useToast();
+  const [activeTab, setActiveTab] = useState('account');
+  const [saving, setSaving] = useState(false);
+  const [userId, setUserId] = useState('');
+
+  const [accountData, setAccountData] = useState({
+    email: '',
+    displayName: '',
+  });
+
+  const [brandData, setBrandData] = useState({
+    brandName: '',
+    industry: '',
+    audience: '',
+    websiteUrl: '',
+    contactEmail: '',
+    brandColors: {
+      primary: '#2563EB',
+      secondary: '',
+      accent: '',
+    },
+  });
+
+  const [preferencesData, setPreferencesData] = useState({
+    campaignGoal: '',
+    brandVoice: '',
+    visualStyles: [] as string[],
+    campaignTiming: '',
+    enableAutoSuggestions: true,
+  });
+
+  const [seasonalEvents, setSeasonalEvents] = useState({
+    local: [] as string[],
+    international: [] as string[],
+  });
+
+  const [notifications, setNotifications] = useState({
+    emailNotifications: true,
+    campaignComplete: true,
+    weeklyReport: false,
+    marketingTips: true,
+  });
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      const currentUserEmail = localStorage.getItem('currentUser');
+      if (!currentUserEmail) return;
+
+      const user = await userService.getByEmail(currentUserEmail);
+      if (!user) return;
+
+      setUserId(user.id);
+      setAccountData({
+        email: user.email,
+        displayName: user.display_name || '',
+      });
+
+      const brandProfile = await brandProfileService.getByUserId(user.id);
+      if (brandProfile) {
+        setBrandData({
+          brandName: brandProfile.brand_name,
+          industry: brandProfile.industry,
+          audience: brandProfile.audience || '',
+          websiteUrl: brandProfile.website_url,
+          contactEmail: brandProfile.contact_email,
+          brandColors: brandProfile.brand_colors || { primary: '#2563EB', secondary: '', accent: '' },
+        });
+      }
+
+      const preferences = await preferencesService.getByUserId(user.id);
+      if (preferences) {
+        setPreferencesData({
+          campaignGoal: preferences.campaign_goal || '',
+          brandVoice: preferences.brand_voice || '',
+          visualStyles: preferences.visual_styles || [],
+          campaignTiming: preferences.campaign_timing || '',
+          enableAutoSuggestions: preferences.enable_auto_suggestions,
+        });
+        setSeasonalEvents(preferences.seasonal_events || { local: [], international: [] });
+      }
+    } catch (err) {
+      console.error('Error loading user data:', err);
+      error('Failed to load settings');
+    }
+  };
+
+  const handleSaveAccount = async () => {
+    setSaving(true);
+    try {
+      await userService.update(accountData.email, {
+        display_name: accountData.displayName,
+      });
+      success('Account settings saved successfully');
+    } catch (err) {
+      console.error('Error saving account:', err);
+      error('Failed to save account settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveBrand = async () => {
+    setSaving(true);
+    try {
+      const brandProfile = await brandProfileService.getByUserId(userId);
+      if (brandProfile) {
+        await brandProfileService.update(brandProfile.id, {
+          brand_name: brandData.brandName,
+          industry: brandData.industry,
+          audience: brandData.audience,
+          website_url: brandData.websiteUrl,
+          contact_email: brandData.contactEmail,
+          brand_colors: brandData.brandColors,
+        });
+      } else {
+        await brandProfileService.create({
+          user_id: userId,
+          brand_name: brandData.brandName,
+          industry: brandData.industry,
+          audience: brandData.audience,
+          website_url: brandData.websiteUrl,
+          contact_email: brandData.contactEmail,
+          brand_colors: brandData.brandColors,
+          logo: null,
+          product_images: [],
+        });
+      }
+      success('Brand profile saved successfully');
+    } catch (err) {
+      console.error('Error saving brand:', err);
+      error('Failed to save brand profile');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSavePreferences = async () => {
+    setSaving(true);
+    try {
+      await preferencesService.upsert({
+        user_id: userId,
+        campaign_goal: preferencesData.campaignGoal,
+        brand_voice: preferencesData.brandVoice,
+        visual_styles: preferencesData.visualStyles,
+        campaign_timing: preferencesData.campaignTiming,
+        seasonal_events: seasonalEvents,
+        enable_auto_suggestions: preferencesData.enableAutoSuggestions,
+      });
+      success('Preferences saved successfully');
+    } catch (err) {
+      console.error('Error saving preferences:', err);
+      error('Failed to save preferences');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleVisualStyle = (style: string) => {
+    if (preferencesData.visualStyles.includes(style)) {
+      setPreferencesData({
+        ...preferencesData,
+        visualStyles: preferencesData.visualStyles.filter((s) => s !== style),
+      });
+    } else if (preferencesData.visualStyles.length < 3) {
+      setPreferencesData({
+        ...preferencesData,
+        visualStyles: [...preferencesData.visualStyles, style],
+      });
+    }
+  };
+
+  const toggleSeasonalEvent = (event: string, type: 'local' | 'international') => {
+    const currentEvents = seasonalEvents[type];
+    if (currentEvents.includes(event)) {
+      setSeasonalEvents({
+        ...seasonalEvents,
+        [type]: currentEvents.filter((e) => e !== event),
+      });
+    } else {
+      setSeasonalEvents({
+        ...seasonalEvents,
+        [type]: [...currentEvents, event],
+      });
+    }
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'account':
+        return (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={accountData.email}
+                disabled
+                className="w-full px-4 py-3 rounded-lg border border-slate-300 bg-slate-50 text-slate-600"
+              />
+              <p className="text-xs text-slate-500 mt-1">Email cannot be changed</p>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Display Name
+              </label>
+              <input
+                type="text"
+                value={accountData.displayName}
+                onChange={(e) =>
+                  setAccountData({ ...accountData, displayName: e.target.value })
+                }
+                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:border-[#2563EB] transition-colors"
+                placeholder="Enter your display name"
+              />
+            </div>
+            <button
+              onClick={handleSaveAccount}
+              disabled={saving}
+              className="flex items-center gap-2 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <Save size={18} />
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        );
+
+      case 'brand':
+        return (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Brand Name
+              </label>
+              <input
+                type="text"
+                value={brandData.brandName}
+                onChange={(e) => setBrandData({ ...brandData, brandName: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:border-[#2563EB] transition-colors"
+                placeholder="Enter your brand name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Industry</label>
+              <select
+                value={brandData.industry}
+                onChange={(e) => setBrandData({ ...brandData, industry: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:border-[#2563EB] transition-colors"
+              >
+                <option value="">Select an industry</option>
+                {industries.map((industry) => (
+                  <option key={industry} value={industry}>
+                    {industry}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Target Audience
+              </label>
+              <textarea
+                value={brandData.audience}
+                onChange={(e) => setBrandData({ ...brandData, audience: e.target.value })}
+                rows={3}
+                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:border-[#2563EB] transition-colors"
+                placeholder="e.g., Young professionals aged 25-35"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Website URL
+              </label>
+              <input
+                type="url"
+                value={brandData.websiteUrl}
+                onChange={(e) => setBrandData({ ...brandData, websiteUrl: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:border-[#2563EB] transition-colors"
+                placeholder="https://yourbrand.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Contact Email
+              </label>
+              <input
+                type="email"
+                value={brandData.contactEmail}
+                onChange={(e) => setBrandData({ ...brandData, contactEmail: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:border-[#2563EB] transition-colors"
+                placeholder="contact@yourbrand.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-3">
+                Brand Colors
+              </label>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs text-slate-600 mb-2">Primary</label>
+                  <input
+                    type="color"
+                    value={brandData.brandColors.primary}
+                    onChange={(e) =>
+                      setBrandData({
+                        ...brandData,
+                        brandColors: { ...brandData.brandColors, primary: e.target.value },
+                      })
+                    }
+                    className="w-full h-12 rounded-lg cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-600 mb-2">Secondary</label>
+                  <input
+                    type="color"
+                    value={brandData.brandColors.secondary}
+                    onChange={(e) =>
+                      setBrandData({
+                        ...brandData,
+                        brandColors: { ...brandData.brandColors, secondary: e.target.value },
+                      })
+                    }
+                    className="w-full h-12 rounded-lg cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-600 mb-2">Accent</label>
+                  <input
+                    type="color"
+                    value={brandData.brandColors.accent}
+                    onChange={(e) =>
+                      setBrandData({
+                        ...brandData,
+                        brandColors: { ...brandData.brandColors, accent: e.target.value },
+                      })
+                    }
+                    className="w-full h-12 rounded-lg cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleSaveBrand}
+              disabled={saving}
+              className="flex items-center gap-2 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <Save size={18} />
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        );
+
+      case 'preferences':
+        return (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Campaign Goal
+              </label>
+              <textarea
+                value={preferencesData.campaignGoal}
+                onChange={(e) =>
+                  setPreferencesData({ ...preferencesData, campaignGoal: e.target.value })
+                }
+                rows={3}
+                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:border-[#2563EB] transition-colors"
+                placeholder="e.g., Increase brand awareness, drive sales"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Brand Voice
+              </label>
+              <select
+                value={preferencesData.brandVoice}
+                onChange={(e) =>
+                  setPreferencesData({ ...preferencesData, brandVoice: e.target.value })
+                }
+                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:border-[#2563EB] transition-colors"
+              >
+                <option value="">Select a brand voice</option>
+                {brandVoices.map((voice) => (
+                  <option key={voice} value={voice}>
+                    {voice}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Visual Styles (Select 1-3)
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {visualStyles.map((style) => (
+                  <button
+                    key={style}
+                    onClick={() => toggleVisualStyle(style)}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                      preferencesData.visualStyles.includes(style)
+                        ? 'border-[#2563EB] bg-blue-50 text-[#2563EB]'
+                        : 'border-slate-300 hover:border-slate-400'
+                    }`}
+                  >
+                    {style}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="autoSuggestions"
+                checked={preferencesData.enableAutoSuggestions}
+                onChange={(e) =>
+                  setPreferencesData({
+                    ...preferencesData,
+                    enableAutoSuggestions: e.target.checked,
+                  })
+                }
+                className="w-5 h-5 text-[#2563EB]"
+              />
+              <label htmlFor="autoSuggestions" className="text-sm text-slate-700">
+                Enable automatic seasonal suggestions
+              </label>
+            </div>
+            <button
+              onClick={handleSavePreferences}
+              disabled={saving}
+              className="flex items-center gap-2 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <Save size={18} />
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        );
+
+      case 'events':
+        return (
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-semibold text-slate-700 mb-3">Local & Regional Events</h3>
+                <div className="space-y-2">
+                  {localEvents.map((event) => (
+                    <label key={event} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={seasonalEvents.local.includes(event)}
+                        onChange={() => toggleSeasonalEvent(event, 'local')}
+                        className="w-4 h-4 text-[#2563EB] rounded"
+                      />
+                      <span className="text-sm text-slate-700">{event}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-700 mb-3">International Events</h3>
+                <div className="space-y-2">
+                  {internationalEvents.map((event) => (
+                    <label key={event} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={seasonalEvents.international.includes(event)}
+                        onChange={() => toggleSeasonalEvent(event, 'international')}
+                        className="w-4 h-4 text-[#2563EB] rounded"
+                      />
+                      <span className="text-sm text-slate-700">{event}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleSavePreferences}
+              disabled={saving}
+              className="flex items-center gap-2 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <Save size={18} />
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        );
+
+      case 'notifications':
+        return (
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <label className="flex items-center justify-between p-4 bg-slate-50 rounded-lg cursor-pointer">
+                <div>
+                  <p className="font-semibold text-slate-900">Email Notifications</p>
+                  <p className="text-sm text-slate-600">Receive email updates</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={notifications.emailNotifications}
+                  onChange={(e) =>
+                    setNotifications({ ...notifications, emailNotifications: e.target.checked })
+                  }
+                  className="w-5 h-5 text-[#2563EB]"
+                />
+              </label>
+              <label className="flex items-center justify-between p-4 bg-slate-50 rounded-lg cursor-pointer">
+                <div>
+                  <p className="font-semibold text-slate-900">Campaign Complete</p>
+                  <p className="text-sm text-slate-600">Notify when campaign generation finishes</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={notifications.campaignComplete}
+                  onChange={(e) =>
+                    setNotifications({ ...notifications, campaignComplete: e.target.checked })
+                  }
+                  className="w-5 h-5 text-[#2563EB]"
+                />
+              </label>
+              <label className="flex items-center justify-between p-4 bg-slate-50 rounded-lg cursor-pointer">
+                <div>
+                  <p className="font-semibold text-slate-900">Weekly Report</p>
+                  <p className="text-sm text-slate-600">Get weekly campaign performance reports</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={notifications.weeklyReport}
+                  onChange={(e) =>
+                    setNotifications({ ...notifications, weeklyReport: e.target.checked })
+                  }
+                  className="w-5 h-5 text-[#2563EB]"
+                />
+              </label>
+              <label className="flex items-center justify-between p-4 bg-slate-50 rounded-lg cursor-pointer">
+                <div>
+                  <p className="font-semibold text-slate-900">Marketing Tips</p>
+                  <p className="text-sm text-slate-600">Receive helpful marketing tips</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={notifications.marketingTips}
+                  onChange={(e) =>
+                    setNotifications({ ...notifications, marketingTips: e.target.checked })
+                  }
+                  className="w-5 h-5 text-[#2563EB]"
+                />
+              </label>
+            </div>
+            <button
+              onClick={() => success('Notification preferences saved')}
+              className="flex items-center gap-2 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] transition-all"
+            >
+              <Save size={18} />
+              Save Changes
+            </button>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <DashboardLayout breadcrumbs={[{ label: 'Settings' }]}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">Settings</h1>
+        <p className="text-slate-600 mb-8">Manage your account and preferences</p>
+
+        <div className="grid md:grid-cols-4 gap-6">
+          <div className="md:col-span-1">
+            <nav className="space-y-1" aria-label="Settings navigation">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left ${
+                      activeTab === tab.id
+                        ? 'bg-blue-50 text-[#2563EB] font-semibold'
+                        : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                    aria-current={activeTab === tab.id ? 'page' : undefined}
+                  >
+                    <Icon size={20} />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="md:col-span-3">
+            <div className="bg-white rounded-lg shadow-lg p-6">{renderContent()}</div>
+          </div>
+        </div>
+      </motion.div>
+    </DashboardLayout>
+  );
+}

@@ -2,41 +2,41 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
+import OnboardingLayout from '../../components/OnboardingLayout';
+import { userService } from '../../services/database';
 
 export default function WelcomePage() {
   const navigate = useNavigate();
   const [userName, setUserName] = useState('');
 
   useEffect(() => {
+    loadUser();
+  }, []);
+
+  const loadUser = async () => {
     const currentUserEmail = localStorage.getItem('currentUser');
     if (!currentUserEmail) {
       navigate('/login');
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    const user = users[currentUserEmail];
-    if (user) {
-      setUserName(user.displayName);
+    try {
+      const user = await userService.getByEmail(currentUserEmail);
+      if (user) {
+        setUserName(user.display_name || 'there');
+      }
+    } catch (error) {
+      console.error('Error loading user:', error);
     }
-  }, [navigate]);
+  };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
+    <OnboardingLayout currentStep={1} totalSteps={6} stepLabel="Welcome to Ad Genie">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-2xl"
+        className="bg-white rounded-lg shadow-lg p-8"
       >
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="mb-8">
-            <div className="flex items-center gap-2 text-sm text-slate-600 mb-4">
-              <div className="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden">
-                <div className="bg-[#2563EB] h-full w-1/6 rounded-full"></div>
-              </div>
-              <span className="font-semibold">Step 1 of 6</span>
-            </div>
-          </div>
 
           <div className="text-center mb-12">
             <motion.h1
@@ -99,8 +99,7 @@ export default function WelcomePage() {
           >
             Let's Get Started →
           </motion.button>
-        </div>
-      </motion.div>
-    </div>
+        </motion.div>
+    </OnboardingLayout>
   );
 }
