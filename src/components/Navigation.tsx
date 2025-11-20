@@ -5,7 +5,12 @@ import { useAuth } from '../contexts/AuthContext';
 import Login from './Login';
 import Signup from './Signup';
 
-export default function Navigation() {
+interface NavigationProps {
+  onLoginSuccess?: () => void;
+  onLoginClick?: () => void;
+}
+
+export default function Navigation({ onLoginSuccess, onLoginClick }: NavigationProps = {}) {
   const [scrolled, setScrolled] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
@@ -137,7 +142,7 @@ export default function Navigation() {
               </div>
             ) : (
               <motion.button
-                onClick={() => setShowLogin(true)}
+                onClick={() => onLoginClick ? onLoginClick() : setShowLogin(true)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white hover:bg-white/20 transition-all"
