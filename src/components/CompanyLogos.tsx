@@ -3,100 +3,84 @@ import LogoLoop from './LogoLoop';
 
 const companyLogos = [
   {
-    src: 'https://logo.clearbit.com/google.com',
+    node: <div className="text-2xl font-bold text-slate-700">Google</div>,
     alt: 'Google',
-    title: 'Google',
-    href: 'https://google.com'
+    title: 'Google'
   },
   {
-    src: 'https://logo.clearbit.com/microsoft.com',
+    node: <div className="text-2xl font-bold text-slate-700">Microsoft</div>,
     alt: 'Microsoft',
-    title: 'Microsoft',
-    href: 'https://microsoft.com'
+    title: 'Microsoft'
   },
   {
-    src: 'https://logo.clearbit.com/apple.com',
+    node: <div className="text-2xl font-bold text-slate-700">Apple</div>,
     alt: 'Apple',
-    title: 'Apple',
-    href: 'https://apple.com'
+    title: 'Apple'
   },
   {
-    src: 'https://logo.clearbit.com/amazon.com',
+    node: <div className="text-2xl font-bold text-slate-700">Amazon</div>,
     alt: 'Amazon',
-    title: 'Amazon',
-    href: 'https://amazon.com'
+    title: 'Amazon'
   },
   {
-    src: 'https://logo.clearbit.com/meta.com',
+    node: <div className="text-2xl font-bold text-slate-700">Meta</div>,
     alt: 'Meta',
-    title: 'Meta',
-    href: 'https://meta.com'
+    title: 'Meta'
   },
   {
-    src: 'https://logo.clearbit.com/netflix.com',
+    node: <div className="text-2xl font-bold text-slate-700">Netflix</div>,
     alt: 'Netflix',
-    title: 'Netflix',
-    href: 'https://netflix.com'
+    title: 'Netflix'
   },
   {
-    src: 'https://logo.clearbit.com/tesla.com',
+    node: <div className="text-2xl font-bold text-slate-700">Tesla</div>,
     alt: 'Tesla',
-    title: 'Tesla',
-    href: 'https://tesla.com'
+    title: 'Tesla'
   },
   {
-    src: 'https://logo.clearbit.com/spotify.com',
+    node: <div className="text-2xl font-bold text-slate-700">Spotify</div>,
     alt: 'Spotify',
-    title: 'Spotify',
-    href: 'https://spotify.com'
+    title: 'Spotify'
   },
   {
-    src: 'https://logo.clearbit.com/airbnb.com',
+    node: <div className="text-2xl font-bold text-slate-700">Airbnb</div>,
     alt: 'Airbnb',
-    title: 'Airbnb',
-    href: 'https://airbnb.com'
+    title: 'Airbnb'
   },
   {
-    src: 'https://logo.clearbit.com/uber.com',
+    node: <div className="text-2xl font-bold text-slate-700">Uber</div>,
     alt: 'Uber',
-    title: 'Uber',
-    href: 'https://uber.com'
+    title: 'Uber'
   },
   {
-    src: 'https://logo.clearbit.com/stripe.com',
+    node: <div className="text-2xl font-bold text-slate-700">Stripe</div>,
     alt: 'Stripe',
-    title: 'Stripe',
-    href: 'https://stripe.com'
+    title: 'Stripe'
   },
   {
-    src: 'https://logo.clearbit.com/shopify.com',
+    node: <div className="text-2xl font-bold text-slate-700">Shopify</div>,
     alt: 'Shopify',
-    title: 'Shopify',
-    href: 'https://shopify.com'
+    title: 'Shopify'
   },
   {
-    src: 'https://logo.clearbit.com/adobe.com',
+    node: <div className="text-2xl font-bold text-slate-700">Adobe</div>,
     alt: 'Adobe',
-    title: 'Adobe',
-    href: 'https://adobe.com'
+    title: 'Adobe'
   },
   {
-    src: 'https://logo.clearbit.com/salesforce.com',
+    node: <div className="text-2xl font-bold text-slate-700">Salesforce</div>,
     alt: 'Salesforce',
-    title: 'Salesforce',
-    href: 'https://salesforce.com'
+    title: 'Salesforce'
   },
   {
-    src: 'https://logo.clearbit.com/nike.com',
+    node: <div className="text-2xl font-bold text-slate-700">Nike</div>,
     alt: 'Nike',
-    title: 'Nike',
-    href: 'https://nike.com'
+    title: 'Nike'
   },
   {
-    src: 'https://logo.clearbit.com/cocacola.com',
+    node: <div className="text-2xl font-bold text-slate-700">Coca-Cola</div>,
     alt: 'Coca-Cola',
-    title: 'Coca-Cola',
-    href: 'https://cocacola.com'
+    title: 'Coca-Cola'
   }
 ];
 
