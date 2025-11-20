@@ -124,7 +124,7 @@ const useAnimationLoop = (
 };
 
 interface LogoItem {
-  src: string;
+  src?: string;
   srcSet?: string;
   sizes?: string;
   width?: number;
@@ -133,6 +133,7 @@ interface LogoItem {
   title?: string;
   href?: string;
   ariaLabel?: string;
+  node?: React.ReactNode;
 }
 
 interface LogoLoopProps {
@@ -271,7 +272,10 @@ export const LogoLoop = memo<LogoLoopProps>(
             </li>
           );
         }
-        const content = (
+
+        const content = item.node ? (
+          <div className="logoloop__node">{item.node}</div>
+        ) : (
           <img
             src={item.src}
             srcSet={item.srcSet}
@@ -285,6 +289,7 @@ export const LogoLoop = memo<LogoLoopProps>(
             draggable={false}
           />
         );
+
         const itemAriaLabel = item.ariaLabel ?? item.alt ?? item.title;
         const itemContent = item.href ? (
           <a

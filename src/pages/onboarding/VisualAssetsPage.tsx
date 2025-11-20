@@ -84,19 +84,36 @@ export default function VisualAssetsPage() {
   };
 
   const handleContinue = () => {
-    if (!logo || productImages.length < 4) {
-      alert('Please upload a logo and at least 4 product images');
-      return;
-    }
-
     const currentUserEmail = localStorage.getItem('currentUser');
     if (!currentUserEmail) return;
 
     const users = JSON.parse(localStorage.getItem('users') || '{}');
+    if (!users[currentUserEmail].brandProfile) {
+      users[currentUserEmail].brandProfile = {};
+    }
     users[currentUserEmail].brandProfile = {
       ...users[currentUserEmail].brandProfile,
       logo,
       productImages,
+      brandColors
+    };
+    localStorage.setItem('users', JSON.stringify(users));
+
+    navigate('/onboarding/content-selection');
+  };
+
+  const handleSkip = () => {
+    const currentUserEmail = localStorage.getItem('currentUser');
+    if (!currentUserEmail) return;
+
+    const users = JSON.parse(localStorage.getItem('users') || '{}');
+    if (!users[currentUserEmail].brandProfile) {
+      users[currentUserEmail].brandProfile = {};
+    }
+    users[currentUserEmail].brandProfile = {
+      ...users[currentUserEmail].brandProfile,
+      logo: null,
+      productImages: [],
       brandColors
     };
     localStorage.setItem('users', JSON.stringify(users));
@@ -269,6 +286,11 @@ export default function VisualAssetsPage() {
           </div>
 
           <div className="mt-8 pt-6 border-t border-slate-200">
+            <p className="text-sm text-slate-500 mb-4">
+              {!logo || productImages.length < 4
+                ? 'Upload assets now or skip and add them later from your dashboard'
+                : 'All required assets uploaded! You can continue.'}
+            </p>
             <div className="flex gap-4">
               <button
                 onClick={() => navigate('/onboarding/brand-details')}
@@ -276,9 +298,17 @@ export default function VisualAssetsPage() {
               >
                 Back
               </button>
+              {(!logo || productImages.length < 4) && (
+                <button
+                  onClick={handleSkip}
+                  className="px-6 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition-all text-slate-600"
+                >
+                  Skip for Now
+                </button>
+              )}
               <button
                 onClick={handleContinue}
-                disabled={!logo || productImages.length < 4}
+                disabled={!logo && productImages.length === 0}
                 className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 Continue →

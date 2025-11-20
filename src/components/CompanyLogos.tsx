@@ -5,62 +5,98 @@ const companyLogos = [
   {
     src: 'https://logo.clearbit.com/google.com',
     alt: 'Google',
-    title: 'Google'
+    title: 'Google',
+    href: 'https://google.com'
   },
   {
     src: 'https://logo.clearbit.com/microsoft.com',
     alt: 'Microsoft',
-    title: 'Microsoft'
+    title: 'Microsoft',
+    href: 'https://microsoft.com'
   },
   {
     src: 'https://logo.clearbit.com/apple.com',
     alt: 'Apple',
-    title: 'Apple'
+    title: 'Apple',
+    href: 'https://apple.com'
   },
   {
     src: 'https://logo.clearbit.com/amazon.com',
     alt: 'Amazon',
-    title: 'Amazon'
+    title: 'Amazon',
+    href: 'https://amazon.com'
   },
   {
     src: 'https://logo.clearbit.com/meta.com',
     alt: 'Meta',
-    title: 'Meta'
+    title: 'Meta',
+    href: 'https://meta.com'
   },
   {
     src: 'https://logo.clearbit.com/netflix.com',
     alt: 'Netflix',
-    title: 'Netflix'
+    title: 'Netflix',
+    href: 'https://netflix.com'
   },
   {
     src: 'https://logo.clearbit.com/tesla.com',
     alt: 'Tesla',
-    title: 'Tesla'
+    title: 'Tesla',
+    href: 'https://tesla.com'
   },
   {
     src: 'https://logo.clearbit.com/spotify.com',
     alt: 'Spotify',
-    title: 'Spotify'
+    title: 'Spotify',
+    href: 'https://spotify.com'
   },
   {
     src: 'https://logo.clearbit.com/airbnb.com',
     alt: 'Airbnb',
-    title: 'Airbnb'
+    title: 'Airbnb',
+    href: 'https://airbnb.com'
   },
   {
     src: 'https://logo.clearbit.com/uber.com',
     alt: 'Uber',
-    title: 'Uber'
+    title: 'Uber',
+    href: 'https://uber.com'
   },
   {
     src: 'https://logo.clearbit.com/stripe.com',
     alt: 'Stripe',
-    title: 'Stripe'
+    title: 'Stripe',
+    href: 'https://stripe.com'
   },
   {
     src: 'https://logo.clearbit.com/shopify.com',
     alt: 'Shopify',
-    title: 'Shopify'
+    title: 'Shopify',
+    href: 'https://shopify.com'
+  },
+  {
+    src: 'https://logo.clearbit.com/adobe.com',
+    alt: 'Adobe',
+    title: 'Adobe',
+    href: 'https://adobe.com'
+  },
+  {
+    src: 'https://logo.clearbit.com/salesforce.com',
+    alt: 'Salesforce',
+    title: 'Salesforce',
+    href: 'https://salesforce.com'
+  },
+  {
+    src: 'https://logo.clearbit.com/nike.com',
+    alt: 'Nike',
+    title: 'Nike',
+    href: 'https://nike.com'
+  },
+  {
+    src: 'https://logo.clearbit.com/cocacola.com',
+    alt: 'Coca-Cola',
+    title: 'Coca-Cola',
+    href: 'https://cocacola.com'
   }
 ];
 
@@ -89,18 +125,18 @@ export default function CompanyLogos() {
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.2 }}
           className="relative py-8"
-          style={{ minHeight: '80px' }}
+          style={{ minHeight: '100px' }}
         >
           <LogoLoop
             logos={companyLogos}
-            speed={50}
+            speed={80}
             direction="left"
-            logoHeight={50}
-            gap={80}
-            pauseOnHover={true}
+            logoHeight={48}
+            gap={64}
+            hoverSpeed={0}
+            scaleOnHover={true}
             fadeOut={true}
             fadeOutColor="rgb(248, 250, 252)"
-            scaleOnHover={true}
             ariaLabel="Companies on our early join list"
           />
         </motion.div>
