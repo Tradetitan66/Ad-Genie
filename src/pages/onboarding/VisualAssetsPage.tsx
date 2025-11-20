@@ -88,6 +88,9 @@ export default function VisualAssetsPage() {
     if (!currentUserEmail) return;
 
     const users = JSON.parse(localStorage.getItem('users') || '{}');
+    if (!users[currentUserEmail]) {
+      users[currentUserEmail] = {};
+    }
     if (!users[currentUserEmail].brandProfile) {
       users[currentUserEmail].brandProfile = {};
     }
@@ -107,6 +110,9 @@ export default function VisualAssetsPage() {
     if (!currentUserEmail) return;
 
     const users = JSON.parse(localStorage.getItem('users') || '{}');
+    if (!users[currentUserEmail]) {
+      users[currentUserEmail] = {};
+    }
     if (!users[currentUserEmail].brandProfile) {
       users[currentUserEmail].brandProfile = {};
     }
