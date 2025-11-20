@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { X, Mail, Lock, User, Check, AlertCircle } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import { validatePassword } from '../utils/passwordValidation';
 
 interface SignupProps {
@@ -10,6 +11,8 @@ interface SignupProps {
 }
 
 export default function Signup({ onClose, onSwitchToLogin }: SignupProps) {
+  const navigate = useNavigate();
+  const { signUp } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,21 +29,11 @@ export default function Signup({ onClose, onSwitchToLogin }: SignupProps) {
     setError('');
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: name,
-          },
-        },
-      });
-
-      if (error) throw error;
-
+      await signUp(email, password, name);
       setSuccess(true);
       setTimeout(() => {
         onClose();
+        navigate('/onboarding/welcome');
       }, 2000);
     } catch (err: any) {
       setError(err.message || 'Failed to sign up');
