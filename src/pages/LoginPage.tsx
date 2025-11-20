@@ -61,9 +61,10 @@ export default function LoginPage() {
       } else {
         navigate('/onboarding/welcome');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Login error:', err);
-      showError('Failed to login. Please try again.');
+      const errorMessage = err?.message || 'Failed to login. Please try again.';
+      showError(`Login failed: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
