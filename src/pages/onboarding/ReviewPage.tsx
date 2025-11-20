@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Edit2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit2, Loader2 } from 'lucide-react';
+import OnboardingLayout from '../../components/OnboardingLayout';
+import { userService, preferencesService, brandProfileService } from '../../services/database';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function ReviewPage() {
   const navigate = useNavigate();
+  const { success, error } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [userId, setUserId] = useState('');
   const [userData, setUserData] = useState<any>(null);
   const [expandedSections, setExpandedSections] = useState({
     preferences: true,
@@ -14,16 +21,61 @@ export default function ReviewPage() {
   });
 
   useEffect(() => {
-    const currentUserEmail = localStorage.getItem('currentUser');
-    if (!currentUserEmail) {
-      navigate('/login');
-      return;
-    }
+    loadData();
+  }, []);
 
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    const user = users[currentUserEmail];
-    setUserData(user);
-  }, [navigate]);
+  const loadData = async () => {
+    try {
+      const currentUserEmail = localStorage.getItem('currentUser');
+      if (!currentUserEmail) {
+        navigate('/login');
+        return;
+      }
+
+      const user = await userService.getByEmail(currentUserEmail);
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+
+      setUserId(user.id);
+
+      const [preferences, brandProfile] = await Promise.all([
+        preferencesService.getByUserId(user.id),
+        brandProfileService.getByUserId(user.id)
+      ]);
+
+      const contentType = localStorage.getItem('selectedContentType');
+
+      setUserData({
+        email: user.email,
+        displayName: user.display_name,
+        preferences: preferences ? {
+          campaignGoal: preferences.campaign_goal,
+          brandVoice: preferences.brand_voice,
+          visualStyles: preferences.visual_styles,
+          campaignTiming: preferences.campaign_timing,
+          seasonalEvents: preferences.seasonal_events
+        } : null,
+        brandProfile: brandProfile ? {
+          brandName: brandProfile.brand_name,
+          industry: brandProfile.industry,
+          audience: brandProfile.audience,
+          websiteUrl: brandProfile.website_url,
+          contactEmail: brandProfile.contact_email,
+          logo: brandProfile.logo,
+          productImages: brandProfile.product_images || [],
+          brandColors: brandProfile.brand_colors
+        } : null,
+        contentType
+      });
+    } catch (err) {
+      console.error('Error loading review data:', err);
+      error('Failed to load data for review');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections({
@@ -32,39 +84,52 @@ export default function ReviewPage() {
     });
   };
 
-  const handleGenerate = () => {
-    const currentUserEmail = localStorage.getItem('currentUser');
-    if (!currentUserEmail) return;
+  const handleGenerate = async () => {
+    if (!userId) return;
 
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    users[currentUserEmail].hasCompletedOnboarding = true;
-    localStorage.setItem('users', JSON.stringify(users));
+    setGenerating(true);
+    try {
+      await userService.update(userId, {
+        has_completed_onboarding: true
+      });
 
-    navigate('/dashboard/generating');
+      success('Launching campaign generation!');
+      navigate('/dashboard/generating');
+    } catch (err) {
+      console.error('Error updating onboarding status:', err);
+      error('Failed to start generation. Please try again.');
+      setGenerating(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <OnboardingLayout currentStep={6} totalSteps={6} stepLabel="Loading review...">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 text-[#2563EB] animate-spin mx-auto mb-4" />
+            <p className="text-slate-600">Loading...</p>
+          </div>
+        </div>
+      </OnboardingLayout>
+    );
+  }
 
   if (!userData) return null;
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-lg shadow-lg p-8"
-        >
-          <div className="mb-8">
-            <div className="flex items-center gap-2 text-sm text-slate-600 mb-4">
-              <div className="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden">
-                <div className="bg-[#2563EB] h-full w-full rounded-full transition-all"></div>
-              </div>
-              <span className="font-semibold">Step 6 of 6</span>
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">
-              Review & Launch Your First Campaign
-            </h1>
-            <p className="text-slate-600">Almost done! Review your information below</p>
-          </div>
+    <OnboardingLayout currentStep={6} totalSteps={6} stepLabel="Review and launch">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-lg shadow-lg p-8"
+      >
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            Review & Launch Your First Campaign
+          </h1>
+          <p className="text-slate-600">Almost done! Review your information below</p>
+        </div>
 
           <div className="space-y-4 mb-8">
             <div className="border border-slate-200 rounded-lg overflow-hidden">
@@ -223,13 +288,13 @@ export default function ReviewPage() {
           <div className="flex gap-4">
             <button
               onClick={handleGenerate}
-              className="flex-1 px-8 py-4 bg-[#2563EB] text-white font-bold rounded-lg shadow-lg hover:bg-[#1d4ed8] transition-all text-lg"
+              disabled={generating}
+              className="flex-1 px-8 py-4 bg-[#2563EB] text-white font-bold rounded-lg shadow-lg hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all text-lg"
             >
-              Generate Campaign Assets
+              {generating ? 'Launching...' : 'Generate Campaign Assets'}
             </button>
           </div>
-        </motion.div>
-      </div>
-    </div>
+      </motion.div>
+    </OnboardingLayout>
   );
 }

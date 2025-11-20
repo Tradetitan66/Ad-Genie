@@ -1,10 +1,18 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, Loader2 } from 'lucide-react';
+import OnboardingLayout from '../../components/OnboardingLayout';
+import { userService, brandProfileService } from '../../services/database';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function VisualAssetsPage() {
   const navigate = useNavigate();
+  const { success, error } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [userId, setUserId] = useState('');
+  const [brandProfileId, setBrandProfileId] = useState<string | null>(null);
   const [logo, setLogo] = useState<string | null>(null);
   const [productImages, setProductImages] = useState<string[]>([]);
   const [brandColors, setBrandColors] = useState({
@@ -15,11 +23,49 @@ export default function VisualAssetsPage() {
   const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
-    const currentUserEmail = localStorage.getItem('currentUser');
-    if (!currentUserEmail) {
-      navigate('/login');
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const currentUserEmail = localStorage.getItem('currentUser');
+      if (!currentUserEmail) {
+        navigate('/login');
+        return;
+      }
+
+      const user = await userService.getByEmail(currentUserEmail);
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+
+      setUserId(user.id);
+
+      const existingProfile = await brandProfileService.getByUserId(user.id);
+      if (existingProfile) {
+        setBrandProfileId(existingProfile.id);
+        if (existingProfile.logo) {
+          setLogo(existingProfile.logo);
+        }
+        if (existingProfile.product_images && Array.isArray(existingProfile.product_images)) {
+          setProductImages(existingProfile.product_images);
+        }
+        if (existingProfile.brand_colors) {
+          setBrandColors({
+            primary: existingProfile.brand_colors.primary || '#2563EB',
+            secondary: existingProfile.brand_colors.secondary || '',
+            accent: existingProfile.brand_colors.accent || ''
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error loading visual assets:', err);
+      error('Failed to load visual assets');
+    } finally {
+      setLoading(false);
     }
-  }, [navigate]);
+  };
 
   const handleFileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -83,69 +129,78 @@ export default function VisualAssetsPage() {
     }
   };
 
-  const handleContinue = () => {
-    const currentUserEmail = localStorage.getItem('currentUser');
-    if (!currentUserEmail) return;
-
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    if (!users[currentUserEmail]) {
-      users[currentUserEmail] = {};
+  const handleContinue = async () => {
+    if (!brandProfileId) {
+      error('Brand profile not found. Please complete previous steps.');
+      return;
     }
-    if (!users[currentUserEmail].brandProfile) {
-      users[currentUserEmail].brandProfile = {};
-    }
-    users[currentUserEmail].brandProfile = {
-      ...users[currentUserEmail].brandProfile,
-      logo,
-      productImages,
-      brandColors
-    };
-    localStorage.setItem('users', JSON.stringify(users));
 
-    navigate('/onboarding/content-selection');
+    setSaving(true);
+    try {
+      await brandProfileService.update(brandProfileId, {
+        logo,
+        product_images: productImages,
+        brand_colors: brandColors
+      });
+
+      success('Visual assets saved!');
+      navigate('/onboarding/content-selection');
+    } catch (err) {
+      console.error('Error saving visual assets:', err);
+      error('Failed to save visual assets. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleSkip = () => {
-    const currentUserEmail = localStorage.getItem('currentUser');
-    if (!currentUserEmail) return;
-
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    if (!users[currentUserEmail]) {
-      users[currentUserEmail] = {};
+  const handleSkip = async () => {
+    if (!brandProfileId) {
+      navigate('/onboarding/content-selection');
+      return;
     }
-    if (!users[currentUserEmail].brandProfile) {
-      users[currentUserEmail].brandProfile = {};
-    }
-    users[currentUserEmail].brandProfile = {
-      ...users[currentUserEmail].brandProfile,
-      logo: null,
-      productImages: [],
-      brandColors
-    };
-    localStorage.setItem('users', JSON.stringify(users));
 
-    navigate('/onboarding/content-selection');
+    setSaving(true);
+    try {
+      await brandProfileService.update(brandProfileId, {
+        logo: null,
+        product_images: [],
+        brand_colors: brandColors
+      });
+
+      navigate('/onboarding/content-selection');
+    } catch (err) {
+      console.error('Error skipping visual assets:', err);
+      navigate('/onboarding/content-selection');
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <OnboardingLayout currentStep={4} totalSteps={6} stepLabel="Loading visual assets...">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 text-[#2563EB] animate-spin mx-auto mb-4" />
+            <p className="text-slate-600">Loading...</p>
+          </div>
+        </div>
+      </OnboardingLayout>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] py-8 px-4">
-      <div className="max-w-3xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-lg shadow-lg p-8"
-        >
-          <div className="mb-8">
-            <div className="flex items-center gap-2 text-sm text-slate-600 mb-4">
-              <div className="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden">
-                <div className="bg-[#2563EB] h-full w-4/6 rounded-full transition-all"></div>
-              </div>
-              <span className="font-semibold">Step 4 of 6</span>
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">
-              Upload Your Brand Assets
-            </h1>
-          </div>
+    <OnboardingLayout currentStep={4} totalSteps={6} stepLabel="Upload your brand assets">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-lg shadow-lg p-8"
+      >
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            Upload Your Brand Assets
+          </h1>
+        </div>
 
           <div className="space-y-8">
             <div>
@@ -307,22 +362,22 @@ export default function VisualAssetsPage() {
               {(!logo || productImages.length < 4) && (
                 <button
                   onClick={handleSkip}
-                  className="px-6 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition-all text-slate-600"
+                  disabled={saving}
+                  className="px-6 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-slate-600"
                 >
                   Skip for Now
                 </button>
               )}
               <button
                 onClick={handleContinue}
-                disabled={!logo && productImages.length === 0}
+                disabled={(!logo && productImages.length === 0) || saving}
                 className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                Continue →
+                {saving ? 'Saving...' : 'Continue →'}
               </button>
             </div>
           </div>
-        </motion.div>
-      </div>
-    </div>
+      </motion.div>
+    </OnboardingLayout>
   );
 }

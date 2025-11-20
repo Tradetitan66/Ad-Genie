@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
+import OnboardingLayout from '../../components/OnboardingLayout';
+import { userService, brandProfileService } from '../../services/database';
+import { useToast } from '../../contexts/ToastContext';
 
 const industries = [
   'E-commerce', 'Fashion & Apparel', 'Technology & Software', 'Food & Beverage',
@@ -11,6 +15,11 @@ const industries = [
 
 export default function BrandDetailsPage() {
   const navigate = useNavigate();
+  const { success, error } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [userId, setUserId] = useState('');
+  const [brandProfileId, setBrandProfileId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     brandName: '',
     industry: '',
@@ -26,21 +35,48 @@ export default function BrandDetailsPage() {
   });
 
   useEffect(() => {
-    const currentUserEmail = localStorage.getItem('currentUser');
-    if (!currentUserEmail) {
-      navigate('/login');
-      return;
-    }
+    loadData();
+  }, []);
 
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    const user = users[currentUserEmail];
-    if (user) {
-      setFormData(prev => ({
-        ...prev,
-        contactEmail: user.email
-      }));
+  const loadData = async () => {
+    try {
+      const currentUserEmail = localStorage.getItem('currentUser');
+      if (!currentUserEmail) {
+        navigate('/login');
+        return;
+      }
+
+      const user = await userService.getByEmail(currentUserEmail);
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+
+      setUserId(user.id);
+
+      const existingProfile = await brandProfileService.getByUserId(user.id);
+      if (existingProfile) {
+        setBrandProfileId(existingProfile.id);
+        setFormData({
+          brandName: existingProfile.brand_name,
+          industry: existingProfile.industry,
+          audience: existingProfile.audience || '',
+          websiteUrl: existingProfile.website_url,
+          contactEmail: existingProfile.contact_email
+        });
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          contactEmail: user.email || currentUserEmail
+        }));
+      }
+    } catch (err) {
+      console.error('Error loading brand details:', err);
+      error('Failed to load brand details');
+    } finally {
+      setLoading(false);
     }
-  }, [navigate]);
+  };
 
   const validateUrl = (url: string) => {
     try {
@@ -56,7 +92,7 @@ export default function BrandDetailsPage() {
     return re.test(email);
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     const newErrors = {
       brandName: '',
       industry: '',
@@ -89,41 +125,64 @@ export default function BrandDetailsPage() {
       return;
     }
 
-    const currentUserEmail = localStorage.getItem('currentUser');
-    if (!currentUserEmail) return;
+    if (!userId) return;
 
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    if (!users[currentUserEmail].brandProfile) {
-      users[currentUserEmail].brandProfile = {};
+    setSaving(true);
+    try {
+      if (brandProfileId) {
+        await brandProfileService.update(brandProfileId, {
+          brand_name: formData.brandName,
+          industry: formData.industry,
+          audience: formData.audience,
+          website_url: formData.websiteUrl,
+          contact_email: formData.contactEmail
+        });
+      } else {
+        await brandProfileService.create({
+          user_id: userId,
+          brand_name: formData.brandName,
+          industry: formData.industry,
+          audience: formData.audience,
+          website_url: formData.websiteUrl,
+          contact_email: formData.contactEmail
+        });
+      }
+
+      success('Brand details saved!');
+      navigate('/onboarding/visual-assets');
+    } catch (err) {
+      console.error('Error saving brand details:', err);
+      error('Failed to save brand details. Please try again.');
+    } finally {
+      setSaving(false);
     }
-    users[currentUserEmail].brandProfile = {
-      ...users[currentUserEmail].brandProfile,
-      ...formData
-    };
-    localStorage.setItem('users', JSON.stringify(users));
-
-    navigate('/onboarding/visual-assets');
   };
 
-  return (
-    <div className="min-h-screen bg-[#F9FAFB] py-8 px-4">
-      <div className="max-w-3xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-lg shadow-lg p-8"
-        >
-          <div className="mb-8">
-            <div className="flex items-center gap-2 text-sm text-slate-600 mb-4">
-              <div className="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden">
-                <div className="bg-[#2563EB] h-full w-3/6 rounded-full transition-all"></div>
-              </div>
-              <span className="font-semibold">Step 3 of 6</span>
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">
-              Tell Us About Your Brand
-            </h1>
+  if (loading) {
+    return (
+      <OnboardingLayout currentStep={3} totalSteps={6} stepLabel="Loading brand details...">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 text-[#2563EB] animate-spin mx-auto mb-4" />
+            <p className="text-slate-600">Loading...</p>
           </div>
+        </div>
+      </OnboardingLayout>
+    );
+  }
+
+  return (
+    <OnboardingLayout currentStep={3} totalSteps={6} stepLabel="Tell us about your brand">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-lg shadow-lg p-8"
+      >
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            Tell Us About Your Brand
+          </h1>
+        </div>
 
           <div className="space-y-6">
             <div>
@@ -240,14 +299,14 @@ export default function BrandDetailsPage() {
               </button>
               <button
                 onClick={handleContinue}
-                className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] transition-all"
+                disabled={saving}
+                className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                Continue →
+                {saving ? 'Saving...' : 'Continue →'}
               </button>
             </div>
           </div>
-        </motion.div>
-      </div>
-    </div>
+      </motion.div>
+    </OnboardingLayout>
   );
 }

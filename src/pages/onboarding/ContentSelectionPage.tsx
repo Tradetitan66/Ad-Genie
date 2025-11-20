@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Image, Video, Sparkles } from 'lucide-react';
+import { Image, Video, Sparkles, Loader2 } from 'lucide-react';
+import OnboardingLayout from '../../components/OnboardingLayout';
+import { useToast } from '../../contexts/ToastContext';
 
 const contentTypes = [
   {
@@ -33,48 +35,62 @@ const contentTypes = [
 
 export default function ContentSelectionPage() {
   const navigate = useNavigate();
+  const { success, error } = useToast();
+  const [loading, setLoading] = useState(true);
   const [selectedType, setSelectedType] = useState<string>('');
 
   useEffect(() => {
-    const currentUserEmail = localStorage.getItem('currentUser');
-    if (!currentUserEmail) {
-      navigate('/login');
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const currentUserEmail = localStorage.getItem('currentUser');
+      if (!currentUserEmail) {
+        navigate('/login');
+        return;
+      }
+    } catch (err) {
+      console.error('Error checking auth:', err);
+    } finally {
+      setLoading(false);
     }
-  }, [navigate]);
+  };
 
   const handleContinue = () => {
     if (!selectedType) return;
 
-    const currentUserEmail = localStorage.getItem('currentUser');
-    if (!currentUserEmail) return;
-
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    users[currentUserEmail].contentType = selectedType;
-    localStorage.setItem('users', JSON.stringify(users));
-
+    localStorage.setItem('selectedContentType', selectedType);
+    success('Content type selected!');
     navigate('/onboarding/review');
   };
 
-  return (
-    <div className="min-h-screen bg-[#F9FAFB] py-8 px-4">
-      <div className="max-w-5xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-lg shadow-lg p-8"
-        >
-          <div className="mb-8">
-            <div className="flex items-center gap-2 text-sm text-slate-600 mb-4">
-              <div className="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden">
-                <div className="bg-[#2563EB] h-full w-5/6 rounded-full transition-all"></div>
-              </div>
-              <span className="font-semibold">Step 5 of 6</span>
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">
-              Choose Your Content Type
-            </h1>
-            <p className="text-slate-600">Based on your preferences, we recommend Images + UGC</p>
+  if (loading) {
+    return (
+      <OnboardingLayout currentStep={5} totalSteps={6} stepLabel="Loading content selection...">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 text-[#2563EB] animate-spin mx-auto mb-4" />
+            <p className="text-slate-600">Loading...</p>
           </div>
+        </div>
+      </OnboardingLayout>
+    );
+  }
+
+  return (
+    <OnboardingLayout currentStep={5} totalSteps={6} stepLabel="Choose your content type">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-lg shadow-lg p-8"
+      >
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            Choose Your Content Type
+          </h1>
+          <p className="text-slate-600">Based on your preferences, we recommend Images + UGC</p>
+        </div>
 
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             {contentTypes.map((type) => {
@@ -144,8 +160,7 @@ export default function ContentSelectionPage() {
               </button>
             </div>
           </div>
-        </motion.div>
-      </div>
-    </div>
+      </motion.div>
+    </OnboardingLayout>
   );
 }
