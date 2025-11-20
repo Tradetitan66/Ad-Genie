@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Save } from 'lucide-react';
+import { Save, Loader2 } from 'lucide-react';
+import OnboardingLayout from '../../components/OnboardingLayout';
+import { userService, preferencesService } from '../../services/database';
+import { useToast } from '../../contexts/ToastContext';
 
 const brandVoices = ['Professional', 'Casual', 'Playful', 'Authoritative', 'Inspirational'];
 const visualStyles = ['Minimalist', 'Bold', 'Elegant', 'Vintage', 'Modern', 'Colorful'];
@@ -24,7 +27,10 @@ const internationalEvents = [
 
 export default function PreferencesPage() {
   const navigate = useNavigate();
+  const { success, error } = useToast();
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState('');
   const [formData, setFormData] = useState({
     campaignGoal: '',
     brandVoice: '',
@@ -38,11 +44,43 @@ export default function PreferencesPage() {
   });
 
   useEffect(() => {
-    const currentUserEmail = localStorage.getItem('currentUser');
-    if (!currentUserEmail) {
-      navigate('/login');
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const currentUserEmail = localStorage.getItem('currentUser');
+      if (!currentUserEmail) {
+        navigate('/login');
+        return;
+      }
+
+      const user = await userService.getByEmail(currentUserEmail);
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+
+      setUserId(user.id);
+
+      const existingPreferences = await preferencesService.getByUserId(user.id);
+      if (existingPreferences) {
+        setFormData({
+          campaignGoal: existingPreferences.campaign_goal || '',
+          brandVoice: existingPreferences.brand_voice || '',
+          visualStyles: existingPreferences.visual_styles || [],
+          campaignTiming: existingPreferences.campaign_timing || '',
+          seasonalEvents: existingPreferences.seasonal_events || { local: [], international: [] },
+          enableAutoSuggestions: existingPreferences.enable_auto_suggestions
+        });
+      }
+    } catch (err) {
+      console.error('Error loading preferences:', err);
+      error('Failed to load preferences');
+    } finally {
+      setLoading(false);
     }
-  }, [navigate]);
+  };
 
   const handleVisualStyleToggle = (style: string) => {
     if (formData.visualStyles.includes(style)) {
@@ -79,18 +117,29 @@ export default function PreferencesPage() {
     }
   };
 
-  const handleContinue = () => {
-    const currentUserEmail = localStorage.getItem('currentUser');
-    if (!currentUserEmail) return;
-
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    users[currentUserEmail].preferences = formData;
-    localStorage.setItem('users', JSON.stringify(users));
+  const handleContinue = async () => {
+    if (!userId) return;
 
     setSaving(true);
-    setTimeout(() => {
+    try {
+      await preferencesService.upsert({
+        user_id: userId,
+        campaign_goal: formData.campaignGoal,
+        brand_voice: formData.brandVoice,
+        visual_styles: formData.visualStyles,
+        campaign_timing: formData.campaignTiming,
+        seasonal_events: formData.seasonalEvents,
+        enable_auto_suggestions: formData.enableAutoSuggestions
+      });
+
+      success('Preferences saved!');
       navigate('/onboarding/brand-details');
-    }, 500);
+    } catch (err) {
+      console.error('Error saving preferences:', err);
+      error('Failed to save preferences. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const isFormValid = () => {
@@ -103,26 +152,32 @@ export default function PreferencesPage() {
     );
   };
 
-  return (
-    <div className="min-h-screen bg-[#F9FAFB] py-8 px-4">
-      <div className="max-w-3xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-lg shadow-lg p-8"
-        >
-          <div className="mb-8">
-            <div className="flex items-center gap-2 text-sm text-slate-600 mb-4">
-              <div className="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden">
-                <div className="bg-[#2563EB] h-full w-2/6 rounded-full transition-all"></div>
-              </div>
-              <span className="font-semibold">Step 2 of 6</span>
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">
-              Let's Personalize Your Experience
-            </h1>
-            <p className="text-slate-600">Tell us about your creative preferences</p>
+  if (loading) {
+    return (
+      <OnboardingLayout currentStep={2} totalSteps={6} stepLabel="Loading preferences...">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 text-[#2563EB] animate-spin mx-auto mb-4" />
+            <p className="text-slate-600">Loading...</p>
           </div>
+        </div>
+      </OnboardingLayout>
+    );
+  }
+
+  return (
+    <OnboardingLayout currentStep={2} totalSteps={6} stepLabel="Let's personalize your experience">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-lg shadow-lg p-8"
+      >
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            Let's Personalize Your Experience
+          </h1>
+          <p className="text-slate-600">Tell us about your creative preferences</p>
+        </div>
 
           <div className="space-y-8">
             <div>
@@ -278,8 +333,7 @@ export default function PreferencesPage() {
               </button>
             </div>
           </div>
-        </motion.div>
-      </div>
-    </div>
+      </motion.div>
+    </OnboardingLayout>
   );
 }
