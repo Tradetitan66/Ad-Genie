@@ -6,6 +6,7 @@ import Features from '../components/Features';
 import Audience from '../components/Audience';
 import FAQ from '../components/FAQ';
 import FinalCTA from '../components/FinalCTA';
+import CompanyLogos from '../components/CompanyLogos';
 import Footer from '../components/Footer';
 import CursorTrail from '../components/CursorTrail';
 
@@ -26,6 +27,7 @@ export default function LandingPage() {
       <Audience />
       <FAQ />
       <FinalCTA />
+      <CompanyLogos />
       <Footer />
     </div>
   );
