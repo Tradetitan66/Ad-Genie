@@ -152,6 +152,8 @@ export const brandProfileService = {
       .upsert({
         ...profile,
         updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id'
       })
       .select()
       .single();
@@ -202,6 +204,8 @@ export const preferencesService = {
       .upsert({
         ...preferences,
         updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id'
       })
       .select()
       .single();
