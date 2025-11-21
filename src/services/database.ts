@@ -82,7 +82,19 @@ export const userService = {
     return data;
   },
 
-  async update(email: string, updates: Partial<UserData>): Promise<UserData> {
+  async update(userId: string, updates: Partial<UserData>): Promise<UserData> {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateByEmail(email: string, updates: Partial<UserData>): Promise<UserData> {
     const { data, error } = await supabase
       .from('users')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -95,7 +107,7 @@ export const userService = {
   },
 
   async completeOnboarding(email: string): Promise<UserData> {
-    return this.update(email, { has_completed_onboarding: true });
+    return this.updateByEmail(email, { has_completed_onboarding: true });
   },
 };
 
