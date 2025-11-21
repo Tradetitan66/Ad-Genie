@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Upload, X, Loader2 } from 'lucide-react';
 import OnboardingLayout from '../../components/OnboardingLayout';
 import { userService, brandProfileService } from '../../services/database';
+import { imageService } from '../../services/imageService';
 import { useToast } from '../../contexts/ToastContext';
 
 export default function VisualAssetsPage() {
@@ -11,6 +12,8 @@ export default function VisualAssetsPage() {
   const { success, error } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [processingCount, setProcessingCount] = useState(0);
   const [userId, setUserId] = useState('');
   const [brandProfileId, setBrandProfileId] = useState<string | null>(null);
   const [logo, setLogo] = useState<string | null>(null);
@@ -67,42 +70,86 @@ export default function VisualAssetsPage() {
     }
   };
 
-  const handleFileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
-    });
-  };
-
   const handleLogoUpload = async (file: File) => {
     if (file.size > 5 * 1024 * 1024) {
-      alert('Logo file size must be less than 5MB');
+      error('Logo file size must be less than 5MB');
       return;
     }
 
-    const base64 = await handleFileToBase64(file);
-    setLogo(base64);
+    if (!userId) {
+      error('User not found');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const url = await imageService.uploadToStorage(userId, file, 'logo', false);
+      setLogo(url);
+      success('Logo uploaded successfully!');
+    } catch (err) {
+      console.error('Error uploading logo:', err);
+      error('Failed to upload logo. Please try again.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleProductImagesUpload = async (files: FileList) => {
-    const newImages: string[] = [];
+    if (!userId) {
+      error('User not found');
+      return;
+    }
+
+    const filesToProcess: File[] = [];
 
     for (let i = 0; i < files.length; i++) {
-      if (productImages.length + newImages.length >= 6) break;
+      if (productImages.length + filesToProcess.length >= 6) break;
 
       const file = files[i];
       if (file.size > 10 * 1024 * 1024) {
-        alert(`File ${file.name} is too large. Max size is 10MB`);
+        error(`File ${file.name} is too large. Max size is 10MB`);
         continue;
       }
 
-      const base64 = await handleFileToBase64(file);
-      newImages.push(base64);
+      filesToProcess.push(file);
     }
 
-    setProductImages([...productImages, ...newImages]);
+    if (filesToProcess.length === 0) return;
+
+    setUploading(true);
+    setProcessingCount(filesToProcess.length);
+
+    try {
+      const uploadPromises = filesToProcess.map(async (file, index) => {
+        try {
+          const url = await imageService.uploadToStorage(userId, file, 'product', true);
+          setProcessingCount(prev => prev - 1);
+          return url;
+        } catch (err) {
+          console.error(`Error processing ${file.name}:`, err);
+          setProcessingCount(prev => prev - 1);
+          return null;
+        }
+      });
+
+      const results = await Promise.all(uploadPromises);
+      const successfulUploads = results.filter((url): url is string => url !== null);
+
+      if (successfulUploads.length > 0) {
+        setProductImages([...productImages, ...successfulUploads]);
+        success(`${successfulUploads.length} image(s) uploaded with background removed!`);
+      }
+
+      if (results.length !== successfulUploads.length) {
+        error(`${results.length - successfulUploads.length} image(s) failed to process`);
+      }
+    } catch (err) {
+      console.error('Error uploading product images:', err);
+      error('Failed to upload images. Please try again.');
+    } finally {
+      setUploading(false);
+      setProcessingCount(0);
+    }
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -126,6 +173,32 @@ export default function VisualAssetsPage() {
       } else {
         handleProductImagesUpload(e.dataTransfer.files);
       }
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    if (!logo) return;
+
+    try {
+      await imageService.deleteFromStorage(logo);
+      setLogo(null);
+      success('Logo removed');
+    } catch (err) {
+      console.error('Error removing logo:', err);
+      setLogo(null);
+    }
+  };
+
+  const handleRemoveProductImage = async (index: number) => {
+    const imageUrl = productImages[index];
+
+    try {
+      await imageService.deleteFromStorage(imageUrl);
+      setProductImages(productImages.filter((_, i) => i !== index));
+      success('Image removed');
+    } catch (err) {
+      console.error('Error removing image:', err);
+      setProductImages(productImages.filter((_, i) => i !== index));
     }
   };
 
@@ -239,14 +312,16 @@ export default function VisualAssetsPage() {
                   </div>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setLogo(null)}
-                      className="px-3 py-2 text-sm bg-white border border-slate-300 rounded hover:bg-slate-50"
+                      onClick={handleRemoveLogo}
+                      disabled={uploading}
+                      className="px-3 py-2 text-sm bg-white border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Remove
                     </button>
                     <button
                       onClick={() => document.getElementById('logo-input')?.click()}
-                      className="px-3 py-2 text-sm bg-white border border-slate-300 rounded hover:bg-slate-50"
+                      disabled={uploading}
+                      className="px-3 py-2 text-sm bg-white border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Replace
                     </button>
@@ -286,6 +361,20 @@ export default function VisualAssetsPage() {
                 </div>
               )}
 
+              {uploading && processingCount > 0 && (
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="w-5 h-5 text-[#2563EB] animate-spin" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-slate-900">
+                        Processing {processingCount} image{processingCount > 1 ? 's' : ''}...
+                      </p>
+                      <p className="text-xs text-slate-600">Removing backgrounds using AI</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {productImages.length > 0 && (
                 <div className="grid grid-cols-3 gap-4">
                   {productImages.map((img, index) => (
@@ -296,8 +385,9 @@ export default function VisualAssetsPage() {
                         className="w-full h-32 object-cover rounded-lg"
                       />
                       <button
-                        onClick={() => setProductImages(productImages.filter((_, i) => i !== index))}
-                        className="absolute top-2 right-2 p-1 bg-[#EF4444] text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleRemoveProductImage(index)}
+                        disabled={uploading}
+                        className="absolute top-2 right-2 p-1 bg-[#EF4444] text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <X size={16} />
                       </button>
@@ -370,10 +460,10 @@ export default function VisualAssetsPage() {
               )}
               <button
                 onClick={handleContinue}
-                disabled={(!logo && productImages.length === 0) || saving}
+                disabled={(!logo && productImages.length === 0) || saving || uploading}
                 className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                {saving ? 'Saving...' : 'Continue →'}
+                {saving ? 'Saving...' : uploading ? 'Processing...' : 'Continue →'}
               </button>
             </div>
           </div>
