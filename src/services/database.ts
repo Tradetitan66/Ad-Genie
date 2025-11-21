@@ -40,6 +40,7 @@ export interface Preferences {
     international?: string[];
   };
   enable_auto_suggestions: boolean;
+  content_type: string | null;
   created_at: string;
   updated_at: string;
 }

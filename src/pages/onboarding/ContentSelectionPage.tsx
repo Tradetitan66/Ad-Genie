@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Image, Video, Sparkles, Loader2 } from 'lucide-react';
 import OnboardingLayout from '../../components/OnboardingLayout';
+import { userService, preferencesService } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
 
 const contentTypes = [
@@ -37,32 +38,60 @@ export default function ContentSelectionPage() {
   const navigate = useNavigate();
   const { success, error } = useToast();
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [userId, setUserId] = useState('');
   const [selectedType, setSelectedType] = useState<string>('');
 
   useEffect(() => {
-    checkAuth();
+    loadData();
   }, []);
 
-  const checkAuth = async () => {
+  const loadData = async () => {
     try {
       const currentUserEmail = localStorage.getItem('currentUser');
       if (!currentUserEmail) {
         navigate('/login');
         return;
       }
+
+      const user = await userService.getByEmail(currentUserEmail);
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+
+      setUserId(user.id);
+
+      const preferences = await preferencesService.getByUserId(user.id);
+      if (preferences && preferences.content_type) {
+        setSelectedType(preferences.content_type);
+      }
     } catch (err) {
-      console.error('Error checking auth:', err);
+      console.error('Error loading data:', err);
+      error('Failed to load preferences');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleContinue = () => {
-    if (!selectedType) return;
+  const handleContinue = async () => {
+    if (!selectedType || !userId) return;
 
-    localStorage.setItem('selectedContentType', selectedType);
-    success('Content type selected!');
-    navigate('/onboarding/review');
+    setSaving(true);
+    try {
+      await preferencesService.upsert({
+        user_id: userId,
+        content_type: selectedType,
+      });
+
+      success('Content type selected!');
+      navigate('/onboarding/review');
+    } catch (err) {
+      console.error('Error saving content type:', err);
+      error('Failed to save content type. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -153,10 +182,10 @@ export default function ContentSelectionPage() {
               </button>
               <button
                 onClick={handleContinue}
-                disabled={!selectedType}
+                disabled={!selectedType || saving}
                 className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                Continue →
+                {saving ? 'Saving...' : 'Continue →'}
               </button>
             </div>
           </div>
