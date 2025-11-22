@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
 import { userService } from '../services/database';
 import { useToast } from '../contexts/ToastContext';
 
@@ -72,109 +70,73 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
-        <div className="bg-white rounded-lg shadow-2xl p-8">
-          <div className="text-center mb-8">
-            <motion.div
-              className="inline-flex items-center gap-2 mb-4"
-              animate={{
-                scale: [1, 1.05, 1],
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <Sparkles className="text-[#2563EB]" size={32} />
-              <h1 className="text-3xl font-bold text-slate-900">Ad Genie</h1>
-            </motion.div>
-            <p className="text-slate-600">Create amazing campaigns with AI</p>
-          </div>
+      <div className="login">
+        <h1 className="h1">
+          <span className="ui">Ad Genie</span>
+        </h1>
+        
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            setErrors({ ...errors, name: '' });
+          }}
+          placeholder="Name"
+        />
+        {errors.name && (
+          <p className="text-red-400 text-xs mt-1 ml-4">{errors.name}</p>
+        )}
 
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Name
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  setErrors({ ...errors, name: '' });
-                }}
-                className={`w-full px-4 py-3 rounded-lg border ${
-                  errors.name ? 'border-[#EF4444]' : 'border-slate-300'
-                } focus:outline-none focus:border-[#2563EB] transition-colors`}
-                placeholder="Enter your name"
-              />
-              {errors.name && (
-                <p className="text-[#EF4444] text-sm mt-1">{errors.name}</p>
-              )}
-            </div>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            setErrors({ ...errors, email: '' });
+          }}
+          placeholder="Email"
+        />
+        {errors.email && (
+          <p className="text-red-400 text-xs mt-1 ml-4">{errors.email}</p>
+        )}
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setErrors({ ...errors, email: '' });
-                }}
-                className={`w-full px-4 py-3 rounded-lg border ${
-                  errors.email ? 'border-[#EF4444]' : 'border-slate-300'
-                } focus:outline-none focus:border-[#2563EB] transition-colors`}
-                placeholder="Enter your email"
-              />
-              {errors.email && (
-                <p className="text-[#EF4444] text-sm mt-1">{errors.email}</p>
-              )}
-            </div>
-
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="rememberMe"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 text-[#2563EB] border-slate-300 rounded focus:ring-[#2563EB]"
-              />
-              <label htmlFor="rememberMe" className="ml-2 text-sm text-slate-600">
-                Remember me
-              </label>
-            </div>
-
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleLogin}
-              disabled={loading}
-              className="w-full px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              {loading ? 'Please wait...' : 'Continue →'}
-            </motion.button>
-
-            <div className="text-center">
-              <p className="text-sm text-slate-500">
-                Test Mode - No password required
-              </p>
-            </div>
-          </div>
+        <div className="flex items-center gap-2 mt-4">
+          <input
+            type="checkbox"
+            id="rememberMe"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            className="w-4 h-4 accent-[#af40ff]"
+          />
+          <label htmlFor="rememberMe" className="text-sm text-white/70 cursor-pointer">
+            Remember me
+          </label>
         </div>
 
+        <button
+          onClick={handleLogin}
+          disabled={loading}
+          className="btn"
+        >
+          {loading ? 'Please wait...' : 'Continue →'}
+        </button>
+
         <div className="text-center mt-6">
+          <p className="text-xs text-white/50">
+            Test Mode - No password required
+          </p>
+        </div>
+
+        <div className="text-center mt-4">
           <button
             onClick={() => navigate('/')}
-            className="text-white hover:text-[#2563EB] transition-colors"
+            className="text-white/70 hover:text-white transition-colors text-sm underline"
           >
             ← Back to home
           </button>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

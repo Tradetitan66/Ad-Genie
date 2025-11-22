@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Building2, Briefcase, Users, Globe, Mail } from 'lucide-react';
 import OnboardingLayout from '../../components/OnboardingLayout';
 import { userService, brandProfileService } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
@@ -142,7 +142,10 @@ export default function BrandDetailsPage() {
           industry: formData.industry,
           audience: formData.audience,
           website_url: formData.websiteUrl.trim() || '',
-          contact_email: formData.contactEmail
+          contact_email: formData.contactEmail,
+          logo: null,
+          product_images: [],
+          brand_colors: {}
         });
       }
 
@@ -180,13 +183,16 @@ export default function BrandDetailsPage() {
           <h1 className="text-3xl font-bold text-slate-900 mb-2">
             Tell Us About Your Brand
           </h1>
+          <p className="text-slate-600">Help us understand your business</p>
         </div>
 
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Brand Name <span className="text-[#EF4444]">*</span>
-              </label>
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Brand Name <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
               <input
                 type="text"
                 value={formData.brandName}
@@ -195,59 +201,64 @@ export default function BrandDetailsPage() {
                   setErrors({ ...errors, brandName: '' });
                 }}
                 maxLength={100}
-                className={`w-full px-4 py-3 rounded-lg border ${
-                  errors.brandName ? 'border-[#EF4444]' : 'border-slate-300'
-                } focus:outline-none focus:border-[#2563EB] transition-colors`}
+                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                 placeholder="Enter your brand name"
               />
-              {errors.brandName && (
-                <p className="text-[#EF4444] text-sm mt-1">{errors.brandName}</p>
-              )}
             </div>
+            {errors.brandName && (
+              <p className="text-red-500 text-sm mt-1">{errors.brandName}</p>
+            )}
+          </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Industry <span className="text-[#EF4444]">*</span>
-              </label>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Industry <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
               <select
                 value={formData.industry}
                 onChange={(e) => {
                   setFormData({ ...formData, industry: e.target.value });
                   setErrors({ ...errors, industry: '' });
                 }}
-                className={`w-full px-4 py-3 rounded-lg border ${
-                  errors.industry ? 'border-[#EF4444]' : 'border-slate-300'
-                } focus:outline-none focus:border-[#2563EB] transition-colors`}
+                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent bg-white text-slate-900"
               >
                 <option value="">Select an industry</option>
                 {industries.map(industry => (
                   <option key={industry} value={industry}>{industry}</option>
                 ))}
               </select>
-              {errors.industry && (
-                <p className="text-[#EF4444] text-sm mt-1">{errors.industry}</p>
-              )}
             </div>
+            {errors.industry && (
+              <p className="text-red-500 text-sm mt-1">{errors.industry}</p>
+            )}
+          </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Target Audience (Optional)
-              </label>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Target Audience
+            </label>
+            <div className="relative">
+              <Users className="absolute left-3 top-4 text-slate-400" size={20} />
               <textarea
                 value={formData.audience}
                 onChange={(e) => setFormData({ ...formData, audience: e.target.value })}
                 maxLength={200}
                 rows={3}
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:border-[#2563EB] transition-colors"
+                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
                 placeholder="e.g., Young professionals aged 25-35, health-conscious consumers"
               />
-              <p className="text-xs text-slate-400 mt-1">{formData.audience.length}/200</p>
             </div>
+            <p className="text-xs text-slate-500 mt-1">{formData.audience.length}/200</p>
+          </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Website URL <span className="text-slate-400 text-xs">(Optional)</span>
-              </label>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Website URL
+            </label>
+            <div className="relative">
+              <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
               <input
                 type="url"
                 value={formData.websiteUrl}
@@ -255,20 +266,21 @@ export default function BrandDetailsPage() {
                   setFormData({ ...formData, websiteUrl: e.target.value });
                   setErrors({ ...errors, websiteUrl: '' });
                 }}
-                className={`w-full px-4 py-3 rounded-lg border ${
-                  errors.websiteUrl ? 'border-[#EF4444]' : 'border-slate-300'
-                } focus:outline-none focus:border-[#2563EB] transition-colors`}
+                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                 placeholder="https://yourbrand.com"
               />
-              {errors.websiteUrl && (
-                <p className="text-[#EF4444] text-sm mt-1">{errors.websiteUrl}</p>
-              )}
             </div>
+            {errors.websiteUrl && (
+              <p className="text-red-500 text-sm mt-1">{errors.websiteUrl}</p>
+            )}
+          </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Contact Email <span className="text-[#EF4444]">*</span>
-              </label>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Contact Email <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
               <input
                 type="email"
                 value={formData.contactEmail}
@@ -276,34 +288,33 @@ export default function BrandDetailsPage() {
                   setFormData({ ...formData, contactEmail: e.target.value });
                   setErrors({ ...errors, contactEmail: '' });
                 }}
-                className={`w-full px-4 py-3 rounded-lg border ${
-                  errors.contactEmail ? 'border-[#EF4444]' : 'border-slate-300'
-                } focus:outline-none focus:border-[#2563EB] transition-colors`}
+                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                 placeholder="contact@yourbrand.com"
               />
-              {errors.contactEmail && (
-                <p className="text-[#EF4444] text-sm mt-1">{errors.contactEmail}</p>
-              )}
             </div>
+            {errors.contactEmail && (
+              <p className="text-red-500 text-sm mt-1">{errors.contactEmail}</p>
+            )}
           </div>
+        </div>
 
-          <div className="mt-8 pt-6 border-t border-slate-200">
-            <div className="flex gap-4">
-              <button
-                onClick={() => navigate('/onboarding/content-selection')}
-                className="px-6 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition-all"
-              >
-                Back
-              </button>
-              <button
-                onClick={handleContinue}
-                disabled={saving}
-                className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                {saving ? 'Saving...' : 'Continue →'}
-              </button>
-            </div>
+        <div className="mt-8 pt-6 border-t border-slate-200">
+          <div className="flex gap-4">
+            <button
+              onClick={() => navigate('/onboarding/content-selection')}
+              className="px-6 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition-all text-slate-700"
+            >
+              Back
+            </button>
+            <button
+              onClick={handleContinue}
+              disabled={saving}
+              className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {saving ? 'Saving...' : 'Continue →'}
+            </button>
           </div>
+        </div>
       </motion.div>
     </OnboardingLayout>
   );

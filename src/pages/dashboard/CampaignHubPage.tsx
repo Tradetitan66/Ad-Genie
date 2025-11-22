@@ -2,27 +2,57 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Plus, LogOut } from 'lucide-react';
+import { userService } from '../../services/database';
 
 export default function CampaignHubPage() {
   const navigate = useNavigate();
   const [userData, setUserData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    loadUser();
+  }, [navigate]);
+
+  const loadUser = async () => {
     const currentUserEmail = localStorage.getItem('currentUser');
     if (!currentUserEmail) {
       navigate('/login');
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    const user = users[currentUserEmail];
-    setUserData(user);
-  }, [navigate]);
+    try {
+      const user = await userService.getByEmail(currentUserEmail);
+      if (user) {
+        setUserData({
+          email: user.email,
+          displayName: user.display_name || 'User',
+        });
+      } else {
+        navigate('/login');
+      }
+    } catch (error) {
+      console.error('Error loading user:', error);
+      navigate('/login');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('user'); // Also clear AuthContext user
     navigate('/');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB]">
+        <div className="text-center">
+          <p className="text-slate-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!userData) return null;
 

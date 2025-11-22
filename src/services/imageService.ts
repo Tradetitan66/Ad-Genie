@@ -229,31 +229,19 @@ export const imageService = {
     let fileToUpload = file;
     let fileName = `${type}-${Date.now()}-${file.name}`;
 
-    // Process background removal first (regardless of Supabase config)
+    // Background removal temporarily disabled - upload images directly
+    // TODO: Re-enable background removal when n8n webhook is ready
     if (removeBackground) {
-      console.log('Background removal requested for file:', file.name);
-      try {
-        const base64 = await this.fileToBase64(file);
-        console.log('File converted to base64, calling removeBackground...');
-        const processedBase64 = await this.removeBackground(base64);
-        console.log('Background removal completed, converting to blob...');
-
-        const blob = await this.base64ToBlob(processedBase64);
-        fileToUpload = new File([blob], fileName, { type: 'image/png' });
-        console.log('Processed file ready for upload, size:', fileToUpload.size);
-      } catch (error) {
-        console.error('Background removal failed, uploading original image:', error);
-        // Continue with original file if background removal fails
-      }
+      console.log('⚠️ Background removal requested but temporarily disabled - uploading original image');
+      // Skip background removal for now, upload original image
+      // fileToUpload remains as the original file
     }
 
-    // If Supabase isn't configured, use localStorage fallback
-    if (!isSupabaseConfigured()) {
-      console.log('Supabase not configured, using localStorage fallback');
-      return this.uploadToLocalStorage(userId, fileToUpload, type, false); // Already processed if needed
-    }
-
+    // Always attempt to upload to Supabase storage buckets
     const filePath = `${userId}/${fileName}`;
+
+    console.log('📤 Uploading to Supabase storage bucket:', filePath);
+    console.log('📋 File details:', { name: fileToUpload.name, size: fileToUpload.size, type: fileToUpload.type });
 
     try {
       const { data, error } = await supabase.storage
@@ -264,17 +252,28 @@ export const imageService = {
         });
 
       if (error) {
+        console.error('❌ Supabase storage upload error:', error);
         throw error;
       }
+
+      console.log('✅ File uploaded successfully to Supabase:', data.path);
 
       const { data: urlData } = supabase.storage
         .from('brand-assets')
         .getPublicUrl(data.path);
 
+      console.log('🔗 Public URL generated:', urlData.publicUrl);
       return urlData.publicUrl;
-    } catch (error) {
-      console.warn('Supabase storage upload failed, falling back to localStorage:', error);
-      return this.uploadToLocalStorage(userId, file, type, removeBackground);
+    } catch (error: any) {
+      console.error('❌ Failed to upload to Supabase storage:', error);
+      // Only fall back to localStorage if Supabase is truly not configured
+      // Otherwise, throw the error so user knows upload failed
+      if (!isSupabaseConfigured()) {
+        console.warn('⚠️ Supabase not configured, falling back to localStorage');
+        return this.uploadToLocalStorage(userId, fileToUpload, type, false);
+      }
+      // If Supabase is configured but upload failed, throw error
+      throw new Error(`Failed to upload image to Supabase: ${error.message || error}`);
     }
   },
 
@@ -282,9 +281,9 @@ export const imageService = {
     userId: string,
     file: File,
     type: 'logo' | 'product',
-    removeBackground = false
+    _removeBackground = false
   ): Promise<string> {
-    // Note: removeBackground is ignored here as processing should happen before calling this
+    // Note: removeBackground parameter is kept for API consistency but not used here
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);

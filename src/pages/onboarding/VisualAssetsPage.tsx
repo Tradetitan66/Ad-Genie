@@ -120,9 +120,10 @@ export default function VisualAssetsPage() {
     setProcessingCount(filesToProcess.length);
 
     try {
-      const uploadPromises = filesToProcess.map(async (file, index) => {
+      const uploadPromises = filesToProcess.map(async (file) => {
         try {
-          const url = await imageService.uploadToStorage(userId, file, 'product', true);
+          // Background removal temporarily disabled - upload directly to Supabase
+          const url = await imageService.uploadToStorage(userId, file, 'product', false);
           setProcessingCount(prev => prev - 1);
           return url;
         } catch (err) {
@@ -137,7 +138,7 @@ export default function VisualAssetsPage() {
 
       if (successfulUploads.length > 0) {
         setProductImages([...productImages, ...successfulUploads]);
-        success(`${successfulUploads.length} image(s) uploaded with background removed!`);
+        success(`${successfulUploads.length} image(s) uploaded successfully!`);
       }
 
       if (results.length !== successfulUploads.length) {
@@ -256,191 +257,192 @@ export default function VisualAssetsPage() {
           <h1 className="text-3xl font-bold text-slate-900 mb-2">
             Upload Your Brand Assets
           </h1>
+          <p className="text-slate-600">Add your logo and product images</p>
         </div>
 
-          <div className="space-y-8">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-3">
-                Logo Upload <span className="text-slate-400 text-xs">(Optional)</span>
-              </label>
-              {!logo ? (
-                <div
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={(e) => handleDrop(e, 'logo')}
-                  className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${
-                    dragActive ? 'border-[#2563EB] bg-blue-50' : 'border-slate-300 hover:border-slate-400'
-                  }`}
-                  onClick={() => document.getElementById('logo-input')?.click()}
-                >
-                  <Upload className="mx-auto mb-4 text-slate-400" size={48} />
-                  <p className="text-slate-600 mb-2">Drag & drop your logo here</p>
-                  <p className="text-sm text-slate-400 mb-2">or click to browse</p>
-                  <p className="text-xs text-slate-400">Accepted: PNG, SVG, JPG | Max size: 5MB</p>
-                  <input
-                    id="logo-input"
-                    type="file"
-                    accept=".png,.svg,.jpg,.jpeg"
-                    onChange={(e) => e.target.files && handleLogoUpload(e.target.files[0])}
-                    className="hidden"
-                  />
+        <div className="space-y-8">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-3">
+              Logo Upload <span className="text-slate-400 text-xs">(Optional)</span>
+            </label>
+            {!logo ? (
+              <div
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={(e) => handleDrop(e, 'logo')}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${
+                  dragActive ? 'border-[#2563EB] bg-blue-50' : 'border-slate-300 hover:border-slate-400'
+                }`}
+                onClick={() => document.getElementById('logo-input')?.click()}
+              >
+                <Upload className="mx-auto mb-4 text-slate-400" size={48} />
+                <p className="text-slate-600 mb-2">Drag & drop your logo here</p>
+                <p className="text-sm text-slate-400 mb-2">or click to browse</p>
+                <p className="text-xs text-slate-400">Accepted: PNG, SVG, JPG | Max size: 5MB</p>
+                <input
+                  id="logo-input"
+                  type="file"
+                  accept=".png,.svg,.jpg,.jpeg"
+                  onChange={(e) => e.target.files && handleLogoUpload(e.target.files[0])}
+                  className="hidden"
+                />
+              </div>
+            ) : (
+              <div className="flex items-center gap-4 p-4 border border-[#10B981] bg-green-50 rounded-lg">
+                <img src={logo} alt="Logo" className="w-24 h-24 object-contain rounded bg-white" />
+                <div className="flex-1">
+                  <p className="font-semibold text-slate-900">Logo uploaded</p>
+                  <p className="text-sm text-slate-600">Click buttons to modify</p>
                 </div>
-              ) : (
-                <div className="flex items-center gap-4 p-4 border border-[#10B981] bg-green-50 rounded-lg">
-                  <img src={logo} alt="Logo" className="w-24 h-24 object-contain rounded" />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleRemoveLogo}
+                    disabled={uploading}
+                    className="px-3 py-2 text-sm bg-white border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700"
+                  >
+                    Remove
+                  </button>
+                  <button
+                    onClick={() => document.getElementById('logo-input')?.click()}
+                    disabled={uploading}
+                    className="px-3 py-2 text-sm bg-white border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700"
+                  >
+                    Replace
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-3">
+              Product Images <span className="text-[#EF4444]">*</span> (6 required)
+            </label>
+            <p className="text-sm text-slate-500 mb-3">{productImages.length} of 6 images uploaded</p>
+
+            {productImages.length < 6 && (
+              <div
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={(e) => handleDrop(e, 'products')}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer mb-4 transition-all ${
+                  dragActive ? 'border-[#2563EB] bg-blue-50' : 'border-slate-300 hover:border-slate-400'
+                }`}
+                onClick={() => document.getElementById('products-input')?.click()}
+              >
+                <Upload className="mx-auto mb-4 text-slate-400" size={40} />
+                <p className="text-slate-600 mb-2">Drag & drop images here or click to browse</p>
+                <p className="text-xs text-slate-400">Upload multiple images at once | JPG, PNG | Max 10MB per file</p>
+                <input
+                  id="products-input"
+                  type="file"
+                  accept=".jpg,.jpeg,.png"
+                  multiple
+                  onChange={(e) => e.target.files && handleProductImagesUpload(e.target.files)}
+                  className="hidden"
+                />
+              </div>
+            )}
+
+            {uploading && processingCount > 0 && (
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Loader2 className="w-5 h-5 text-[#2563EB] animate-spin" />
                   <div className="flex-1">
-                    <p className="font-semibold text-slate-900">Logo uploaded</p>
-                    <p className="text-sm text-slate-600">Click buttons to modify</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleRemoveLogo}
-                      disabled={uploading}
-                      className="px-3 py-2 text-sm bg-white border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Remove
-                    </button>
-                    <button
-                      onClick={() => document.getElementById('logo-input')?.click()}
-                      disabled={uploading}
-                      className="px-3 py-2 text-sm bg-white border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Replace
-                    </button>
+                    <p className="text-sm font-semibold text-slate-900">
+                      Uploading {processingCount} image{processingCount > 1 ? 's' : ''}...
+                    </p>
+                    <p className="text-xs text-slate-600">Saving to storage</p>
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-3">
-                Product Images <span className="text-[#EF4444]">*</span> (6 required)
-              </label>
-              <p className="text-sm text-slate-500 mb-3">{productImages.length} of 6 images uploaded</p>
-
-              {productImages.length < 6 && (
-                <div
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={(e) => handleDrop(e, 'products')}
-                  className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer mb-4 transition-all ${
-                    dragActive ? 'border-[#2563EB] bg-blue-50' : 'border-slate-300 hover:border-slate-400'
-                  }`}
-                  onClick={() => document.getElementById('products-input')?.click()}
-                >
-                  <Upload className="mx-auto mb-4 text-slate-400" size={40} />
-                  <p className="text-slate-600 mb-2">Drag & drop images here or click to browse</p>
-                  <p className="text-xs text-slate-400">Upload multiple images at once | JPG, PNG | Max 10MB per file</p>
-                  <input
-                    id="products-input"
-                    type="file"
-                    accept=".jpg,.jpeg,.png"
-                    multiple
-                    onChange={(e) => e.target.files && handleProductImagesUpload(e.target.files)}
-                    className="hidden"
-                  />
-                </div>
-              )}
-
-              {uploading && processingCount > 0 && (
-                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="w-5 h-5 text-[#2563EB] animate-spin" />
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-slate-900">
-                        Processing {processingCount} image{processingCount > 1 ? 's' : ''}...
-                      </p>
-                      <p className="text-xs text-slate-600">Removing backgrounds using AI</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {productImages.length > 0 && (
-                <div className="grid grid-cols-3 gap-4">
-                  {productImages.map((img, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={img}
-                        alt={`Product ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
-                      <button
-                        onClick={() => handleRemoveProductImage(index)}
-                        disabled={uploading}
-                        className="absolute top-2 right-2 p-1 bg-[#EF4444] text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-3">
-                Brand Colors (Optional)
-              </label>
+            {productImages.length > 0 && (
               <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs text-slate-600 mb-2">Primary</label>
-                  <input
-                    type="color"
-                    value={brandColors.primary}
-                    onChange={(e) => setBrandColors({ ...brandColors, primary: e.target.value })}
-                    className="w-full h-12 rounded-lg cursor-pointer"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">{brandColors.primary}</p>
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-600 mb-2">Secondary</label>
-                  <input
-                    type="color"
-                    value={brandColors.secondary}
-                    onChange={(e) => setBrandColors({ ...brandColors, secondary: e.target.value })}
-                    className="w-full h-12 rounded-lg cursor-pointer"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">{brandColors.secondary || 'Not set'}</p>
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-600 mb-2">Accent</label>
-                  <input
-                    type="color"
-                    value={brandColors.accent}
-                    onChange={(e) => setBrandColors({ ...brandColors, accent: e.target.value })}
-                    className="w-full h-12 rounded-lg cursor-pointer"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">{brandColors.accent || 'Not set'}</p>
-                </div>
+                {productImages.map((img, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={img}
+                      alt={`Product ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg border border-slate-200"
+                    />
+                    <button
+                      onClick={() => handleRemoveProductImage(index)}
+                      disabled={uploading}
+                      className="absolute top-2 right-2 p-1 bg-[#EF4444] text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-3">
+              Brand Colors <span className="text-slate-400 text-xs">(Optional)</span>
+            </label>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs text-slate-600 mb-2">Primary</label>
+                <input
+                  type="color"
+                  value={brandColors.primary}
+                  onChange={(e) => setBrandColors({ ...brandColors, primary: e.target.value })}
+                  className="w-full h-12 rounded-lg cursor-pointer border border-slate-300"
+                />
+                <p className="text-xs text-slate-500 mt-1">{brandColors.primary}</p>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-600 mb-2">Secondary</label>
+                <input
+                  type="color"
+                  value={brandColors.secondary}
+                  onChange={(e) => setBrandColors({ ...brandColors, secondary: e.target.value })}
+                  className="w-full h-12 rounded-lg cursor-pointer border border-slate-300"
+                />
+                <p className="text-xs text-slate-500 mt-1">{brandColors.secondary || 'Not set'}</p>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-600 mb-2">Accent</label>
+                <input
+                  type="color"
+                  value={brandColors.accent}
+                  onChange={(e) => setBrandColors({ ...brandColors, accent: e.target.value })}
+                  className="w-full h-12 rounded-lg cursor-pointer border border-slate-300"
+                />
+                <p className="text-xs text-slate-500 mt-1">{brandColors.accent || 'Not set'}</p>
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="mt-8 pt-6 border-t border-slate-200">
-            <p className="text-sm text-slate-500 mb-4">
-              {productImages.length < 6
-                ? `Please upload ${6 - productImages.length} more image${6 - productImages.length > 1 ? 's' : ''} to continue`
-                : 'All required assets uploaded! You can continue.'}
-            </p>
-            <div className="flex gap-4">
-              <button
-                onClick={() => navigate('/onboarding/brand-details')}
-                className="px-6 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition-all"
-              >
-                Back
-              </button>
-              <button
-                onClick={handleContinue}
-                disabled={productImages.length !== 6 || saving || uploading}
-                className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                {saving ? 'Saving...' : uploading ? 'Processing...' : 'Continue →'}
-              </button>
-            </div>
+        <div className="mt-8 pt-6 border-t border-slate-200">
+          <p className="text-sm text-slate-500 mb-4">
+            {productImages.length < 6
+              ? `Please upload ${6 - productImages.length} more image${6 - productImages.length > 1 ? 's' : ''} to continue`
+              : 'All required assets uploaded! You can continue.'}
+          </p>
+          <div className="flex gap-4">
+            <button
+              onClick={() => navigate('/onboarding/brand-details')}
+              className="px-6 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition-all text-slate-700"
+            >
+              Back
+            </button>
+            <button
+              onClick={handleContinue}
+              disabled={productImages.length !== 6 || saving || uploading}
+              className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {saving ? 'Saving...' : uploading ? 'Processing...' : 'Continue →'}
+            </button>
           </div>
+        </div>
       </motion.div>
     </OnboardingLayout>
   );

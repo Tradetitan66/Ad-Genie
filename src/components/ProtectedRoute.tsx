@@ -26,18 +26,48 @@ export default function ProtectedRoute({
 
   const checkAuth = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      // Try Supabase auth first (if configured)
+      let session = null;
+      try {
+        const { data: { session: supabaseSession } } = await supabase.auth.getSession();
+        session = supabaseSession;
+      } catch (supabaseError) {
+        // Supabase not configured or error - use localStorage fallback
+        console.log('Supabase auth not available, using localStorage fallback');
+      }
 
       if (!session) {
+        // Check localStorage for currentUser (used by LoginPage)
         const currentUser = localStorage.getItem('currentUser');
         if (currentUser) {
           const user = await userService.getByEmail(currentUser);
           if (user) {
             setIsAuthenticated(true);
             setHasCompletedOnboarding(user.has_completed_onboarding);
+            setLoading(false);
+            return;
+          }
+        }
+        // Also check for 'user' key (used by AuthContext)
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            if (parsedUser && parsedUser.email) {
+              const user = await userService.getByEmail(parsedUser.email);
+              if (user) {
+                setIsAuthenticated(true);
+                setHasCompletedOnboarding(user.has_completed_onboarding);
+                setLoading(false);
+                return;
+              }
+            }
+          } catch (e) {
+            console.error('Error parsing stored user:', e);
           }
         }
       } else {
+        // Supabase session exists
         setIsAuthenticated(true);
         const user = await userService.getByEmail(session.user.email!);
         if (user) {
