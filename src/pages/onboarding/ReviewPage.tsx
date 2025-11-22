@@ -45,7 +45,7 @@ export default function ReviewPage() {
         brandProfileService.getByUserId(user.id)
       ]);
 
-      const contentType = localStorage.getItem('selectedContentType');
+      const contentType = preferences?.content_type || localStorage.getItem('selectedContentType');
 
       setUserData({
         email: user.email,
@@ -104,7 +104,7 @@ export default function ReviewPage() {
 
   if (loading) {
     return (
-      <OnboardingLayout currentStep={6} totalSteps={6} stepLabel="Loading review...">
+      <OnboardingLayout currentStep={5} totalSteps={5} stepLabel="Loading review...">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <Loader2 className="w-12 h-12 text-[#2563EB] animate-spin mx-auto mb-4" />
@@ -118,7 +118,7 @@ export default function ReviewPage() {
   if (!userData) return null;
 
   return (
-    <OnboardingLayout currentStep={6} totalSteps={6} stepLabel="Review and launch">
+    <OnboardingLayout currentStep={5} totalSteps={5} stepLabel="Review and launch">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -286,6 +286,12 @@ export default function ReviewPage() {
           </div>
 
           <div className="flex gap-4">
+            <button
+              onClick={() => navigate('/onboarding/preferences')}
+              className="px-6 py-4 rounded-lg border border-slate-300 hover:bg-slate-50 transition-all"
+            >
+              Back
+            </button>
             <button
               onClick={handleGenerate}
               disabled={generating}

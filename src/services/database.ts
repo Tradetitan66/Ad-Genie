@@ -9,6 +9,68 @@ export interface UserData {
   updated_at: string;
 }
 
+// Check if Supabase is properly configured
+const isSupabaseConfigured = () => {
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  return url && 
+    url !== 'your_supabase_project_url' && 
+    url.startsWith('http') &&
+    key && 
+    key !== 'your_supabase_anon_key' && 
+    key.length > 20;
+};
+
+// LocalStorage fallback for when Supabase isn't configured
+const localStorageService = {
+  getUsers(): UserData[] {
+    const stored = localStorage.getItem('localUsers');
+    return stored ? JSON.parse(stored) : [];
+  },
+  
+  saveUsers(users: UserData[]): void {
+    localStorage.setItem('localUsers', JSON.stringify(users));
+  },
+  
+  getUserByEmail(email: string): UserData | null {
+    const users = this.getUsers();
+    return users.find(u => u.email === email) || null;
+  },
+  
+  createUser(email: string, displayName: string): UserData {
+    const users = this.getUsers();
+    const newUser: UserData = {
+      id: `local_${Date.now()}`,
+      email,
+      display_name: displayName,
+      has_completed_onboarding: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    users.push(newUser);
+    this.saveUsers(users);
+    return newUser;
+  },
+  
+  updateUser(userId: string, updates: Partial<UserData>): UserData {
+    const users = this.getUsers();
+    const index = users.findIndex(u => u.id === userId);
+    if (index === -1) throw new Error('User not found');
+    users[index] = { ...users[index], ...updates, updated_at: new Date().toISOString() };
+    this.saveUsers(users);
+    return users[index];
+  },
+  
+  updateUserByEmail(email: string, updates: Partial<UserData>): UserData {
+    const users = this.getUsers();
+    const index = users.findIndex(u => u.email === email);
+    if (index === -1) throw new Error('User not found');
+    users[index] = { ...users[index], ...updates, updated_at: new Date().toISOString() };
+    this.saveUsers(users);
+    return users[index];
+  },
+};
+
 export interface BrandProfile {
   id: string;
   user_id: string;
@@ -58,53 +120,93 @@ export interface Campaign {
 
 export const userService = {
   async getByEmail(email: string): Promise<UserData | null> {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .maybeSingle();
+    // Use localStorage fallback if Supabase is not configured
+    if (!isSupabaseConfigured()) {
+      return localStorageService.getUserByEmail(email);
+    }
 
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.warn('Supabase query failed, falling back to localStorage:', error);
+      return localStorageService.getUserByEmail(email);
+    }
   },
 
   async create(email: string, displayName: string): Promise<UserData> {
-    const { data, error } = await supabase
-      .from('users')
-      .insert({
-        email,
-        display_name: displayName,
-        has_completed_onboarding: false,
-      })
-      .select()
-      .single();
+    // Use localStorage fallback if Supabase is not configured
+    if (!isSupabaseConfigured()) {
+      return localStorageService.createUser(email, displayName);
+    }
 
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .insert({
+          email,
+          display_name: displayName,
+          has_completed_onboarding: false,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.warn('Supabase create failed, falling back to localStorage:', error);
+      return localStorageService.createUser(email, displayName);
+    }
   },
 
   async update(userId: string, updates: Partial<UserData>): Promise<UserData> {
-    const { data, error } = await supabase
-      .from('users')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', userId)
-      .select()
-      .single();
+    // Use localStorage fallback if Supabase is not configured
+    if (!isSupabaseConfigured()) {
+      return localStorageService.updateUser(userId, updates);
+    }
 
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.warn('Supabase update failed, falling back to localStorage:', error);
+      return localStorageService.updateUser(userId, updates);
+    }
   },
 
   async updateByEmail(email: string, updates: Partial<UserData>): Promise<UserData> {
-    const { data, error } = await supabase
-      .from('users')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('email', email)
-      .select()
-      .single();
+    // Use localStorage fallback if Supabase is not configured
+    if (!isSupabaseConfigured()) {
+      return localStorageService.updateUserByEmail(email, updates);
+    }
 
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('email', email)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.warn('Supabase updateByEmail failed, falling back to localStorage:', error);
+      return localStorageService.updateUserByEmail(email, updates);
+    }
   },
 
   async completeOnboarding(email: string): Promise<UserData> {
@@ -112,107 +214,326 @@ export const userService = {
   },
 };
 
+// LocalStorage fallback for brand profiles
+const localStorageBrandProfileService = {
+  getBrandProfiles(): BrandProfile[] {
+    const stored = localStorage.getItem('localBrandProfiles');
+    return stored ? JSON.parse(stored) : [];
+  },
+  
+  saveBrandProfiles(profiles: BrandProfile[]): void {
+    localStorage.setItem('localBrandProfiles', JSON.stringify(profiles));
+  },
+  
+  getByUserId(userId: string): BrandProfile | null {
+    const profiles = this.getBrandProfiles();
+    return profiles.find(p => p.user_id === userId) || null;
+  },
+  
+  create(profile: Omit<BrandProfile, 'id' | 'created_at' | 'updated_at'>): BrandProfile {
+    const profiles = this.getBrandProfiles();
+    const newProfile: BrandProfile = {
+      id: `local_brand_${Date.now()}`,
+      ...profile,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    profiles.push(newProfile);
+    this.saveBrandProfiles(profiles);
+    return newProfile;
+  },
+  
+  update(id: string, updates: Partial<BrandProfile>): BrandProfile {
+    const profiles = this.getBrandProfiles();
+    const index = profiles.findIndex(p => p.id === id);
+    if (index === -1) throw new Error('Brand profile not found');
+    profiles[index] = { ...profiles[index], ...updates, updated_at: new Date().toISOString() };
+    this.saveBrandProfiles(profiles);
+    return profiles[index];
+  },
+  
+  upsert(profile: Omit<BrandProfile, 'id' | 'created_at' | 'updated_at'> & { id?: string }): BrandProfile {
+    const profiles = this.getBrandProfiles();
+    const index = profiles.findIndex(p => p.user_id === profile.user_id);
+    
+    if (index === -1) {
+      // Create new
+      const newProfile: BrandProfile = {
+        id: profile.id || `local_brand_${Date.now()}`,
+        ...profile,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      profiles.push(newProfile);
+      this.saveBrandProfiles(profiles);
+      return newProfile;
+    } else {
+      // Update existing
+      profiles[index] = {
+        ...profiles[index],
+        ...profile,
+        updated_at: new Date().toISOString(),
+      };
+      this.saveBrandProfiles(profiles);
+      return profiles[index];
+    }
+  },
+};
+
 export const brandProfileService = {
   async getByUserId(userId: string): Promise<BrandProfile | null> {
-    const { data, error } = await supabase
-      .from('brand_profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
+    // Use localStorage fallback if Supabase is not configured
+    if (!isSupabaseConfigured()) {
+      return localStorageBrandProfileService.getByUserId(userId);
+    }
 
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('brand_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.warn('Supabase getByUserId failed, falling back to localStorage:', error);
+      return localStorageBrandProfileService.getByUserId(userId);
+    }
   },
 
   async create(profile: Omit<BrandProfile, 'id' | 'created_at' | 'updated_at'>): Promise<BrandProfile> {
-    const { data, error } = await supabase
-      .from('brand_profiles')
-      .insert(profile)
-      .select()
-      .single();
+    // Use localStorage fallback if Supabase is not configured
+    if (!isSupabaseConfigured()) {
+      return localStorageBrandProfileService.create(profile);
+    }
 
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('brand_profiles')
+        .insert(profile)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.warn('Supabase create failed, falling back to localStorage:', error);
+      return localStorageBrandProfileService.create(profile);
+    }
   },
 
   async update(id: string, updates: Partial<BrandProfile>): Promise<BrandProfile> {
-    const { data, error } = await supabase
-      .from('brand_profiles')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
+    // Use localStorage fallback if Supabase is not configured
+    if (!isSupabaseConfigured()) {
+      return localStorageBrandProfileService.update(id, updates);
+    }
 
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('brand_profiles')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.warn('Supabase update failed, falling back to localStorage:', error);
+      return localStorageBrandProfileService.update(id, updates);
+    }
   },
 
   async upsert(profile: Omit<BrandProfile, 'id' | 'created_at' | 'updated_at'> & { id?: string }): Promise<BrandProfile> {
-    const { data, error } = await supabase
-      .from('brand_profiles')
-      .upsert({
-        ...profile,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_id'
-      })
-      .select()
-      .single();
+    // Use localStorage fallback if Supabase is not configured
+    if (!isSupabaseConfigured()) {
+      return localStorageBrandProfileService.upsert(profile);
+    }
 
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('brand_profiles')
+        .upsert({
+          ...profile,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.warn('Supabase upsert failed, falling back to localStorage:', error);
+      return localStorageBrandProfileService.upsert(profile);
+    }
+  },
+};
+
+// LocalStorage fallback for preferences
+const localStoragePreferencesService = {
+  getPreferences(): Preferences[] {
+    const stored = localStorage.getItem('localPreferences');
+    return stored ? JSON.parse(stored) : [];
+  },
+  
+  savePreferences(preferences: Preferences[]): void {
+    localStorage.setItem('localPreferences', JSON.stringify(preferences));
+  },
+  
+  getByUserId(userId: string): Preferences | null {
+    const preferences = this.getPreferences();
+    return preferences.find(p => p.user_id === userId) || null;
+  },
+  
+  create(prefs: Omit<Preferences, 'id' | 'created_at' | 'updated_at'>): Preferences {
+    const preferences = this.getPreferences();
+    const newPref: Preferences = {
+      id: `local_pref_${Date.now()}`,
+      ...prefs,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    preferences.push(newPref);
+    this.savePreferences(preferences);
+    return newPref;
+  },
+  
+  update(userId: string, updates: Partial<Preferences>): Preferences {
+    const preferences = this.getPreferences();
+    const index = preferences.findIndex(p => p.user_id === userId);
+    if (index === -1) throw new Error('Preferences not found');
+    preferences[index] = { ...preferences[index], ...updates, updated_at: new Date().toISOString() };
+    this.savePreferences(preferences);
+    return preferences[index];
+  },
+  
+  upsert(prefs: Omit<Preferences, 'id' | 'created_at' | 'updated_at'> & { id?: string }): Preferences {
+    const preferences = this.getPreferences();
+    const index = preferences.findIndex(p => p.user_id === prefs.user_id);
+    
+    if (index === -1) {
+      // Create new with defaults for missing fields
+      const newPref: Preferences = {
+        id: prefs.id || `local_pref_${Date.now()}`,
+        user_id: prefs.user_id,
+        campaign_goal: prefs.campaign_goal ?? null,
+        brand_voice: prefs.brand_voice ?? null,
+        visual_styles: prefs.visual_styles ?? [],
+        campaign_timing: prefs.campaign_timing ?? null,
+        seasonal_events: prefs.seasonal_events ?? { local: [], international: [] },
+        enable_auto_suggestions: prefs.enable_auto_suggestions ?? true,
+        content_type: prefs.content_type ?? null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      preferences.push(newPref);
+      this.savePreferences(preferences);
+      return newPref;
+    } else {
+      // Update existing - merge with existing values
+      preferences[index] = {
+        ...preferences[index],
+        ...prefs,
+        updated_at: new Date().toISOString(),
+      };
+      this.savePreferences(preferences);
+      return preferences[index];
+    }
   },
 };
 
 export const preferencesService = {
   async getByUserId(userId: string): Promise<Preferences | null> {
-    const { data, error } = await supabase
-      .from('preferences')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
+    // Use localStorage fallback if Supabase is not configured
+    if (!isSupabaseConfigured()) {
+      return localStoragePreferencesService.getByUserId(userId);
+    }
 
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.warn('Supabase getByUserId failed, falling back to localStorage:', error);
+      return localStoragePreferencesService.getByUserId(userId);
+    }
   },
 
   async create(preferences: Omit<Preferences, 'id' | 'created_at' | 'updated_at'>): Promise<Preferences> {
-    const { data, error } = await supabase
-      .from('preferences')
-      .insert(preferences)
-      .select()
-      .single();
+    // Use localStorage fallback if Supabase is not configured
+    if (!isSupabaseConfigured()) {
+      return localStoragePreferencesService.create(preferences);
+    }
 
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('preferences')
+        .insert(preferences)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.warn('Supabase create failed, falling back to localStorage:', error);
+      return localStoragePreferencesService.create(preferences);
+    }
   },
 
   async update(userId: string, updates: Partial<Preferences>): Promise<Preferences> {
-    const { data, error } = await supabase
-      .from('preferences')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('user_id', userId)
-      .select()
-      .single();
+    // Use localStorage fallback if Supabase is not configured
+    if (!isSupabaseConfigured()) {
+      return localStoragePreferencesService.update(userId, updates);
+    }
 
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('preferences')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.warn('Supabase update failed, falling back to localStorage:', error);
+      return localStoragePreferencesService.update(userId, updates);
+    }
   },
 
   async upsert(preferences: Omit<Preferences, 'id' | 'created_at' | 'updated_at'> & { id?: string }): Promise<Preferences> {
-    const { data, error } = await supabase
-      .from('preferences')
-      .upsert({
-        ...preferences,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_id'
-      })
-      .select()
-      .single();
+    // Use localStorage fallback if Supabase is not configured
+    if (!isSupabaseConfigured()) {
+      return localStoragePreferencesService.upsert(preferences);
+    }
 
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('preferences')
+        .upsert({
+          ...preferences,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.warn('Supabase upsert failed, falling back to localStorage:', error);
+      return localStoragePreferencesService.upsert(preferences);
+    }
   },
 };
 

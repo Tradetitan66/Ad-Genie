@@ -108,9 +108,7 @@ export default function BrandDetailsPage() {
       newErrors.industry = 'Please select an industry';
     }
 
-    if (!formData.websiteUrl.trim()) {
-      newErrors.websiteUrl = 'Website URL is required';
-    } else if (!validateUrl(formData.websiteUrl)) {
+    if (formData.websiteUrl.trim() && !validateUrl(formData.websiteUrl)) {
       newErrors.websiteUrl = 'Please enter a valid URL';
     }
 
@@ -134,7 +132,7 @@ export default function BrandDetailsPage() {
           brand_name: formData.brandName,
           industry: formData.industry,
           audience: formData.audience,
-          website_url: formData.websiteUrl,
+          website_url: formData.websiteUrl.trim() || '',
           contact_email: formData.contactEmail
         });
       } else {
@@ -143,7 +141,7 @@ export default function BrandDetailsPage() {
           brand_name: formData.brandName,
           industry: formData.industry,
           audience: formData.audience,
-          website_url: formData.websiteUrl,
+          website_url: formData.websiteUrl.trim() || '',
           contact_email: formData.contactEmail
         });
       }
@@ -160,7 +158,7 @@ export default function BrandDetailsPage() {
 
   if (loading) {
     return (
-      <OnboardingLayout currentStep={3} totalSteps={6} stepLabel="Loading brand details...">
+      <OnboardingLayout currentStep={3} totalSteps={5} stepLabel="Loading brand details...">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <Loader2 className="w-12 h-12 text-[#2563EB] animate-spin mx-auto mb-4" />
@@ -172,7 +170,7 @@ export default function BrandDetailsPage() {
   }
 
   return (
-    <OnboardingLayout currentStep={3} totalSteps={6} stepLabel="Tell us about your brand">
+    <OnboardingLayout currentStep={3} totalSteps={5} stepLabel="Tell us about your brand">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -248,7 +246,7 @@ export default function BrandDetailsPage() {
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Website URL <span className="text-[#EF4444]">*</span>
+                Website URL <span className="text-slate-400 text-xs">(Optional)</span>
               </label>
               <input
                 type="url"
@@ -292,7 +290,7 @@ export default function BrandDetailsPage() {
           <div className="mt-8 pt-6 border-t border-slate-200">
             <div className="flex gap-4">
               <button
-                onClick={() => navigate('/onboarding/preferences')}
+                onClick={() => navigate('/onboarding/content-selection')}
                 className="px-6 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition-all"
               >
                 Back

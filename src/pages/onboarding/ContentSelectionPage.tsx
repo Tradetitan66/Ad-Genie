@@ -85,7 +85,7 @@ export default function ContentSelectionPage() {
       });
 
       success('Content type selected!');
-      navigate('/onboarding/review');
+      navigate('/onboarding/brand-details');
     } catch (err) {
       console.error('Error saving content type:', err);
       error('Failed to save content type. Please try again.');
@@ -96,7 +96,7 @@ export default function ContentSelectionPage() {
 
   if (loading) {
     return (
-      <OnboardingLayout currentStep={5} totalSteps={6} stepLabel="Loading content selection...">
+      <OnboardingLayout currentStep={2} totalSteps={5} stepLabel="Loading content selection...">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <Loader2 className="w-12 h-12 text-[#2563EB] animate-spin mx-auto mb-4" />
@@ -108,7 +108,7 @@ export default function ContentSelectionPage() {
   }
 
   return (
-    <OnboardingLayout currentStep={5} totalSteps={6} stepLabel="Choose your content type">
+    <OnboardingLayout currentStep={2} totalSteps={5} stepLabel="Choose your content type">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -175,7 +175,7 @@ export default function ContentSelectionPage() {
           <div className="mt-8 pt-6 border-t border-slate-200">
             <div className="flex gap-4">
               <button
-                onClick={() => navigate('/onboarding/visual-assets')}
+                onClick={() => navigate('/onboarding/welcome')}
                 className="px-6 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition-all"
               >
                 Back

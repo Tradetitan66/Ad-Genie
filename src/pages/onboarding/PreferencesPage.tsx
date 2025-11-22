@@ -132,8 +132,8 @@ export default function PreferencesPage() {
         enable_auto_suggestions: formData.enableAutoSuggestions
       });
 
-      success('Preferences saved!');
-      navigate('/onboarding/brand-details');
+      success('Campaign preferences saved!');
+      navigate('/onboarding/review');
     } catch (err) {
       console.error('Error saving preferences:', err);
       error('Failed to save preferences. Please try again.');
@@ -154,7 +154,7 @@ export default function PreferencesPage() {
 
   if (loading) {
     return (
-      <OnboardingLayout currentStep={2} totalSteps={6} stepLabel="Loading preferences...">
+      <OnboardingLayout currentStep={5} totalSteps={5} stepLabel="Loading campaign selection...">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <Loader2 className="w-12 h-12 text-[#2563EB] animate-spin mx-auto mb-4" />
@@ -166,7 +166,7 @@ export default function PreferencesPage() {
   }
 
   return (
-    <OnboardingLayout currentStep={2} totalSteps={6} stepLabel="Let's personalize your experience">
+    <OnboardingLayout currentStep={5} totalSteps={5} stepLabel="Campaign Selection">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -174,9 +174,9 @@ export default function PreferencesPage() {
       >
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">
-            Let's Personalize Your Experience
+            Campaign Selection
           </h1>
-          <p className="text-slate-600">Tell us about your creative preferences</p>
+          <p className="text-slate-600">Configure your campaign preferences</p>
         </div>
 
           <div className="space-y-8">
@@ -319,7 +319,7 @@ export default function PreferencesPage() {
             </p>
             <div className="flex gap-4">
               <button
-                onClick={() => navigate('/onboarding/welcome')}
+                onClick={() => navigate('/onboarding/visual-assets')}
                 className="px-6 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition-all"
               >
                 Back

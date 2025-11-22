@@ -203,6 +203,11 @@ export default function VisualAssetsPage() {
   };
 
   const handleContinue = async () => {
+    if (productImages.length !== 6) {
+      error('Please upload exactly 6 product images to continue');
+      return;
+    }
+
     if (!brandProfileId) {
       error('Brand profile not found. Please complete previous steps.');
       return;
@@ -217,7 +222,7 @@ export default function VisualAssetsPage() {
       });
 
       success('Visual assets saved!');
-      navigate('/onboarding/content-selection');
+      navigate('/onboarding/preferences');
     } catch (err) {
       console.error('Error saving visual assets:', err);
       error('Failed to save visual assets. Please try again.');
@@ -226,32 +231,10 @@ export default function VisualAssetsPage() {
     }
   };
 
-  const handleSkip = async () => {
-    if (!brandProfileId) {
-      navigate('/onboarding/content-selection');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      await brandProfileService.update(brandProfileId, {
-        logo: null,
-        product_images: [],
-        brand_colors: brandColors
-      });
-
-      navigate('/onboarding/content-selection');
-    } catch (err) {
-      console.error('Error skipping visual assets:', err);
-      navigate('/onboarding/content-selection');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   if (loading) {
     return (
-      <OnboardingLayout currentStep={4} totalSteps={6} stepLabel="Loading visual assets...">
+      <OnboardingLayout currentStep={4} totalSteps={5} stepLabel="Loading visual assets...">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <Loader2 className="w-12 h-12 text-[#2563EB] animate-spin mx-auto mb-4" />
@@ -263,7 +246,7 @@ export default function VisualAssetsPage() {
   }
 
   return (
-    <OnboardingLayout currentStep={4} totalSteps={6} stepLabel="Upload your brand assets">
+    <OnboardingLayout currentStep={4} totalSteps={5} stepLabel="Upload your brand assets">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -278,7 +261,7 @@ export default function VisualAssetsPage() {
           <div className="space-y-8">
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-3">
-                Logo Upload <span className="text-[#EF4444]">*</span>
+                Logo Upload <span className="text-slate-400 text-xs">(Optional)</span>
               </label>
               {!logo ? (
                 <div
@@ -332,7 +315,7 @@ export default function VisualAssetsPage() {
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-3">
-                Product Images <span className="text-[#EF4444]">*</span> (4-6 required)
+                Product Images <span className="text-[#EF4444]">*</span> (6 required)
               </label>
               <p className="text-sm text-slate-500 mb-3">{productImages.length} of 6 images uploaded</p>
 
@@ -438,8 +421,8 @@ export default function VisualAssetsPage() {
 
           <div className="mt-8 pt-6 border-t border-slate-200">
             <p className="text-sm text-slate-500 mb-4">
-              {!logo || productImages.length < 4
-                ? 'Upload assets now or skip and add them later from your dashboard'
+              {productImages.length < 6
+                ? `Please upload ${6 - productImages.length} more image${6 - productImages.length > 1 ? 's' : ''} to continue`
                 : 'All required assets uploaded! You can continue.'}
             </p>
             <div className="flex gap-4">
@@ -449,18 +432,9 @@ export default function VisualAssetsPage() {
               >
                 Back
               </button>
-              {(!logo || productImages.length < 4) && (
-                <button
-                  onClick={handleSkip}
-                  disabled={saving}
-                  className="px-6 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-slate-600"
-                >
-                  Skip for Now
-                </button>
-              )}
               <button
                 onClick={handleContinue}
-                disabled={(!logo && productImages.length === 0) || saving || uploading}
+                disabled={productImages.length !== 6 || saving || uploading}
                 className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {saving ? 'Saving...' : uploading ? 'Processing...' : 'Continue →'}
