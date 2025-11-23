@@ -107,3 +107,4 @@ For production deployment:
 4. Configure backup strategies
 5. Monitor usage and performance in Supabase dashboard
 
+

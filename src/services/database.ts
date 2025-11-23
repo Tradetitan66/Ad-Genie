@@ -97,12 +97,13 @@ export interface Preferences {
   brand_voice: string | null;
   visual_styles: string[];
   campaign_timing: string | null;
-  seasonal_events: {
+  seasonal_events: string[] | {
     local?: string[];
     international?: string[];
   };
   enable_auto_suggestions: boolean;
   content_type: string | null;
+  campaign_market?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -423,7 +424,7 @@ const localStoragePreferencesService = {
         brand_voice: prefs.brand_voice ?? null,
         visual_styles: prefs.visual_styles ?? [],
         campaign_timing: prefs.campaign_timing ?? null,
-        seasonal_events: prefs.seasonal_events ?? { local: [], international: [] },
+        seasonal_events: prefs.seasonal_events ?? [],
         enable_auto_suggestions: prefs.enable_auto_suggestions ?? true,
         content_type: prefs.content_type ?? null,
         created_at: new Date().toISOString(),

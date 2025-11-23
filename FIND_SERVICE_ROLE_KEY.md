@@ -86,3 +86,4 @@ After you find and copy the service_role key:
 1. Add it to your `.env` file as: `SUPABASE_SERVICE_ROLE_KEY=your_key_here`
 2. Run: `node test-admin-access.mjs` to verify it works
 
+

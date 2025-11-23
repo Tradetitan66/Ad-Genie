@@ -63,3 +63,4 @@
 3. **Unify authentication** (choose one system)
 4. **Test image uploads** with Supabase configured
 
+

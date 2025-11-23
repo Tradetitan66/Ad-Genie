@@ -22,7 +22,7 @@ export interface BrandWebhookData {
   brand_voice?: string;
   visual_styles?: string[];
   campaign_timing?: string;
-  seasonal_events?: {
+  seasonal_events?: string[] | {
     local?: string[];
     international?: string[];
   };

@@ -140,12 +140,14 @@ export default function ReviewPage() {
           brand_voice: preferences?.brand_voice || undefined,
           visual_styles: Array.isArray(preferences?.visual_styles) && preferences.visual_styles.length > 0 ? preferences.visual_styles : undefined,
           campaign_timing: undefined, // Removed - no longer used
-          seasonal_events: preferences?.seasonal_events && typeof preferences.seasonal_events === 'object'
-            ? ((preferences.seasonal_events.local && preferences.seasonal_events.local.length > 0) || 
-               (preferences.seasonal_events.international && preferences.seasonal_events.international.length > 0))
-              ? preferences.seasonal_events
-              : undefined
-            : undefined,
+          seasonal_events: Array.isArray(preferences?.seasonal_events) && preferences.seasonal_events.length > 0
+            ? preferences.seasonal_events
+            : (preferences?.seasonal_events && typeof preferences.seasonal_events === 'object'
+              ? ((preferences.seasonal_events.local && preferences.seasonal_events.local.length > 0) || 
+                 (preferences.seasonal_events.international && preferences.seasonal_events.international.length > 0))
+                ? preferences.seasonal_events
+                : undefined
+              : undefined),
         });
         console.log('✅ Brand data sent to webhook successfully');
       } catch (webhookError: any) {

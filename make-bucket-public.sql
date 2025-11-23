@@ -10,3 +10,4 @@ SELECT name, public, created_at
 FROM storage.buckets 
 WHERE name = 'brand-assets';
 
+

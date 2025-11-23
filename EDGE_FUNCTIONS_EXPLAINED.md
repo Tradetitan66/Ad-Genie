@@ -102,3 +102,4 @@ supabase/
 2. **Update imageService.ts** to use Edge Function instead of n8n webhook
 3. **Return public URLs** instead of base64 for better performance
 
+
