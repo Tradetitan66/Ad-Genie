@@ -24,6 +24,7 @@ export default function VisualAssetsPage() {
     accent: ''
   });
   const [dragActive, setDragActive] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -44,6 +45,9 @@ export default function VisualAssetsPage() {
       }
 
       setUserId(user.id);
+      
+      // Check if user has completed onboarding (edit mode)
+      setIsEditMode(user.has_completed_onboarding || false);
 
       const existingProfile = await brandProfileService.getByUserId(user.id);
       if (existingProfile) {
@@ -83,9 +87,9 @@ export default function VisualAssetsPage() {
 
     setUploading(true);
     try {
-      const url = await imageService.uploadToStorage(userId, file, 'logo', false);
+      const url = await imageService.uploadToStorage(userId, file, 'logo', true);
       setLogo(url);
-      success('Logo uploaded successfully!');
+      success('Logo uploaded with background removed!');
     } catch (err) {
       console.error('Error uploading logo:', err);
       error('Failed to upload logo. Please try again.');
@@ -122,8 +126,8 @@ export default function VisualAssetsPage() {
     try {
       const uploadPromises = filesToProcess.map(async (file) => {
         try {
-          // Background removal temporarily disabled - upload directly to Supabase
-          const url = await imageService.uploadToStorage(userId, file, 'product', false);
+          // Use Edge Function to remove background and upload to Supabase
+          const url = await imageService.uploadToStorage(userId, file, 'product', true);
           setProcessingCount(prev => prev - 1);
           return url;
         } catch (err) {
@@ -204,7 +208,23 @@ export default function VisualAssetsPage() {
   };
 
   const handleContinue = async () => {
-    if (productImages.length !== 6) {
+    // Check if user has completed onboarding (edit mode)
+    const currentUserEmail = localStorage.getItem('currentUser');
+    let user = null;
+    let isEditMode = false;
+    
+    if (currentUserEmail) {
+      try {
+        user = await userService.getByEmail(currentUserEmail);
+        isEditMode = user?.has_completed_onboarding || false;
+      } catch (err) {
+        console.error('Error checking user:', err);
+      }
+    }
+
+    // For new onboarding: require exactly 6 images
+    // For edit mode: allow saving with any number of images (including 0)
+    if (!isEditMode && productImages.length !== 6) {
       error('Please upload exactly 6 product images to continue');
       return;
     }
@@ -216,13 +236,34 @@ export default function VisualAssetsPage() {
 
     setSaving(true);
     try {
+      // Update brand profile with visual assets
       await brandProfileService.update(brandProfileId, {
         logo,
         product_images: productImages,
         brand_colors: brandColors
       });
 
+      // Fetch complete brand profile and user data for webhook
+      if (!currentUserEmail) {
+        throw new Error('User email not found');
+      }
+
+      if (!user) {
+        user = await userService.getByEmail(currentUserEmail);
+      }
+      
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const brandProfile = await brandProfileService.getByUserId(user.id);
+      if (!brandProfile) {
+        throw new Error('Brand profile not found');
+      }
+
       success('Visual assets saved!');
+      
+      // Navigate based on mode: edit mode goes to preferences (campaign selection), new onboarding continues to preferences
       navigate('/onboarding/preferences');
     } catch (err) {
       console.error('Error saving visual assets:', err);
@@ -247,7 +288,7 @@ export default function VisualAssetsPage() {
   }
 
   return (
-    <OnboardingLayout currentStep={4} totalSteps={5} stepLabel="Upload your brand assets">
+    <OnboardingLayout currentStep={4} totalSteps={5} stepLabel={isEditMode ? "Edit your brand assets" : "Upload your brand assets"}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -255,9 +296,9 @@ export default function VisualAssetsPage() {
       >
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">
-            Upload Your Brand Assets
+            {isEditMode ? 'Edit Your Brand Assets' : 'Upload Your Brand Assets'}
           </h1>
-          <p className="text-slate-600">Add your logo and product images</p>
+          <p className="text-slate-600">{isEditMode ? 'Update your logo and product images' : 'Add your logo and product images'}</p>
         </div>
 
         <div className="space-y-8">
@@ -317,9 +358,14 @@ export default function VisualAssetsPage() {
 
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-3">
-              Product Images <span className="text-[#EF4444]">*</span> (6 required)
+              Product Images {!isEditMode && <span className="text-[#EF4444]">*</span>} {isEditMode ? '(Optional - up to 6)' : '(6 required)'}
             </label>
-            <p className="text-sm text-slate-500 mb-3">{productImages.length} of 6 images uploaded</p>
+            <p className="text-sm text-slate-500 mb-3">
+              {isEditMode 
+                ? `${productImages.length} image${productImages.length !== 1 ? 's' : ''} uploaded`
+                : `${productImages.length} of 6 images uploaded`
+              }
+            </p>
 
             {productImages.length < 6 && (
               <div
@@ -354,7 +400,7 @@ export default function VisualAssetsPage() {
                     <p className="text-sm font-semibold text-slate-900">
                       Uploading {processingCount} image{processingCount > 1 ? 's' : ''}...
                     </p>
-                    <p className="text-xs text-slate-600">Saving to storage</p>
+                    <p className="text-xs text-slate-600">Removing background & saving</p>
                   </div>
                 </div>
               </div>
@@ -423,23 +469,35 @@ export default function VisualAssetsPage() {
 
         <div className="mt-8 pt-6 border-t border-slate-200">
           <p className="text-sm text-slate-500 mb-4">
-            {productImages.length < 6
-              ? `Please upload ${6 - productImages.length} more image${6 - productImages.length > 1 ? 's' : ''} to continue`
-              : 'All required assets uploaded! You can continue.'}
+            {isEditMode ? (
+              productImages.length === 0 
+                ? 'No product images uploaded. You can upload up to 6 images.'
+                : `You have ${productImages.length} product image${productImages.length > 1 ? 's' : ''}. You can add more or save changes.`
+            ) : (
+              productImages.length < 6
+                ? `Please upload ${6 - productImages.length} more image${6 - productImages.length > 1 ? 's' : ''} to continue`
+                : 'All required assets uploaded! You can continue.'
+            )}
           </p>
           <div className="flex gap-4">
             <button
-              onClick={() => navigate('/onboarding/brand-details')}
+              onClick={() => {
+                if (isEditMode) {
+                  navigate('/dashboard/campaign-hub');
+                } else {
+                  navigate('/onboarding/brand-details');
+                }
+              }}
               className="px-6 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition-all text-slate-700"
             >
-              Back
+              {isEditMode ? 'Cancel' : 'Back'}
             </button>
             <button
               onClick={handleContinue}
-              disabled={productImages.length !== 6 || saving || uploading}
+              disabled={(!isEditMode && productImages.length !== 6) || saving || uploading}
               className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              {saving ? 'Saving...' : uploading ? 'Processing...' : 'Continue →'}
+              {saving ? 'Saving...' : uploading ? 'Processing...' : isEditMode ? 'Save Changes' : 'Continue →'}
             </button>
           </div>
         </div>

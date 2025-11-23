@@ -34,6 +34,13 @@ const contentTypes = [
   }
 ];
 
+const campaignMarkets = [
+  'Local (India)',
+  'Regional (Specific States/Regions)',
+  'International',
+  'Global'
+];
+
 export default function ContentSelectionPage() {
   const navigate = useNavigate();
   const { success, error } = useToast();
@@ -41,6 +48,7 @@ export default function ContentSelectionPage() {
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState('');
   const [selectedType, setSelectedType] = useState<string>('');
+  const [selectedMarket, setSelectedMarket] = useState<string>('');
 
   useEffect(() => {
     loadData();
@@ -63,8 +71,15 @@ export default function ContentSelectionPage() {
       setUserId(user.id);
 
       const preferences = await preferencesService.getByUserId(user.id);
-      if (preferences && preferences.content_type) {
-        setSelectedType(preferences.content_type);
+      if (preferences) {
+        if (preferences.content_type) {
+          setSelectedType(preferences.content_type);
+        }
+        // Load campaign market (stored in campaign_goal initially)
+        // This will be the target market for the campaign
+        if (preferences.campaign_goal && ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'].includes(preferences.campaign_goal)) {
+          setSelectedMarket(preferences.campaign_goal);
+        }
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -75,16 +90,27 @@ export default function ContentSelectionPage() {
   };
 
   const handleContinue = async () => {
-    if (!selectedType || !userId) return;
+    if (!selectedType || !userId) {
+      error('Please select a content type');
+      return;
+    }
+
+    if (!selectedMarket) {
+      error('Please select a target market for your campaign');
+      return;
+    }
 
     setSaving(true);
     try {
       await preferencesService.upsert({
         user_id: userId,
         content_type: selectedType,
+        // Store campaign market in campaign_goal field temporarily, or we can add new field
+        // For now, storing as part of campaign data
+        campaign_goal: selectedMarket, // This will be updated later in preferences page
       });
 
-      success('Content type selected!');
+      success('Content type and market selected!');
       navigate('/onboarding/brand-details');
     } catch (err) {
       console.error('Error saving content type:', err);
@@ -121,55 +147,84 @@ export default function ContentSelectionPage() {
           <p className="text-slate-600">Based on your preferences, we recommend Images + UGC</p>
         </div>
 
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            {contentTypes.map((type) => {
-              const Icon = type.icon;
-              return (
-                <motion.div
-                  key={type.id}
-                  whileHover={{ scale: 1.02, y: -5 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setSelectedType(type.id)}
-                  className={`relative cursor-pointer rounded-lg border-2 p-6 transition-all ${
-                    selectedType === type.id
-                      ? 'border-[#2563EB] bg-blue-50 shadow-lg'
-                      : 'border-slate-200 hover:border-slate-300 shadow'
-                  }`}
-                >
-                  {type.recommended && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
-                        RECOMMENDED
-                      </span>
-                    </div>
-                  )}
+          <div className="space-y-8">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-4">
+                Content Type <span className="text-red-500">*</span>
+              </label>
+              <div className="grid md:grid-cols-3 gap-6">
+                {contentTypes.map((type) => {
+                  const Icon = type.icon;
+                  return (
+                    <motion.div
+                      key={type.id}
+                      whileHover={{ scale: 1.02, y: -5 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setSelectedType(type.id)}
+                      className={`relative cursor-pointer rounded-lg border-2 p-6 transition-all ${
+                        selectedType === type.id
+                          ? 'border-[#2563EB] bg-blue-50 shadow-lg'
+                          : 'border-slate-200 hover:border-slate-300 shadow'
+                      }`}
+                    >
+                      {type.recommended && (
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                          <span className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
+                            RECOMMENDED
+                          </span>
+                        </div>
+                      )}
 
-                  <div className={`w-16 h-16 rounded-full bg-gradient-to-r ${type.color} flex items-center justify-center mb-4 mx-auto`}>
-                    <Icon size={32} className="text-white" />
-                  </div>
-
-                  <h3 className="text-xl font-bold text-slate-900 text-center mb-1">
-                    {type.title}
-                  </h3>
-                  <p className="text-sm font-semibold text-slate-600 text-center mb-3">
-                    {type.subtitle}
-                  </p>
-                  <p className="text-sm text-slate-500 text-center">
-                    {type.description}
-                  </p>
-
-                  {selectedType === type.id && (
-                    <div className="absolute top-4 right-4">
-                      <div className="w-6 h-6 bg-[#2563EB] rounded-full flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
+                      <div className={`w-16 h-16 rounded-full bg-gradient-to-r ${type.color} flex items-center justify-center mb-4 mx-auto`}>
+                        <Icon size={32} className="text-white" />
                       </div>
-                    </div>
-                  )}
-                </motion.div>
-              );
-            })}
+
+                      <h3 className="text-xl font-bold text-slate-900 text-center mb-1">
+                        {type.title}
+                      </h3>
+                      <p className="text-sm font-semibold text-slate-600 text-center mb-3">
+                        {type.subtitle}
+                      </p>
+                      <p className="text-sm text-slate-500 text-center">
+                        {type.description}
+                      </p>
+
+                      {selectedType === type.id && (
+                        <div className="absolute top-4 right-4">
+                          <div className="w-6 h-6 bg-[#2563EB] rounded-full flex items-center justify-center">
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-3">
+                Target Market <span className="text-red-500">*</span>
+              </label>
+              <p className="text-xs text-slate-500 mb-3">Which market is this marketing campaign focusing on?</p>
+              <div className="space-y-2">
+                {campaignMarkets.map(market => (
+                  <label key={market} className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-all">
+                    <input
+                      type="radio"
+                      name="market"
+                      value={market}
+                      checked={selectedMarket === market}
+                      onChange={(e) => setSelectedMarket(e.target.value)}
+                      className="w-4 h-4 text-[#2563EB] focus:ring-[#2563EB]"
+                    />
+                    <span className="text-slate-700 font-medium">{market}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="mt-8 pt-6 border-t border-slate-200">
@@ -182,7 +237,7 @@ export default function ContentSelectionPage() {
               </button>
               <button
                 onClick={handleContinue}
-                disabled={!selectedType || saving}
+                disabled={!selectedType || !selectedMarket || saving}
                 className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {saving ? 'Saving...' : 'Continue →'}

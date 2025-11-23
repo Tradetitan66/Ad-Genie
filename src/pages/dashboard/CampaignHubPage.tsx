@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Plus, LogOut } from 'lucide-react';
-import { userService } from '../../services/database';
+import { Building2, Plus, LogOut, Loader2 } from 'lucide-react';
+import { userService, brandProfileService, preferencesService } from '../../services/database';
+import { sendBrandDataToWebhook } from '../../services/webhookService';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function CampaignHubPage() {
   const navigate = useNavigate();
+  const { success, error: showError } = useToast();
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [sendingWebhook, setSendingWebhook] = useState(false);
 
   useEffect(() => {
     loadUser();
@@ -23,9 +27,18 @@ export default function CampaignHubPage() {
     try {
       const user = await userService.getByEmail(currentUserEmail);
       if (user) {
+        // Load brand profile
+        const brandProfile = await brandProfileService.getByUserId(user.id);
+        
         setUserData({
           email: user.email,
           displayName: user.display_name || 'User',
+          userId: user.id,
+          brandProfile: brandProfile ? {
+            brandName: brandProfile.brand_name,
+            industry: brandProfile.industry,
+            logo: brandProfile.logo,
+          } : null,
         });
       } else {
         navigate('/login');
@@ -35,6 +48,77 @@ export default function CampaignHubPage() {
       navigate('/login');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUseExisting = async () => {
+    if (!userData?.userId) {
+      showError('User data not loaded');
+      return;
+    }
+
+    setSendingWebhook(true);
+    try {
+      // Fetch complete brand profile and preferences
+      const [brandProfile, preferences] = await Promise.all([
+        brandProfileService.getByUserId(userData.userId),
+        preferencesService.getByUserId(userData.userId)
+      ]);
+      
+      if (!brandProfile) {
+        showError('No brand profile found. Please complete onboarding first.');
+        return;
+      }
+
+      // Format brand colors
+      const formattedBrandColors = brandProfile.brand_colors && typeof brandProfile.brand_colors === 'object' 
+        ? {
+            primary: brandProfile.brand_colors.primary || undefined,
+            secondary: brandProfile.brand_colors.secondary || undefined,
+            accent: brandProfile.brand_colors.accent || undefined,
+          }
+        : {};
+
+      // Send existing data to webhook with preferences
+      // Extract campaign market if campaign_goal is a market value
+      const marketOptions = ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'];
+      const campaignGoalValue = preferences?.campaign_goal || '';
+      const isMarketValue = campaignGoalValue && marketOptions.includes(campaignGoalValue);
+      const campaignMarket = isMarketValue ? campaignGoalValue : undefined;
+      const actualCampaignGoal = isMarketValue ? undefined : campaignGoalValue;
+
+      await sendBrandDataToWebhook({
+        user_id: userData.userId,
+        user_email: userData.email,
+        brand_name: brandProfile.brand_name,
+        industry: brandProfile.industry,
+        audience: brandProfile.audience || undefined,
+        website_url: brandProfile.website_url || undefined,
+        contact_email: brandProfile.contact_email,
+        logo_url: brandProfile.logo || null,
+        product_images: Array.isArray(brandProfile.product_images) ? brandProfile.product_images : [],
+        brand_colors: formattedBrandColors,
+        content_type: preferences?.content_type || undefined,
+        campaign_goal: actualCampaignGoal,
+        campaign_market: campaignMarket,
+        brand_voice: preferences?.brand_voice || undefined,
+        visual_styles: Array.isArray(preferences?.visual_styles) && preferences.visual_styles.length > 0 ? preferences.visual_styles : undefined,
+        campaign_timing: undefined, // Removed - no longer used
+        seasonal_events: preferences?.seasonal_events && typeof preferences.seasonal_events === 'object'
+          ? ((preferences.seasonal_events.local && preferences.seasonal_events.local.length > 0) || 
+             (preferences.seasonal_events.international && preferences.seasonal_events.international.length > 0))
+            ? preferences.seasonal_events
+            : undefined
+          : undefined,
+      });
+
+      success('Brand data sent successfully!');
+      navigate('/dashboard/content-selection');
+    } catch (err: any) {
+      console.error('Error sending webhook:', err);
+      showError(`Failed to send data: ${err.message}`);
+    } finally {
+      setSendingWebhook(false);
     }
   };
 
@@ -74,9 +158,9 @@ export default function CampaignHubPage() {
 
           <div className="grid md:grid-cols-2 gap-8 mb-8">
             <motion.div
-              whileHover={{ scale: 1.02 }}
+              whileHover={!sendingWebhook ? { scale: 1.02 } : {}}
               className="bg-white rounded-lg shadow-lg p-8 cursor-pointer"
-              onClick={() => navigate('/dashboard/content-selection')}
+              onClick={handleUseExisting}
             >
               <div className="flex items-start gap-4 mb-6">
                 <div className="w-16 h-16 bg-gradient-to-br from-[#2563EB] to-[#8B5CF6] rounded-lg flex items-center justify-center flex-shrink-0">
@@ -115,15 +199,27 @@ export default function CampaignHubPage() {
               <p className="text-slate-600 mb-6">
                 Use your saved preferences
               </p>
-              <button className="w-full px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg hover:bg-[#1d4ed8] transition-all">
-                Continue with {userData.brandProfile?.brandName} →
+              <button 
+                disabled={sendingWebhook}
+                className="w-full px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg hover:bg-[#1d4ed8] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {sendingWebhook ? (
+                  <>
+                    <Loader2 size={20} className="animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    Continue with {userData.brandProfile?.brandName || 'Profile'} →
+                  </>
+                )}
               </button>
             </motion.div>
 
             <motion.div
               whileHover={{ scale: 1.02 }}
               className="bg-white rounded-lg shadow-lg p-8 cursor-pointer"
-              onClick={() => navigate('/onboarding/preferences')}
+              onClick={() => navigate('/onboarding/content-selection')}
             >
               <div className="flex items-start gap-4 mb-6">
                 <div className="w-16 h-16 bg-gradient-to-br from-[#10B981] to-[#8B5CF6] rounded-lg flex items-center justify-center flex-shrink-0">

@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Edit2, Loader2 } from 'lucide-react';
 import OnboardingLayout from '../../components/OnboardingLayout';
 import { userService, preferencesService, brandProfileService } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
+import { sendBrandDataToWebhook } from '../../services/webhookService';
 
 export default function ReviewPage() {
   const navigate = useNavigate();
@@ -54,7 +55,6 @@ export default function ReviewPage() {
           campaignGoal: preferences.campaign_goal,
           brandVoice: preferences.brand_voice,
           visualStyles: preferences.visual_styles,
-          campaignTiming: preferences.campaign_timing,
           seasonalEvents: preferences.seasonal_events
         } : null,
         brandProfile: brandProfile ? {
@@ -89,15 +89,80 @@ export default function ReviewPage() {
 
     setGenerating(true);
     try {
+      // Fetch latest data
+      const currentUserEmail = localStorage.getItem('currentUser');
+      if (!currentUserEmail) {
+        throw new Error('User email not found');
+      }
+      
+      const [user, preferences, brandProfile] = await Promise.all([
+        userService.getByEmail(currentUserEmail),
+        preferencesService.getByUserId(userId),
+        brandProfileService.getByUserId(userId)
+      ]);
+
+      if (!user || !brandProfile) {
+        throw new Error('User or brand profile not found');
+      }
+
+      // Format brand colors
+      const formattedBrandColors = brandProfile.brand_colors && typeof brandProfile.brand_colors === 'object'
+        ? {
+            primary: brandProfile.brand_colors.primary || undefined,
+            secondary: brandProfile.brand_colors.secondary || undefined,
+            accent: brandProfile.brand_colors.accent || undefined,
+          }
+        : {};
+
+      // Send complete data to webhook
+      try {
+        // Extract campaign market if campaign_goal is a market value
+        const marketOptions = ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'];
+        const campaignGoalValue = preferences?.campaign_goal || '';
+        const isMarketValue = campaignGoalValue && marketOptions.includes(campaignGoalValue);
+        const campaignMarket = isMarketValue ? campaignGoalValue : undefined;
+        const actualCampaignGoal = isMarketValue ? undefined : campaignGoalValue;
+
+        await sendBrandDataToWebhook({
+          user_id: user.id,
+          user_email: user.email,
+          brand_name: brandProfile.brand_name,
+          industry: brandProfile.industry,
+          audience: brandProfile.audience || undefined,
+          website_url: brandProfile.website_url || undefined,
+          contact_email: brandProfile.contact_email,
+          logo_url: brandProfile.logo || null,
+          product_images: Array.isArray(brandProfile.product_images) ? brandProfile.product_images : [],
+          brand_colors: formattedBrandColors,
+          content_type: preferences?.content_type || userData.contentType || undefined,
+          campaign_goal: actualCampaignGoal,
+          campaign_market: campaignMarket,
+          brand_voice: preferences?.brand_voice || undefined,
+          visual_styles: Array.isArray(preferences?.visual_styles) && preferences.visual_styles.length > 0 ? preferences.visual_styles : undefined,
+          campaign_timing: undefined, // Removed - no longer used
+          seasonal_events: preferences?.seasonal_events && typeof preferences.seasonal_events === 'object'
+            ? ((preferences.seasonal_events.local && preferences.seasonal_events.local.length > 0) || 
+               (preferences.seasonal_events.international && preferences.seasonal_events.international.length > 0))
+              ? preferences.seasonal_events
+              : undefined
+            : undefined,
+        });
+        console.log('✅ Brand data sent to webhook successfully');
+      } catch (webhookError: any) {
+        console.error('⚠️ Webhook error (continuing anyway):', webhookError);
+        // Show warning but don't block the user flow
+        error(`Webhook failed: ${webhookError.message}. Continuing...`);
+      }
+
       await userService.update(userId, {
         has_completed_onboarding: true
       });
 
       success('Launching campaign generation!');
       navigate('/dashboard/generating');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating onboarding status:', err);
-      error('Failed to start generation. Please try again.');
+      error(`Failed to start generation: ${err.message}`);
       setGenerating(false);
     }
   };
@@ -171,10 +236,6 @@ export default function ReviewPage() {
                         </span>
                       ))}
                     </div>
-                  </div>
-                  <div>
-                    <span className="font-semibold text-slate-700">Campaign Timing:</span>
-                    <span className="ml-2 text-slate-600">{userData.preferences.campaignTiming}</span>
                   </div>
                 </div>
               )}

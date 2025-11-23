@@ -229,12 +229,47 @@ export const imageService = {
     let fileToUpload = file;
     let fileName = `${type}-${Date.now()}-${file.name}`;
 
-    // Background removal temporarily disabled - upload images directly
-    // TODO: Re-enable background removal when n8n webhook is ready
-    if (removeBackground) {
-      console.log('⚠️ Background removal requested but temporarily disabled - uploading original image');
-      // Skip background removal for now, upload original image
-      // fileToUpload remains as the original file
+    // Use Edge Function for background removal if requested and Supabase is configured
+    if (removeBackground && isSupabaseConfigured()) {
+      try {
+        console.log('🚀 Using Edge Function for background removal');
+        const imageBase64 = await this.fileToBase64(file);
+        
+        // Extract base64 data (remove data URL prefix if present)
+        let base64Data = imageBase64;
+        if (imageBase64.includes(',')) {
+          base64Data = imageBase64.split(',')[1];
+        }
+
+        // Call Edge Function
+        const { data, error } = await supabase.functions.invoke('remove-background', {
+          body: { imageBase64: base64Data }
+        });
+
+        if (error) {
+          console.error('❌ Edge Function error:', error);
+          throw new Error(`Background removal failed: ${error.message}`);
+        }
+
+        if (data?.imageBase64) {
+          console.log('✅ Background removed successfully via Edge Function');
+          // Convert base64 to blob for upload
+          const blob = await this.base64ToBlob(data.imageBase64);
+          fileToUpload = new File([blob], file.name, { type: 'image/png' });
+          fileName = `${type}-processed-${Date.now()}.png`;
+        } else if (data?.error) {
+          console.error('❌ Edge Function returned error:', data.error);
+          throw new Error(`Background removal failed: ${data.error}`);
+        } else {
+          console.warn('⚠️ Edge Function response format unexpected, using original image');
+        }
+      } catch (error: any) {
+        console.error('❌ Background removal failed, using original image:', error.message);
+        // Fall back to original image if background removal fails
+        fileToUpload = file;
+      }
+    } else if (removeBackground && !isSupabaseConfigured()) {
+      console.warn('⚠️ Background removal requested but Supabase not configured - uploading original image');
     }
 
     // Always attempt to upload to Supabase storage buckets

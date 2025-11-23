@@ -37,7 +37,7 @@ function App() {
             <Route
               path="/onboarding/preferences"
               element={
-                <ProtectedRoute requireNoOnboarding>
+                <ProtectedRoute>
                   <PreferencesPage />
                 </ProtectedRoute>
               }
@@ -45,7 +45,7 @@ function App() {
             <Route
               path="/onboarding/brand-details"
               element={
-                <ProtectedRoute requireNoOnboarding>
+                <ProtectedRoute>
                   <BrandDetailsPage />
                 </ProtectedRoute>
               }
@@ -53,7 +53,7 @@ function App() {
             <Route
               path="/onboarding/visual-assets"
               element={
-                <ProtectedRoute requireNoOnboarding>
+                <ProtectedRoute>
                   <VisualAssetsPage />
                 </ProtectedRoute>
               }
@@ -61,7 +61,7 @@ function App() {
             <Route
               path="/onboarding/content-selection"
               element={
-                <ProtectedRoute requireNoOnboarding>
+                <ProtectedRoute>
                   <ContentSelectionPage />
                 </ProtectedRoute>
               }

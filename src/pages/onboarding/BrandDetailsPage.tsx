@@ -150,6 +150,7 @@ export default function BrandDetailsPage() {
       }
 
       success('Brand details saved!');
+      // In edit mode, visual assets page will navigate to preferences after saving
       navigate('/onboarding/visual-assets');
     } catch (err) {
       console.error('Error saving brand details:', err);
