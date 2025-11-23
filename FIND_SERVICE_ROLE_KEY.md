@@ -87,3 +87,4 @@ After you find and copy the service_role key:
 2. Run: `node test-admin-access.mjs` to verify it works
 
 
+

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Image, Video, Sparkles, Loader2 } from 'lucide-react';
 import OnboardingLayout from '../../components/OnboardingLayout';
-import { userService, preferencesService } from '../../services/database';
+import { userService, preferencesService, brandProfileService } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
 
 const contentTypes = [
@@ -71,13 +71,16 @@ export default function ContentSelectionPage() {
       setUserId(user.id);
 
       const preferences = await preferencesService.getByUserId(user.id);
+
       if (preferences) {
         if (preferences.content_type) {
           setSelectedType(preferences.content_type);
         }
-        // Load campaign market (stored in campaign_goal initially)
-        // This will be the target market for the campaign
-        if (preferences.campaign_goal && ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'].includes(preferences.campaign_goal)) {
+        // Load campaign market from campaign_market field
+        if (preferences.campaign_market) {
+          setSelectedMarket(preferences.campaign_market);
+        } else if (preferences.campaign_goal && ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'].includes(preferences.campaign_goal)) {
+          // Fallback: migrate from old campaign_goal field
           setSelectedMarket(preferences.campaign_goal);
         }
       }
@@ -102,12 +105,11 @@ export default function ContentSelectionPage() {
 
     setSaving(true);
     try {
+      // Update preferences with campaign_market (not campaign_goal)
       await preferencesService.upsert({
         user_id: userId,
         content_type: selectedType,
-        // Store campaign market in campaign_goal field temporarily, or we can add new field
-        // For now, storing as part of campaign data
-        campaign_goal: selectedMarket, // This will be updated later in preferences page
+        campaign_market: selectedMarket, // Store in correct field
       });
 
       success('Content type and market selected!');
@@ -225,6 +227,7 @@ export default function ContentSelectionPage() {
                 ))}
               </div>
             </div>
+
           </div>
 
           <div className="mt-8 pt-6 border-t border-slate-200">

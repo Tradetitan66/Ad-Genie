@@ -3,9 +3,9 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Edit2, Loader2 } from 'lucide-react';
 import OnboardingLayout from '../../components/OnboardingLayout';
-import { userService, preferencesService, brandProfileService } from '../../services/database';
+import { userService, preferencesService, brandProfileService, campaignService } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
-import { sendBrandDataToWebhook } from '../../services/webhookService';
+import { sendBrandDataToWebhook, BrandWebhookData } from '../../services/webhookService';
 
 export default function ReviewPage() {
   const navigate = useNavigate();
@@ -13,7 +13,9 @@ export default function ReviewPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [userId, setUserId] = useState('');
+  const [brandProfileId, setBrandProfileId] = useState<string | null>(null);
   const [userData, setUserData] = useState<any>(null);
+  const [webhookPayload, setWebhookPayload] = useState<BrandWebhookData | null>(null);
   const [expandedSections, setExpandedSections] = useState({
     preferences: true,
     brand: true,
@@ -45,6 +47,10 @@ export default function ReviewPage() {
         preferencesService.getByUserId(user.id),
         brandProfileService.getByUserId(user.id)
       ]);
+
+      if (brandProfile) {
+        setBrandProfileId(brandProfile.id);
+      }
 
       const contentType = preferences?.content_type || localStorage.getItem('selectedContentType');
 
@@ -114,54 +120,67 @@ export default function ReviewPage() {
           }
         : {};
 
-      // Send complete data to webhook
-      try {
-        // Extract campaign market if campaign_goal is a market value
-        const marketOptions = ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'];
-        const campaignGoalValue = preferences?.campaign_goal || '';
-        const isMarketValue = campaignGoalValue && marketOptions.includes(campaignGoalValue);
-        const campaignMarket = isMarketValue ? campaignGoalValue : undefined;
-        const actualCampaignGoal = isMarketValue ? undefined : campaignGoalValue;
+      // Extract campaign market from campaign_market field (preferred) or fallback to campaign_goal
+      const marketOptions = ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'];
+      const campaignMarket = preferences?.campaign_market || 
+        (preferences?.campaign_goal && marketOptions.includes(preferences.campaign_goal) 
+          ? preferences.campaign_goal 
+          : undefined);
+      const actualCampaignGoal = preferences?.campaign_goal && !marketOptions.includes(preferences.campaign_goal)
+        ? preferences.campaign_goal
+        : undefined;
 
-        await sendBrandDataToWebhook({
-          user_id: user.id,
-          user_email: user.email,
-          brand_name: brandProfile.brand_name,
-          industry: brandProfile.industry,
-          audience: brandProfile.audience || undefined,
-          website_url: brandProfile.website_url || undefined,
-          contact_email: brandProfile.contact_email,
-          logo_url: brandProfile.logo || null,
-          product_images: Array.isArray(brandProfile.product_images) ? brandProfile.product_images : [],
-          brand_colors: formattedBrandColors,
-          content_type: preferences?.content_type || userData.contentType || undefined,
-          campaign_goal: actualCampaignGoal,
-          campaign_market: campaignMarket,
-          brand_voice: preferences?.brand_voice || undefined,
-          visual_styles: Array.isArray(preferences?.visual_styles) && preferences.visual_styles.length > 0 ? preferences.visual_styles : undefined,
-          campaign_timing: undefined, // Removed - no longer used
-          seasonal_events: Array.isArray(preferences?.seasonal_events) && preferences.seasonal_events.length > 0
-            ? preferences.seasonal_events
-            : (preferences?.seasonal_events && typeof preferences.seasonal_events === 'object'
-              ? ((preferences.seasonal_events.local && preferences.seasonal_events.local.length > 0) || 
-                 (preferences.seasonal_events.international && preferences.seasonal_events.international.length > 0))
-                ? preferences.seasonal_events
-                : undefined
-              : undefined),
-        });
-        console.log('✅ Brand data sent to webhook successfully');
-      } catch (webhookError: any) {
-        console.error('⚠️ Webhook error (continuing anyway):', webhookError);
-        // Show warning but don't block the user flow
-        error(`Webhook failed: ${webhookError.message}. Continuing...`);
-      }
+      // Prepare webhook payload
+      const webhookData: BrandWebhookData = {
+        user_id: user.id,
+        user_email: user.email,
+        brand_name: brandProfile.brand_name,
+        industry: brandProfile.industry,
+        audience: brandProfile.audience || undefined,
+        website_url: brandProfile.website_url || undefined,
+        contact_email: brandProfile.contact_email,
+        logo_url: brandProfile.logo || null,
+        product_images: Array.isArray(brandProfile.product_images) ? brandProfile.product_images : [],
+        brand_colors: formattedBrandColors,
+        content_type: preferences?.content_type || userData.contentType || undefined,
+        campaign_goal: actualCampaignGoal,
+        campaign_market: campaignMarket,
+        brand_voice: preferences?.brand_voice || undefined,
+        visual_styles: Array.isArray(preferences?.visual_styles) && preferences.visual_styles.length > 0 ? preferences.visual_styles : undefined,
+        campaign_timing: undefined, // Removed - no longer used
+        seasonal_events: Array.isArray(preferences?.seasonal_events) && preferences.seasonal_events.length > 0
+          ? preferences.seasonal_events
+          : (preferences?.seasonal_events && typeof preferences.seasonal_events === 'object'
+            ? ((preferences.seasonal_events.local && preferences.seasonal_events.local.length > 0) || 
+               (preferences.seasonal_events.international && preferences.seasonal_events.international.length > 0))
+              ? preferences.seasonal_events
+              : undefined
+            : undefined),
+      };
+
+      // Store webhook payload for later use
+      setWebhookPayload(webhookData);
+
+      // Create campaign record with status 'generating'
+      const contentType = preferences?.content_type || userData.contentType || 'image-only';
+      const campaign = await campaignService.create({
+        user_id: user.id,
+        brand_profile_id: brandProfile.id,
+        content_type: contentType,
+        status: 'generating',
+        generated_assets: {
+          webhook_payload: webhookData,
+          images: [],
+        },
+      });
 
       await userService.update(userId, {
         has_completed_onboarding: true
       });
 
       success('Launching campaign generation!');
-      navigate('/dashboard/generating');
+      // Navigate to Ad-Genie working page with campaign ID
+      navigate('/dashboard/ad-genie-working', { state: { campaignId: campaign.id, webhookPayload: webhookData } });
     } catch (err: any) {
       console.error('Error updating onboarding status:', err);
       error(`Failed to start generation: ${err.message}`);
@@ -271,7 +290,6 @@ export default function ReviewPage() {
                     <div><span className="font-semibold text-slate-700">Target Audience:</span> <p className="text-slate-600 mt-1">{userData.brandProfile.audience}</p></div>
                   )}
                   <div><span className="font-semibold text-slate-700">Website:</span> <a href={userData.brandProfile.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-[#2563EB] ml-2">{userData.brandProfile.websiteUrl}</a></div>
-                  <div><span className="font-semibold text-slate-700">Email:</span> <span className="text-slate-600">{userData.brandProfile.contactEmail}</span></div>
                 </div>
               )}
             </div>

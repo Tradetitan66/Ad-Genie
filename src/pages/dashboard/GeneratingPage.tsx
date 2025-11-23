@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Loader2 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { sendBrandDataToWebhook, parseWebhookResponse, BrandWebhookData } from '../../services/webhookService';
+import { campaignService } from '../../services/database';
+import { useToast } from '../../contexts/ToastContext';
 
 const steps = [
   'Analyzing preferences',
@@ -12,8 +15,13 @@ const steps = [
 
 export default function GeneratingPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { error: showError } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [campaignId, setCampaignId] = useState<string | null>(null);
+  const [webhookPayload, setWebhookPayload] = useState<BrandWebhookData | null>(null);
 
   useEffect(() => {
     const currentUserEmail = localStorage.getItem('currentUser');
@@ -22,35 +30,102 @@ export default function GeneratingPage() {
       return;
     }
 
-    const stepDuration = 2000;
-    const stepInterval = setInterval(() => {
-      setCurrentStep(prev => {
-        if (prev < steps.length - 1) {
-          return prev + 1;
-        }
-        return prev;
-      });
-    }, stepDuration);
+    // Get campaign ID and webhook payload from location state
+    const state = location.state as { campaignId?: string; webhookPayload?: BrandWebhookData } | null;
+    if (!state?.campaignId || !state?.webhookPayload) {
+      showError('Missing campaign information. Please try again.');
+      navigate('/dashboard/campaign-hub');
+      return;
+    }
 
-    const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(progressInterval);
+    setCampaignId(state.campaignId);
+    setWebhookPayload(state.webhookPayload);
+
+    // Start generation process
+    generateCampaign(state.campaignId, state.webhookPayload);
+  }, [navigate, location, showError]);
+
+  const generateCampaign = async (campId: string, payload: BrandWebhookData) => {
+    try {
+      // Simulate progress steps
+      const stepDuration = 2000;
+      let stepIndex = 0;
+      const stepInterval = setInterval(() => {
+        setCurrentStep(stepIndex);
+        stepIndex++;
+        if (stepIndex >= steps.length) {
           clearInterval(stepInterval);
-          setTimeout(() => {
-            navigate('/dashboard/results');
-          }, 500);
-          return 100;
         }
-        return prev + 1;
-      });
-    }, 80);
+      }, stepDuration);
 
-    return () => {
-      clearInterval(stepInterval);
-      clearInterval(progressInterval);
-    };
-  }, [navigate]);
+      // Simulate progress bar
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90; // Stop at 90% until webhook responds
+          }
+          return prev + 2;
+        });
+      }, 100);
+
+      // Call webhook
+      try {
+        const webhookResponse = await sendBrandDataToWebhook(payload);
+        
+        // Parse images from response
+        const images = parseWebhookResponse(webhookResponse);
+        
+        // Update progress to 100%
+        setProgress(100);
+        clearInterval(progressInterval);
+        clearInterval(stepInterval);
+        setCurrentStep(steps.length - 1);
+
+        // Update campaign with generated assets
+        await campaignService.update(campId, {
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          generated_assets: {
+            webhook_payload: payload,
+            images: images,
+            webhook_response: webhookResponse,
+          },
+        });
+
+        // Navigate to results page
+        setTimeout(() => {
+          navigate('/dashboard/results', {
+            state: {
+              campaignId: campId,
+              images: images,
+              webhookPayload: payload,
+            },
+          });
+        }, 500);
+      } catch (webhookError: any) {
+        clearInterval(progressInterval);
+        clearInterval(stepInterval);
+        console.error('Webhook error:', webhookError);
+        
+        // Update campaign status to failed
+        try {
+          await campaignService.update(campId, {
+            status: 'failed',
+          });
+        } catch (updateError) {
+          console.error('Failed to update campaign status:', updateError);
+        }
+
+        setError(`Failed to generate campaign: ${webhookError.message}`);
+        showError(`Failed to generate campaign: ${webhookError.message}`);
+      }
+    } catch (err: any) {
+      console.error('Generation error:', err);
+      setError(err.message || 'An unexpected error occurred');
+      showError(err.message || 'An unexpected error occurred');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#2563EB] to-[#8B5CF6] flex items-center justify-center p-4">
@@ -124,9 +199,36 @@ export default function GeneratingPage() {
           </div>
         </div>
 
-        <p className="text-center text-sm text-slate-500">
-          Time remaining: {Math.max(0, Math.ceil((100 - progress) * 0.08))} seconds
-        </p>
+        {error ? (
+          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center gap-2 text-red-800 mb-2">
+              <AlertCircle size={20} />
+              <span className="font-semibold">Generation Failed</span>
+            </div>
+            <p className="text-sm text-red-600">{error}</p>
+            <button
+              onClick={() => {
+                if (campaignId && webhookPayload) {
+                  setError(null);
+                  setProgress(0);
+                  setCurrentStep(0);
+                  generateCampaign(campaignId, webhookPayload);
+                } else {
+                  navigate('/dashboard/campaign-hub');
+                }
+              }}
+              className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : (
+          <p className="text-center text-sm text-slate-500">
+            {progress < 90 
+              ? `Time remaining: ${Math.max(0, Math.ceil((100 - progress) * 0.08))} seconds`
+              : 'Processing your images...'}
+          </p>
+        )}
       </motion.div>
     </div>
   );

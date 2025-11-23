@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Image, Video, Sparkles } from 'lucide-react';
+import { Image, Video, Sparkles, Loader2 } from 'lucide-react';
+import { userService, preferencesService, brandProfileService, campaignService } from '../../services/database';
+import { sendBrandDataToWebhook, BrandWebhookData } from '../../services/webhookService';
+import { useToast } from '../../contexts/ToastContext';
 
 const contentTypes = [
   {
@@ -33,47 +36,182 @@ const contentTypes = [
 
 export default function ContentSelectionDashboard() {
   const navigate = useNavigate();
+  const { success, error } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
   const [selectedType, setSelectedType] = useState<string>('');
   const [useExistingPreferences, setUseExistingPreferences] = useState(true);
-  const [userData, setUserData] = useState<any>(null);
+  const [userId, setUserId] = useState('');
+  const [brandProfile, setBrandProfile] = useState<any>(null);
+  const [preferences, setPreferences] = useState<any>(null);
 
   useEffect(() => {
-    const currentUserEmail = localStorage.getItem('currentUser');
-    if (!currentUserEmail) {
-      navigate('/login');
+    loadData();
+  }, [navigate]);
+
+  const loadData = async () => {
+    try {
+      const currentUserEmail = localStorage.getItem('currentUser');
+      if (!currentUserEmail) {
+        navigate('/login');
+        return;
+      }
+
+      const user = await userService.getByEmail(currentUserEmail);
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+
+      setUserId(user.id);
+
+      const [userPreferences, userBrandProfile] = await Promise.all([
+        preferencesService.getByUserId(user.id),
+        brandProfileService.getByUserId(user.id)
+      ]);
+
+      setPreferences(userPreferences);
+      setBrandProfile(userBrandProfile);
+
+      // Load existing content type if available
+      if (userPreferences?.content_type) {
+        setSelectedType(userPreferences.content_type);
+      }
+    } catch (err) {
+      console.error('Error loading data:', err);
+      error('Failed to load campaign data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!selectedType || !userId) {
+      error('Please select a content type');
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    const user = users[currentUserEmail];
-    setUserData(user);
-  }, [navigate]);
-
-  const handleGenerate = () => {
-    if (!selectedType) return;
-
-    const currentUserEmail = localStorage.getItem('currentUser');
-    if (!currentUserEmail) return;
-
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    const newCampaign = {
-      campaignId: Date.now().toString(),
-      contentType: selectedType,
-      status: 'generating',
-      createdAt: new Date().toISOString(),
-      assets: {}
-    };
-
-    if (!users[currentUserEmail].campaigns) {
-      users[currentUserEmail].campaigns = [];
+    if (!brandProfile) {
+      error('Brand profile not found. Please complete your brand setup first.');
+      navigate('/dashboard/settings');
+      return;
     }
-    users[currentUserEmail].campaigns.push(newCampaign);
-    localStorage.setItem('users', JSON.stringify(users));
 
-    navigate('/dashboard/generating');
+    setGenerating(true);
+    try {
+      // Update preferences with selected content type
+      await preferencesService.upsert({
+        user_id: userId,
+        content_type: selectedType,
+        campaign_market: preferences?.campaign_market || undefined,
+      });
+
+      // Format brand colors
+      const formattedBrandColors = brandProfile.brand_colors && typeof brandProfile.brand_colors === 'object'
+        ? {
+            primary: brandProfile.brand_colors.primary || undefined,
+            secondary: brandProfile.brand_colors.secondary || undefined,
+            accent: brandProfile.brand_colors.accent || undefined,
+          }
+        : {};
+
+      // Extract campaign market
+      const marketOptions = ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'];
+      const campaignMarket = preferences?.campaign_market || 
+        (preferences?.campaign_goal && marketOptions.includes(preferences.campaign_goal) 
+          ? preferences.campaign_goal 
+          : undefined);
+      const actualCampaignGoal = preferences?.campaign_goal && !marketOptions.includes(preferences.campaign_goal)
+        ? preferences.campaign_goal
+        : undefined;
+
+      // Get user email
+      const currentUserEmail = localStorage.getItem('currentUser');
+      const user = await userService.getByEmail(currentUserEmail || '');
+
+      // Prepare webhook payload
+      const webhookData: BrandWebhookData = {
+        user_id: userId,
+        user_email: user?.email || '',
+        brand_name: brandProfile.brand_name,
+        industry: brandProfile.industry,
+        audience: brandProfile.audience || undefined,
+        website_url: brandProfile.website_url || undefined,
+        contact_email: brandProfile.contact_email,
+        logo_url: brandProfile.logo || null,
+        product_images: Array.isArray(brandProfile.product_images) ? brandProfile.product_images : [],
+        brand_colors: formattedBrandColors,
+        content_type: selectedType,
+        campaign_goal: actualCampaignGoal,
+        campaign_market: campaignMarket,
+        brand_voice: preferences?.brand_voice || undefined,
+        visual_styles: Array.isArray(preferences?.visual_styles) && preferences.visual_styles.length > 0 ? preferences.visual_styles : undefined,
+        seasonal_events: Array.isArray(preferences?.seasonal_events) && preferences.seasonal_events.length > 0
+          ? preferences.seasonal_events
+          : (preferences?.seasonal_events && typeof preferences.seasonal_events === 'object'
+            ? ((preferences.seasonal_events.local && preferences.seasonal_events.local.length > 0) || 
+               (preferences.seasonal_events.international && preferences.seasonal_events.international.length > 0))
+              ? preferences.seasonal_events
+              : undefined
+            : undefined),
+      };
+
+      // Create campaign record with status 'generating'
+      const campaign = await campaignService.create({
+        user_id: userId,
+        brand_profile_id: brandProfile.id,
+        content_type: selectedType,
+        status: 'generating',
+        generated_assets: {
+          webhook_payload: webhookData,
+          images: [],
+        },
+      });
+
+      success('Starting campaign generation!');
+      // Navigate to generating page with campaign ID and webhook payload
+      navigate('/dashboard/generating', { 
+        state: { 
+          campaignId: campaign.id, 
+          webhookPayload: webhookData 
+        } 
+      });
+    } catch (err: any) {
+      console.error('Error generating campaign:', err);
+      error(`Failed to start generation: ${err.message}`);
+      setGenerating(false);
+    }
   };
 
-  if (!userData) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-[#2563EB] animate-spin mx-auto mb-4" />
+          <p className="text-slate-600">Loading campaign data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!brandProfile) {
+    return (
+      <div className="min-h-screen bg-[#F9FAFB] py-8 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <h2 className="text-2xl font-bold text-slate-900 mb-4">Brand Profile Required</h2>
+            <p className="text-slate-600 mb-6">Please complete your brand setup before creating a campaign.</p>
+            <button
+              onClick={() => navigate('/dashboard/settings')}
+              className="px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg hover:bg-[#1d4ed8] transition-all"
+            >
+              Go to Settings
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] py-8 px-4">
@@ -86,19 +224,19 @@ export default function ContentSelectionDashboard() {
           <div className="mb-8">
             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg mb-6">
               <div className="flex items-center gap-3">
-                {userData.brandProfile?.logo && (
-                  <img src={userData.brandProfile.logo} alt="Logo" className="w-10 h-10 object-contain rounded" />
+                {brandProfile.logo && (
+                  <img src={brandProfile.logo} alt="Logo" className="w-10 h-10 object-contain rounded" />
                 )}
                 <div>
-                  <p className="font-bold text-slate-900">{userData.brandProfile?.brandName}</p>
-                  <p className="text-sm text-slate-600">{userData.brandProfile?.industry}</p>
+                  <p className="font-bold text-slate-900">{brandProfile.brand_name}</p>
+                  <p className="text-sm text-slate-600">{brandProfile.industry}</p>
                 </div>
               </div>
               <button
-                onClick={() => navigate('/dashboard/campaign-hub')}
+                onClick={() => navigate('/dashboard/settings')}
                 className="text-[#2563EB] hover:text-[#1d4ed8] text-sm font-semibold"
               >
-                Change Profile
+                Edit Profile
               </button>
             </div>
 
@@ -180,10 +318,17 @@ export default function ContentSelectionDashboard() {
             </button>
             <button
               onClick={handleGenerate}
-              disabled={!selectedType}
-              className="flex-1 px-8 py-4 bg-[#2563EB] text-white font-bold rounded-lg shadow-lg hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all text-lg"
+              disabled={!selectedType || generating}
+              className="flex-1 px-8 py-4 bg-[#2563EB] text-white font-bold rounded-lg shadow-lg hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all text-lg flex items-center justify-center gap-2"
             >
-              Generate Campaign
+              {generating ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Starting Generation...
+                </>
+              ) : (
+                'Generate Campaign'
+              )}
             </button>
           </div>
         </motion.div>

@@ -70,3 +70,4 @@ You can now enable background removal in your app by:
 **The Edge Function integration is production-ready!** 🎉
 
 
+

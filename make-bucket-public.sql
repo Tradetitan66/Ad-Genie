@@ -11,3 +11,4 @@ FROM storage.buckets
 WHERE name = 'brand-assets';
 
 
+

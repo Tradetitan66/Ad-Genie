@@ -103,3 +103,4 @@ supabase/
 3. **Return public URLs** instead of base64 for better performance
 
 
+

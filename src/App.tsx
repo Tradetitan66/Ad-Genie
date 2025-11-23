@@ -13,6 +13,7 @@ import ReviewPage from './pages/onboarding/ReviewPage';
 import CampaignHubPage from './pages/dashboard/CampaignHubPage';
 import ContentSelectionDashboard from './pages/dashboard/ContentSelectionDashboard';
 import GeneratingPage from './pages/dashboard/GeneratingPage';
+import AdGenieWorkingPage from './pages/dashboard/AdGenieWorkingPage';
 import ResultsPage from './pages/dashboard/ResultsPage';
 import SettingsPage from './pages/dashboard/SettingsPage';
 import CampaignsPage from './pages/dashboard/CampaignsPage';
@@ -96,6 +97,14 @@ function App() {
               element={
                 <ProtectedRoute requireOnboarding>
                   <GeneratingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/ad-genie-working"
+              element={
+                <ProtectedRoute requireOnboarding>
+                  <AdGenieWorkingPage />
                 </ProtectedRoute>
               }
             />

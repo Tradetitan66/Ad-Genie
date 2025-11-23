@@ -592,4 +592,89 @@ export const campaignService = {
 
     if (error) throw error;
   },
+
+  /**
+   * Reconstruct webhook payload from campaign data for regeneration
+   * This extracts the stored webhook_payload from generated_assets
+   */
+  async getWebhookPayloadForCampaign(campaignId: string): Promise<any | null> {
+    const campaign = await this.getById(campaignId);
+    if (!campaign) return null;
+
+    const generatedAssets = campaign.generated_assets;
+    if (generatedAssets && typeof generatedAssets === 'object') {
+      // Check if webhook_payload is stored in generated_assets
+      if (generatedAssets.webhook_payload) {
+        return generatedAssets.webhook_payload;
+      }
+    }
+
+    // If webhook_payload is not stored, try to reconstruct from brand profile and preferences
+    // This is a fallback for older campaigns
+    try {
+      const brandProfile = await brandProfileService.getByUserId(campaign.user_id);
+      const preferences = await preferencesService.getByUserId(campaign.user_id);
+      
+      // Get user by ID from users table
+      // First try to get user by ID directly if we have access to it
+      // Otherwise, we'll need to get it from the campaign's user_id
+      let user: UserData | null = null;
+      
+      // Try to get user from localStorage first (for local fallback)
+      const currentUserEmail = localStorage.getItem('currentUser');
+      if (currentUserEmail) {
+        user = await userService.getByEmail(currentUserEmail);
+      }
+      
+      // If we still don't have user, we can't reconstruct the payload
+      if (!user || !brandProfile) return null;
+
+      const formattedBrandColors = brandProfile.brand_colors && typeof brandProfile.brand_colors === 'object'
+        ? {
+            primary: brandProfile.brand_colors.primary || undefined,
+            secondary: brandProfile.brand_colors.secondary || undefined,
+            accent: brandProfile.brand_colors.accent || undefined,
+          }
+        : {};
+
+      // Extract campaign market from campaign_market field (preferred) or fallback to campaign_goal
+      const marketOptions = ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'];
+      const campaignMarket = preferences?.campaign_market || 
+        (preferences?.campaign_goal && marketOptions.includes(preferences.campaign_goal) 
+          ? preferences.campaign_goal 
+          : undefined);
+      const actualCampaignGoal = preferences?.campaign_goal && !marketOptions.includes(preferences.campaign_goal)
+        ? preferences.campaign_goal
+        : undefined;
+
+      return {
+        user_id: user.id,
+        user_email: user.email,
+        brand_name: brandProfile.brand_name,
+        industry: brandProfile.industry,
+        audience: brandProfile.audience || undefined,
+        website_url: brandProfile.website_url || undefined,
+        contact_email: brandProfile.contact_email,
+        logo_url: brandProfile.logo || null,
+        product_images: Array.isArray(brandProfile.product_images) ? brandProfile.product_images : [],
+        brand_colors: formattedBrandColors,
+        content_type: preferences?.content_type || campaign.content_type || undefined,
+        campaign_goal: actualCampaignGoal,
+        campaign_market: campaignMarket,
+        brand_voice: preferences?.brand_voice || undefined,
+        visual_styles: Array.isArray(preferences?.visual_styles) && preferences.visual_styles.length > 0 ? preferences.visual_styles : undefined,
+        seasonal_events: Array.isArray(preferences?.seasonal_events) && preferences.seasonal_events.length > 0
+          ? preferences.seasonal_events
+          : (preferences?.seasonal_events && typeof preferences.seasonal_events === 'object'
+            ? ((preferences.seasonal_events.local && preferences.seasonal_events.local.length > 0) || 
+               (preferences.seasonal_events.international && preferences.seasonal_events.international.length > 0))
+              ? preferences.seasonal_events
+              : undefined
+            : undefined),
+      };
+    } catch (error) {
+      console.error('Error reconstructing webhook payload:', error);
+      return null;
+    }
+  },
 };

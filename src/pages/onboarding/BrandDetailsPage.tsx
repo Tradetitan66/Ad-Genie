@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Building2, Briefcase, Users, Globe, Mail } from 'lucide-react';
+import { Loader2, Building2, Briefcase, Users, Globe } from 'lucide-react';
 import OnboardingLayout from '../../components/OnboardingLayout';
 import { userService, brandProfileService } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
@@ -11,6 +11,17 @@ const industries = [
   'Health & Wellness', 'Finance & Banking', 'Real Estate', 'Education & E-learning',
   'Entertainment & Media', 'Beauty & Cosmetics', 'Travel & Hospitality', 'Automotive',
   'Home & Garden', 'Sports & Fitness', 'Other'
+];
+
+const targetAudienceOptions = [
+  'Young Professionals (25-35)',
+  'Health-Conscious Consumers',
+  'Tech Enthusiasts',
+  'Small Business Owners',
+  'Students',
+  'Parents/Families',
+  'Seniors (55+)',
+  'Others'
 ];
 
 export default function BrandDetailsPage() {
@@ -24,14 +35,14 @@ export default function BrandDetailsPage() {
     brandName: '',
     industry: '',
     audience: '',
-    websiteUrl: '',
-    contactEmail: ''
+    websiteUrl: ''
   });
+  const [selectedAudience, setSelectedAudience] = useState<string>('');
+  const [customAudience, setCustomAudience] = useState<string>('');
   const [errors, setErrors] = useState({
     brandName: '',
     industry: '',
-    websiteUrl: '',
-    contactEmail: ''
+    websiteUrl: ''
   });
 
   useEffect(() => {
@@ -57,18 +68,22 @@ export default function BrandDetailsPage() {
       const existingProfile = await brandProfileService.getByUserId(user.id);
       if (existingProfile) {
         setBrandProfileId(existingProfile.id);
+        const audience = existingProfile.audience || '';
         setFormData({
           brandName: existingProfile.brand_name,
           industry: existingProfile.industry,
-          audience: existingProfile.audience || '',
-          websiteUrl: existingProfile.website_url,
-          contactEmail: existingProfile.contact_email
+          audience: audience,
+          websiteUrl: existingProfile.website_url
         });
-      } else {
-        setFormData(prev => ({
-          ...prev,
-          contactEmail: user.email || currentUserEmail
-        }));
+        
+        // Check if audience is one of the predefined options
+        if (targetAudienceOptions.includes(audience)) {
+          setSelectedAudience(audience);
+        } else if (audience) {
+          // It's a custom audience
+          setSelectedAudience('Others');
+          setCustomAudience(audience);
+        }
       }
     } catch (err) {
       console.error('Error loading brand details:', err);
@@ -87,17 +102,11 @@ export default function BrandDetailsPage() {
     }
   };
 
-  const validateEmail = (email: string) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
-  };
-
   const handleContinue = async () => {
     const newErrors = {
       brandName: '',
       industry: '',
-      websiteUrl: '',
-      contactEmail: ''
+      websiteUrl: ''
     };
 
     if (!formData.brandName.trim()) {
@@ -112,10 +121,14 @@ export default function BrandDetailsPage() {
       newErrors.websiteUrl = 'Please enter a valid URL';
     }
 
-    if (!formData.contactEmail.trim()) {
-      newErrors.contactEmail = 'Contact email is required';
-    } else if (!validateEmail(formData.contactEmail)) {
-      newErrors.contactEmail = 'Please enter a valid email';
+    if (!selectedAudience) {
+      error('Please select a target audience');
+      return;
+    }
+
+    if (selectedAudience === 'Others' && !customAudience.trim()) {
+      error('Please enter your target audience');
+      return;
     }
 
     if (Object.values(newErrors).some(error => error !== '')) {
@@ -127,22 +140,30 @@ export default function BrandDetailsPage() {
 
     setSaving(true);
     try {
+      // Get user email for contact_email (required by database)
+      const currentUserEmail = localStorage.getItem('currentUser');
+      const user = await userService.getByEmail(currentUserEmail || '');
+      const contactEmail = user?.email || currentUserEmail || '';
+
+      // Determine the final audience value
+      const finalAudience = selectedAudience === 'Others' ? customAudience.trim() : (selectedAudience || formData.audience);
+
       if (brandProfileId) {
         await brandProfileService.update(brandProfileId, {
           brand_name: formData.brandName,
           industry: formData.industry,
-          audience: formData.audience,
+          audience: finalAudience,
           website_url: formData.websiteUrl.trim() || '',
-          contact_email: formData.contactEmail
+          contact_email: contactEmail
         });
       } else {
         await brandProfileService.create({
           user_id: userId,
           brand_name: formData.brandName,
           industry: formData.industry,
-          audience: formData.audience,
+          audience: finalAudience,
           website_url: formData.websiteUrl.trim() || '',
-          contact_email: formData.contactEmail,
+          contact_email: contactEmail,
           logo: null,
           product_images: [],
           brand_colors: {}
@@ -238,20 +259,55 @@ export default function BrandDetailsPage() {
 
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Target Audience
+              Target Audience <span className="text-red-500">*</span>
             </label>
-            <div className="relative">
-              <Users className="absolute left-3 top-4 text-slate-400" size={20} />
-              <textarea
-                value={formData.audience}
-                onChange={(e) => setFormData({ ...formData, audience: e.target.value })}
-                maxLength={200}
-                rows={3}
-                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
-                placeholder="e.g., Young professionals aged 25-35, health-conscious consumers"
-              />
+            <p className="text-xs text-slate-500 mb-3">Who is your target audience for this campaign?</p>
+            <div className="space-y-2 mb-3">
+              {targetAudienceOptions.map(audience => (
+                <label key={audience} className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-all">
+                  <input
+                    type="radio"
+                    name="audience"
+                    value={audience}
+                    checked={selectedAudience === audience}
+                    onChange={(e) => {
+                      setSelectedAudience(e.target.value);
+                      if (e.target.value !== 'Others') {
+                        setCustomAudience('');
+                        setFormData({ ...formData, audience: e.target.value });
+                      }
+                    }}
+                    className="w-4 h-4 text-[#2563EB] focus:ring-[#2563EB]"
+                  />
+                  <span className="text-slate-700 font-medium">{audience}</span>
+                </label>
+              ))}
             </div>
-            <p className="text-xs text-slate-500 mt-1">{formData.audience.length}/200</p>
+            
+            {selectedAudience === 'Others' && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-3"
+              >
+                <div className="relative">
+                  <Users className="absolute left-3 top-4 text-slate-400" size={20} />
+                  <textarea
+                    value={customAudience}
+                    onChange={(e) => {
+                      setCustomAudience(e.target.value);
+                      setFormData({ ...formData, audience: e.target.value });
+                    }}
+                    maxLength={200}
+                    rows={3}
+                    className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
+                    placeholder="e.g., Young professionals aged 25-35, health-conscious consumers"
+                  />
+                </div>
+                <p className="text-xs text-slate-500 mt-1">{customAudience.length}/200</p>
+              </motion.div>
+            )}
           </div>
 
           <div>
@@ -276,27 +332,6 @@ export default function BrandDetailsPage() {
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Contact Email <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-              <input
-                type="email"
-                value={formData.contactEmail}
-                onChange={(e) => {
-                  setFormData({ ...formData, contactEmail: e.target.value });
-                  setErrors({ ...errors, contactEmail: '' });
-                }}
-                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
-                placeholder="contact@yourbrand.com"
-              />
-            </div>
-            {errors.contactEmail && (
-              <p className="text-red-500 text-sm mt-1">{errors.contactEmail}</p>
-            )}
-          </div>
         </div>
 
         <div className="mt-8 pt-6 border-t border-slate-200">

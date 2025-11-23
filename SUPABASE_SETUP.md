@@ -108,3 +108,4 @@ For production deployment:
 5. Monitor usage and performance in Supabase dashboard
 
 
+
