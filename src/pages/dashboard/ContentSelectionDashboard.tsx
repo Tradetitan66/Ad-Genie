@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Image, Video, Sparkles, Loader2 } from 'lucide-react';
-import { userService, preferencesService, brandProfileService, campaignService } from '../../services/database';
-import { sendBrandDataToWebhook, BrandWebhookData } from '../../services/webhookService';
+import { userService, preferencesService, brandProfileService } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
 
 const contentTypes = [
@@ -91,94 +90,23 @@ export default function ContentSelectionDashboard() {
       return;
     }
 
-    if (!brandProfile) {
-      error('Brand profile not found. Please complete your brand setup first.');
-      navigate('/dashboard/settings');
-      return;
-    }
-
     setGenerating(true);
     try {
-      // Update preferences with selected content type
+      // Update preferences with selected content type only
+      // Do NOT trigger webhook here - webhook will be triggered from ReviewPage
       await preferencesService.upsert({
         user_id: userId,
         content_type: selectedType,
         campaign_market: preferences?.campaign_market || undefined,
       });
 
-      // Format brand colors
-      const formattedBrandColors = brandProfile.brand_colors && typeof brandProfile.brand_colors === 'object'
-        ? {
-            primary: brandProfile.brand_colors.primary || undefined,
-            secondary: brandProfile.brand_colors.secondary || undefined,
-            accent: brandProfile.brand_colors.accent || undefined,
-          }
-        : {};
-
-      // Extract campaign market
-      const marketOptions = ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'];
-      const campaignMarket = preferences?.campaign_market || 
-        (preferences?.campaign_goal && marketOptions.includes(preferences.campaign_goal) 
-          ? preferences.campaign_goal 
-          : undefined);
-      const actualCampaignGoal = preferences?.campaign_goal && !marketOptions.includes(preferences.campaign_goal)
-        ? preferences.campaign_goal
-        : undefined;
-
-      // Get user email
-      const currentUserEmail = localStorage.getItem('currentUser');
-      const user = await userService.getByEmail(currentUserEmail || '');
-
-      // Prepare webhook payload
-      const webhookData: BrandWebhookData = {
-        user_id: userId,
-        user_email: user?.email || '',
-        brand_name: brandProfile.brand_name,
-        industry: brandProfile.industry,
-        audience: brandProfile.audience || undefined,
-        website_url: brandProfile.website_url || undefined,
-        contact_email: brandProfile.contact_email,
-        logo_url: brandProfile.logo || null,
-        product_images: Array.isArray(brandProfile.product_images) ? brandProfile.product_images : [],
-        brand_colors: formattedBrandColors,
-        content_type: selectedType,
-        campaign_goal: actualCampaignGoal,
-        campaign_market: campaignMarket,
-        brand_voice: preferences?.brand_voice || undefined,
-        visual_styles: Array.isArray(preferences?.visual_styles) && preferences.visual_styles.length > 0 ? preferences.visual_styles : undefined,
-        seasonal_events: Array.isArray(preferences?.seasonal_events) && preferences.seasonal_events.length > 0
-          ? preferences.seasonal_events
-          : (preferences?.seasonal_events && typeof preferences.seasonal_events === 'object'
-            ? ((preferences.seasonal_events.local && preferences.seasonal_events.local.length > 0) || 
-               (preferences.seasonal_events.international && preferences.seasonal_events.international.length > 0))
-              ? preferences.seasonal_events
-              : undefined
-            : undefined),
-      };
-
-      // Create campaign record with status 'generating'
-      const campaign = await campaignService.create({
-        user_id: userId,
-        brand_profile_id: brandProfile.id,
-        content_type: selectedType,
-        status: 'generating',
-        generated_assets: {
-          webhook_payload: webhookData,
-          images: [],
-        },
-      });
-
-      success('Starting campaign generation!');
-      // Navigate to generating page with campaign ID and webhook payload
-      navigate('/dashboard/generating', { 
-        state: { 
-          campaignId: campaign.id, 
-          webhookPayload: webhookData 
-        } 
-      });
+      success('Content type saved!');
+      // Navigate to ReviewPage where user will verify and click "Generate Campaign Assets"
+      // ReviewPage will trigger webhook when user clicks "Generate Campaign Assets"
+      navigate('/onboarding/review');
     } catch (err: any) {
-      console.error('Error generating campaign:', err);
-      error(`Failed to start generation: ${err.message}`);
+      console.error('Error saving content type:', err);
+      error(`Failed to save content type: ${err.message}`);
       setGenerating(false);
     }
   };

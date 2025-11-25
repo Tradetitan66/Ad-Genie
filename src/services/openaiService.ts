@@ -44,8 +44,6 @@ export async function generateEventSuggestions(
   let marketContext = '';
   if (market === 'Local (India)') {
     marketContext = 'Local India - Focus on Indian festivals, regional celebrations, and local events';
-  } else if (market === 'Regional (Specific States/Regions)') {
-    marketContext = 'Regional India - Focus on state-specific festivals, regional celebrations, and local cultural events';
   } else if (market === 'International') {
     marketContext = 'International - Focus on global holidays, international shopping events, and worldwide celebrations';
   } else {

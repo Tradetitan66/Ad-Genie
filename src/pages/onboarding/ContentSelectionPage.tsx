@@ -36,7 +36,6 @@ const contentTypes = [
 
 const campaignMarkets = [
   'Local (India)',
-  'Regional (Specific States/Regions)',
   'International',
   'Global'
 ];
@@ -79,7 +78,7 @@ export default function ContentSelectionPage() {
         // Load campaign market from campaign_market field
         if (preferences.campaign_market) {
           setSelectedMarket(preferences.campaign_market);
-        } else if (preferences.campaign_goal && ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'].includes(preferences.campaign_goal)) {
+        } else if (preferences.campaign_goal && ['Local (India)', 'International', 'Global'].includes(preferences.campaign_goal)) {
           // Fallback: migrate from old campaign_goal field
           setSelectedMarket(preferences.campaign_goal);
         }

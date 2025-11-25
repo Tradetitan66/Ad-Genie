@@ -96,7 +96,11 @@ export default function ProtectedRoute({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (requireOnboarding && !hasCompletedOnboarding) {
+  // Allow access to ad-genie-working page during onboarding completion
+  // This page is part of the onboarding flow and should be accessible
+  const isAdGenieWorkingPage = location.pathname === '/dashboard/ad-genie-working';
+  
+  if (requireOnboarding && !hasCompletedOnboarding && !isAdGenieWorkingPage) {
     return <Navigate to="/onboarding/welcome" replace />;
   }
 

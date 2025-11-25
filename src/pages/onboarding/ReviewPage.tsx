@@ -121,7 +121,7 @@ export default function ReviewPage() {
         : {};
 
       // Extract campaign market from campaign_market field (preferred) or fallback to campaign_goal
-      const marketOptions = ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'];
+      const marketOptions = ['Local (India)', 'International', 'Global'];
       const campaignMarket = preferences?.campaign_market || 
         (preferences?.campaign_goal && marketOptions.includes(preferences.campaign_goal) 
           ? preferences.campaign_goal 
@@ -174,13 +174,37 @@ export default function ReviewPage() {
         },
       });
 
-      await userService.update(userId, {
-        has_completed_onboarding: true
-      });
+      // Only update onboarding status if user hasn't completed onboarding yet
+      // IMPORTANT: Update onboarding status BEFORE navigation to ensure ProtectedRoute allows access
+      if (!user.has_completed_onboarding) {
+        await userService.update(userId, {
+          has_completed_onboarding: true
+        });
+        // Small delay to ensure database update is propagated before navigation
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
 
       success('Launching campaign generation!');
+      
+      // Log navigation details for debugging
+      console.log('🚀 ReviewPage: Navigating to AdGenieWorkingPage');
+      console.log('📦 Navigation state:', {
+        campaignId: campaign.id,
+        hasWebhookPayload: !!webhookData,
+        webhookPayloadKeys: Object.keys(webhookData)
+      });
+      
       // Navigate to Ad-Genie working page with campaign ID
-      navigate('/dashboard/ad-genie-working', { state: { campaignId: campaign.id, webhookPayload: webhookData } });
+      // AdGenieWorkingPage will call the webhook and wait for response
+      navigate('/dashboard/ad-genie-working', { 
+        state: { 
+          campaignId: campaign.id, 
+          webhookPayload: webhookData,
+          skipOnboardingCheck: true // Flag to allow access during onboarding completion
+        } 
+      });
+      
+      console.log('✅ ReviewPage: Navigation called');
     } catch (err: any) {
       console.error('Error updating onboarding status:', err);
       error(`Failed to start generation: ${err.message}`);

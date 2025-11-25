@@ -58,11 +58,11 @@ export default function ResultsPage() {
             if (assets.images && Array.isArray(assets.images)) {
               setImages(assets.images);
             }
-          }
-
-          // If webhook payload wasn't in state, try to get it from campaign
-          if (!state?.webhookPayload && assets?.webhook_payload) {
-            setWebhookPayload(assets.webhook_payload);
+            
+            // If webhook payload wasn't in state, try to get it from campaign
+            if (!state?.webhookPayload && assets.webhook_payload) {
+              setWebhookPayload(assets.webhook_payload);
+            }
           }
         }
       } else {

@@ -638,7 +638,7 @@ export const campaignService = {
         : {};
 
       // Extract campaign market from campaign_market field (preferred) or fallback to campaign_goal
-      const marketOptions = ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'];
+      const marketOptions = ['Local (India)', 'International', 'Global'];
       const campaignMarket = preferences?.campaign_market || 
         (preferences?.campaign_goal && marketOptions.includes(preferences.campaign_goal) 
           ? preferences.campaign_goal 

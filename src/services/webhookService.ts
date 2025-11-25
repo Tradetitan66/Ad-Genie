@@ -20,7 +20,7 @@ export interface BrandWebhookData {
   };
   content_type?: string;
   campaign_goal?: string;
-  campaign_market?: string; // Target market for the campaign (Local, Regional, International, Global)
+  campaign_market?: string; // Target market for the campaign (Local, International, Global)
   brand_voice?: string;
   visual_styles?: string[];
   campaign_timing?: string;
@@ -125,7 +125,10 @@ export async function sendBrandDataToWebhook(data: BrandWebhookData): Promise<We
   try {
     console.log('📤 Sending brand data to webhook:', WEBHOOK_URL);
     console.log('📋 Data:', JSON.stringify(data, null, 2));
+    console.log('⏳ Webhook will wait for respond node to be connected (this may take a while)...');
 
+    // Fetch with no timeout - will wait until respond node is connected
+    // Browser default timeout is typically 5-10 minutes, which should be sufficient
     const response = await fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: {
@@ -150,10 +153,14 @@ export async function sendBrandDataToWebhook(data: BrandWebhookData): Promise<We
       });
     });
 
-    console.log('✅ Webhook response:', responseData);
+    console.log('✅ Webhook response received:', responseData);
     return responseData;
   } catch (error: any) {
     console.error('❌ Webhook error:', error);
+    // Check if it's a timeout or network error
+    if (error.name === 'AbortError' || error.message.includes('timeout')) {
+      throw new Error(`Webhook request timed out. Please ensure the respond node is connected in n8n.`);
+    }
     throw new Error(`Failed to send data to webhook: ${error.message}`);
   }
 }

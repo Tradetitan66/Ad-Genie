@@ -104,10 +104,17 @@ export default function VisualAssetsPage() {
       return;
     }
 
+    // Only allow 1 image maximum - if already have 1, show error
+    if (productImages.length >= 1) {
+      error('Only 1 product image is allowed. Please remove the existing image first.');
+      return;
+    }
+
     const filesToProcess: File[] = [];
 
     for (let i = 0; i < files.length; i++) {
-      if (productImages.length + filesToProcess.length >= 6) break;
+      // Only allow 1 image maximum
+      if (productImages.length + filesToProcess.length >= 1) break;
 
       const file = files[i];
       if (file.size > 10 * 1024 * 1024) {
@@ -222,10 +229,10 @@ export default function VisualAssetsPage() {
       }
     }
 
-    // For new onboarding: require exactly 6 images
+    // For new onboarding: require exactly 1 image
     // For edit mode: allow saving with any number of images (including 0)
-    if (!isEditMode && productImages.length !== 6) {
-      error('Please upload exactly 6 product images to continue');
+    if (!isEditMode && productImages.length !== 1) {
+      error('Please upload exactly 1 product image to continue');
       return;
     }
 
@@ -243,23 +250,8 @@ export default function VisualAssetsPage() {
         brand_colors: brandColors
       });
 
-      // Fetch complete brand profile and user data for webhook
-      if (!currentUserEmail) {
-        throw new Error('User email not found');
-      }
-
-      if (!user) {
-        user = await userService.getByEmail(currentUserEmail);
-      }
-      
-      if (!user) {
-        throw new Error('User not found');
-      }
-
-      const brandProfile = await brandProfileService.getByUserId(user.id);
-      if (!brandProfile) {
-        throw new Error('Brand profile not found');
-      }
+      // Webhook will be triggered from ReviewPage when user clicks "Generate Campaign Assets"
+      // Do NOT trigger webhook here - only save visual assets
 
       success('Visual assets saved!');
       
@@ -358,16 +350,18 @@ export default function VisualAssetsPage() {
 
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-3">
-              Product Images {!isEditMode && <span className="text-[#EF4444]">*</span>} {isEditMode ? '(Optional - up to 6)' : '(6 required)'}
+              Product Image {!isEditMode && <span className="text-[#EF4444]">*</span>} {isEditMode ? '(Optional)' : '(Required)'}
             </label>
             <p className="text-sm text-slate-500 mb-3">
               {isEditMode 
                 ? `${productImages.length} image${productImages.length !== 1 ? 's' : ''} uploaded`
-                : `${productImages.length} of 6 images uploaded`
+                : productImages.length === 0
+                ? 'No image uploaded'
+                : '1 image uploaded'
               }
             </p>
 
-            {productImages.length < 6 && (
+            {productImages.length < 1 && (
               <div
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -379,13 +373,12 @@ export default function VisualAssetsPage() {
                 onClick={() => document.getElementById('products-input')?.click()}
               >
                 <Upload className="mx-auto mb-4 text-slate-400" size={40} />
-                <p className="text-slate-600 mb-2">Drag & drop images here or click to browse</p>
-                <p className="text-xs text-slate-400">Upload multiple images at once | JPG, PNG | Max 10MB per file</p>
+                <p className="text-slate-600 mb-2">Drag & drop image here or click to browse</p>
+                <p className="text-xs text-slate-400">JPG, PNG | Max 10MB</p>
                 <input
                   id="products-input"
                   type="file"
                   accept=".jpg,.jpeg,.png"
-                  multiple
                   onChange={(e) => e.target.files && handleProductImagesUpload(e.target.files)}
                   className="hidden"
                 />
@@ -471,12 +464,12 @@ export default function VisualAssetsPage() {
           <p className="text-sm text-slate-500 mb-4">
             {isEditMode ? (
               productImages.length === 0 
-                ? 'No product images uploaded. You can upload up to 6 images.'
-                : `You have ${productImages.length} product image${productImages.length > 1 ? 's' : ''}. You can add more or save changes.`
+                ? 'No product image uploaded. You can upload 1 image.'
+                : 'Product image uploaded. You can save changes.'
             ) : (
-              productImages.length < 6
-                ? `Please upload ${6 - productImages.length} more image${6 - productImages.length > 1 ? 's' : ''} to continue`
-                : 'All required assets uploaded! You can continue.'
+              productImages.length < 1
+                ? 'Please upload 1 product image to continue'
+                : 'Product image uploaded! You can continue.'
             )}
           </p>
           <div className="flex gap-4">
@@ -494,7 +487,7 @@ export default function VisualAssetsPage() {
             </button>
             <button
               onClick={handleContinue}
-              disabled={(!isEditMode && productImages.length !== 6) || saving || uploading}
+              disabled={(!isEditMode && productImages.length !== 1) || saving || uploading}
               className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {saving ? 'Saving...' : uploading ? 'Processing...' : isEditMode ? 'Save Changes' : 'Continue →'}

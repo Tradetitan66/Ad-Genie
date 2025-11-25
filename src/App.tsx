@@ -70,7 +70,7 @@ function App() {
             <Route
               path="/onboarding/review"
               element={
-                <ProtectedRoute requireNoOnboarding>
+                <ProtectedRoute>
                   <ReviewPage />
                 </ProtectedRoute>
               }

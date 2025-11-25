@@ -5,7 +5,6 @@ import { Loader2, Target, Mic, RefreshCw, Plus, X } from 'lucide-react';
 import OnboardingLayout from '../../components/OnboardingLayout';
 import { userService, preferencesService, brandProfileService } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
-import { sendBrandDataToWebhook } from '../../services/webhookService';
 import { generateEventSuggestions } from '../../services/openaiService';
 
 const brandVoices = ['Professional', 'Casual', 'Playful', 'Authoritative', 'Inspirational'];
@@ -57,7 +56,7 @@ export default function PreferencesPage() {
       if (existingPreferences) {
         // If campaign_goal is a market value (from ContentSelectionPage), preserve it but don't show as goal
         // Otherwise, use it as the campaign goal
-        const marketOptions = ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'];
+        const marketOptions = ['Local (India)', 'International', 'Global'];
         const isMarketValue = existingPreferences.campaign_goal && marketOptions.includes(existingPreferences.campaign_goal);
         
         setFormData({
@@ -112,26 +111,40 @@ export default function PreferencesPage() {
         return;
       }
 
-      // Get market from preferences
+      // Get market from preferences (campaign_market field)
       const preferences = await preferencesService.getByUserId(userId);
-      const marketOptions = ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'];
-      const market = preferences?.campaign_goal && marketOptions.includes(preferences.campaign_goal)
-        ? preferences.campaign_goal
-        : 'Local (India)'; // Default to Local if not set
+      const marketOptions = ['Local (India)', 'International', 'Global'];
+      
+      // Get market from campaign_market field (preferred) or fallback to campaign_goal
+      const market = preferences?.campaign_market || 
+        (preferences?.campaign_goal && marketOptions.includes(preferences.campaign_goal)
+          ? preferences.campaign_goal
+          : 'Local (India)'); // Default to Local if not set
 
       console.log('🤖 Fetching AI suggestions...', { industry: brandProfile.industry, market });
 
-      // Fetch suggestions for both local and international, then combine
-      const [localSuggestions, internationalSuggestions] = await Promise.all([
-        generateEventSuggestions(brandProfile.industry, market, 'local'),
-        generateEventSuggestions(brandProfile.industry, market, 'international')
-      ]);
+      // Fetch suggestions based on selected market:
+      // - If "Local (India)" → only local events
+      // - If "International" → only international events
+      // - If "Global" → only international events
+      let suggestions: string[] = [];
+      
+      if (market === 'Local (India)') {
+        // Only fetch local events for India
+        suggestions = await generateEventSuggestions(brandProfile.industry, market, 'local');
+        console.log('✅ Local events loaded:', suggestions);
+      } else if (market === 'International' || market === 'Global') {
+        // Only fetch international events
+        suggestions = await generateEventSuggestions(brandProfile.industry, market, 'international');
+        console.log('✅ International events loaded:', suggestions);
+      } else {
+        // Fallback to local if market is not recognized
+        suggestions = await generateEventSuggestions(brandProfile.industry, 'Local (India)', 'local');
+        console.log('✅ Default local events loaded:', suggestions);
+      }
 
-      // Combine both into a single array
-      const combinedSuggestions = [...localSuggestions, ...internationalSuggestions];
-      setAiSuggestions(combinedSuggestions);
-
-      console.log('✅ AI suggestions loaded:', combinedSuggestions);
+      setAiSuggestions(suggestions);
+      console.log('✅ AI suggestions loaded:', suggestions);
     } catch (err: any) {
       console.error('❌ Error fetching AI suggestions:', err);
       setSuggestionError(err.message || 'Failed to load AI suggestions');
@@ -143,14 +156,16 @@ export default function PreferencesPage() {
 
   const handleSeasonalEventToggle = (event: string) => {
     if (formData.seasonalEvents.includes(event)) {
+      // Remove if already selected
       setFormData({
         ...formData,
-        seasonalEvents: formData.seasonalEvents.filter(e => e !== event)
+        seasonalEvents: []
       });
     } else {
+      // Only allow 1 selection - replace any existing selection
       setFormData({
         ...formData,
-        seasonalEvents: [...formData.seasonalEvents, event]
+        seasonalEvents: [event]
       });
     }
   };
@@ -161,26 +176,20 @@ export default function PreferencesPage() {
 
     // Check if event already exists
     if (formData.seasonalEvents.includes(eventName)) {
-      error('This event is already added');
+      error('This event is already selected');
       return;
     }
 
-    // Check if max limit reached (6 events)
-    if (formData.seasonalEvents.length >= 6) {
-      error('Maximum 6 custom events allowed');
-      return;
-    }
-
-    // Add to selected events
+    // Only allow 1 selection - replace any existing selection
     setFormData({
       ...formData,
-      seasonalEvents: [...formData.seasonalEvents, eventName]
+      seasonalEvents: [eventName]
     });
 
     // Clear input
     setManualEventInput('');
 
-    success(`Added "${eventName}"`);
+    success(`Selected "${eventName}"`);
   };
 
   const handleRemoveEvent = (event: string) => {
@@ -221,70 +230,8 @@ export default function PreferencesPage() {
         content_type: contentType
       });
 
-      // Only send webhook if NOT in edit mode (i.e., during initial onboarding)
-      // In edit mode, webhook will be triggered from CampaignHubPage when user clicks "Continue with {brandName}"
-      if (!isEditMode) {
-        try {
-          // Fetch complete brand profile and user data for webhook
-          const currentUserEmail = localStorage.getItem('currentUser');
-          if (!currentUserEmail) {
-            throw new Error('User email not found');
-          }
-          
-          const [user, brandProfile, latestPreferences] = await Promise.all([
-            userService.getByEmail(currentUserEmail),
-            brandProfileService.getByUserId(userId),
-            preferencesService.getByUserId(userId)
-          ]);
-
-          if (user && brandProfile) {
-            // Format brand colors
-            const formattedBrandColors = brandProfile.brand_colors && typeof brandProfile.brand_colors === 'object'
-              ? {
-                  primary: brandProfile.brand_colors.primary || undefined,
-                  secondary: brandProfile.brand_colors.secondary || undefined,
-                  accent: brandProfile.brand_colors.accent || undefined,
-                }
-              : {};
-
-            // Extract campaign market if campaign_goal is a market value
-            const marketOptions = ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'];
-            const campaignGoalValue = latestPreferences?.campaign_goal || formData.campaignGoal || '';
-            const isMarketValue = marketOptions.includes(campaignGoalValue);
-            const campaignMarket = isMarketValue ? campaignGoalValue : undefined;
-            const actualCampaignGoal = isMarketValue ? undefined : campaignGoalValue;
-
-            await sendBrandDataToWebhook({
-              user_id: user.id,
-              user_email: user.email,
-              brand_name: brandProfile.brand_name,
-              industry: brandProfile.industry,
-              audience: brandProfile.audience || undefined,
-              website_url: brandProfile.website_url || undefined,
-              contact_email: brandProfile.contact_email,
-              logo_url: brandProfile.logo || null,
-              product_images: Array.isArray(brandProfile.product_images) ? brandProfile.product_images : [],
-              brand_colors: formattedBrandColors,
-              content_type: latestPreferences?.content_type || contentType || undefined,
-              campaign_goal: actualCampaignGoal,
-              campaign_market: campaignMarket,
-              brand_voice: latestPreferences?.brand_voice || formData.brandVoice || undefined,
-              visual_styles: Array.isArray(latestPreferences?.visual_styles) && latestPreferences.visual_styles.length > 0 
-                ? latestPreferences.visual_styles 
-                : (formData.visualStyles.length > 0 ? formData.visualStyles : undefined),
-              campaign_timing: undefined, // Removed - no longer used
-              seasonal_events: Array.isArray(latestPreferences?.seasonal_events) && latestPreferences.seasonal_events.length > 0
-                ? latestPreferences.seasonal_events
-                : (formData.seasonalEvents.length > 0 ? formData.seasonalEvents : undefined),
-            });
-            console.log('✅ All data sent to webhook successfully (brand details + assets + preferences)');
-          }
-        } catch (webhookError: any) {
-          console.error('⚠️ Webhook error (continuing anyway):', webhookError);
-          // Show warning but don't block the user flow
-          error(`Webhook failed: ${webhookError.message}. Continuing...`);
-        }
-      }
+      // Webhook will be triggered from ReviewPage when user clicks "Generate Campaign Assets"
+      // Do NOT trigger webhook here - only save preferences
 
       success('Campaign preferences saved!');
       
@@ -307,7 +254,8 @@ export default function PreferencesPage() {
       formData.campaignGoal.trim() !== '' &&
       formData.brandVoice !== '' &&
       formData.visualStyles.length >= 1 &&
-      formData.visualStyles.length <= 3
+      formData.visualStyles.length <= 3 &&
+      formData.seasonalEvents.length === 1 // Require exactly 1 seasonal event
     );
   };
 
@@ -404,7 +352,7 @@ export default function PreferencesPage() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <label className="block text-sm font-semibold text-slate-700">
-                Seasonal Interests
+                Seasonal Interest <span className="text-red-500">*</span>
               </label>
               <button
                 type="button"
@@ -458,7 +406,7 @@ export default function PreferencesPage() {
             {/* Manual Entry - Single Input */}
             <div className="border-t border-slate-200 pt-4">
               <p className="text-xs text-slate-500 mb-2">
-                Add Custom Event {formData.seasonalEvents.length >= 6 && <span className="text-red-500">(Max 6 events reached)</span>}:
+                Add Custom Event {formData.seasonalEvents.length >= 1 && <span className="text-red-500">(Event already selected)</span>}:
               </p>
               <div className="flex gap-2">
                 <input
@@ -471,20 +419,20 @@ export default function PreferencesPage() {
                     }
                   }}
                   placeholder="Enter event name"
-                  disabled={formData.seasonalEvents.length >= 6}
+                  disabled={formData.seasonalEvents.length >= 1}
                   className="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <button
                   type="button"
                   onClick={handleAddManualEvent}
-                  disabled={!manualEventInput.trim() || formData.seasonalEvents.length >= 6}
+                  disabled={!manualEventInput.trim() || formData.seasonalEvents.length >= 1}
                   className="px-3 py-2 bg-[#2563EB] text-white rounded-lg hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
               <p className="text-xs text-slate-400 mt-1">
-                {formData.seasonalEvents.length}/6 events selected
+                {formData.seasonalEvents.length === 0 ? 'No event selected' : '1 event selected'}
               </p>
             </div>
 

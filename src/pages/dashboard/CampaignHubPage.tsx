@@ -81,7 +81,7 @@ export default function CampaignHubPage() {
 
       // Send existing data to webhook with preferences
       // Extract campaign market if campaign_goal is a market value
-      const marketOptions = ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'];
+      const marketOptions = ['Local (India)', 'International', 'Global'];
       const campaignGoalValue = preferences?.campaign_goal || '';
       const isMarketValue = campaignGoalValue && marketOptions.includes(campaignGoalValue);
       const campaignMarket = isMarketValue ? campaignGoalValue : undefined;

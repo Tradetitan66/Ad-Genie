@@ -20,33 +20,65 @@ export default function AdGenieWorkingPage() {
   const [webhookPayload, setWebhookPayload] = useState<BrandWebhookData | null>(null);
 
   useEffect(() => {
+    console.log('🎬 AdGenieWorkingPage: Component mounted');
+    console.log('📍 Current location:', location.pathname);
+    console.log('📦 Location state:', location.state);
+
     const currentUserEmail = localStorage.getItem('currentUser');
     if (!currentUserEmail) {
+      console.error('❌ No user email found, redirecting to login');
       navigate('/login');
       return;
     }
 
-    const state = location.state as { campaignId?: string; webhookPayload?: BrandWebhookData } | null;
-    if (!state?.campaignId || !state?.webhookPayload) {
+    const state = location.state as { campaignId?: string; webhookPayload?: BrandWebhookData; skipOnboardingCheck?: boolean } | null;
+    
+    if (!state) {
+      console.error('❌ No state found in location');
       showError('Missing campaign information. Please try again.');
-      navigate('/dashboard/campaign-hub');
+      // Delay redirect to allow error message to show
+      setTimeout(() => {
+        navigate('/dashboard/campaign-hub');
+      }, 2000);
       return;
     }
 
+    if (!state.campaignId || !state.webhookPayload) {
+      console.error('❌ Missing required state fields:', { 
+        hasCampaignId: !!state.campaignId, 
+        hasWebhookPayload: !!state.webhookPayload 
+      });
+      showError('Missing campaign information. Please try again.');
+      // Delay redirect to allow error message to show
+      setTimeout(() => {
+        navigate('/dashboard/campaign-hub');
+      }, 2000);
+      return;
+    }
+
+    console.log('✅ State validated, setting up webhook call');
     setCampaignId(state.campaignId);
     setWebhookPayload(state.webhookPayload);
 
-    // Trigger webhook and wait for response
+    // Trigger webhook immediately when page loads
+    // Webhook will wait for respond node to be connected in n8n
+    console.log('🚀 AdGenieWorkingPage: Triggering webhook immediately...');
     callWebhookAndWait(state.campaignId, state.webhookPayload);
   }, [navigate, location, showError]);
 
   const callWebhookAndWait = async (campId: string, payload: BrandWebhookData) => {
     try {
-      // Call webhook
+      console.log('📞 Calling webhook - this may take a while as it waits for respond node...');
+      
+      // Call webhook - will wait until respond node is connected in n8n
       const webhookResponse = await sendBrandDataToWebhook(payload);
+      
+      console.log('✅ Webhook response received, parsing images...');
       
       // Parse images from response
       const parsedImages = parseWebhookResponse(webhookResponse);
+      
+      console.log(`📸 Parsed ${parsedImages.length} images from webhook response`);
       
       // Update campaign with generated assets
       await campaignService.update(campId, {
@@ -59,13 +91,21 @@ export default function AdGenieWorkingPage() {
         },
       });
 
-      // Set images and stop loading (this will hide rotating text and show images)
-      setImages(parsedImages);
+      // Stop loading and automatically navigate to ResultsPage with images
       setLoading(false);
-      
       success('Campaign generated successfully!');
+      
+      // Automatically navigate to ResultsPage to show images with download options
+      console.log('🎯 Navigating to ResultsPage with generated images...');
+      navigate('/dashboard/results', {
+        state: { 
+          campaignId: campId, 
+          images: parsedImages, 
+          webhookPayload: payload 
+        }
+      });
     } catch (err: any) {
-      console.error('Webhook error:', err);
+      console.error('❌ Webhook error:', err);
       showError(`Failed to generate campaign: ${err.message}`);
       
       // Update campaign status to failed
@@ -127,6 +167,10 @@ export default function AdGenieWorkingPage() {
     setImages([]);
     await callWebhookAndWait(campaignId, webhookPayload);
   };
+
+  // Always show loading state initially to ensure generating page displays
+  // This prevents the page from redirecting before showing the animation
+  console.log('🎨 AdGenieWorkingPage: Rendering, loading state:', loading);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#2563EB] to-[#8B5CF6] flex items-center justify-center p-4">
