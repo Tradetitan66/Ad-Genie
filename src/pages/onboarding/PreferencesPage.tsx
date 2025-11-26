@@ -124,19 +124,23 @@ export default function PreferencesPage() {
       console.log('🤖 Fetching AI suggestions...', { industry: brandProfile.industry, market });
 
       // Fetch suggestions based on selected market:
-      // - If "Local (India)" → only local events
-      // - If "International" → only international events
-      // - If "Global" → only international events
+      // - If "Local (India)" → local events (Indian festivals)
+      // - If "International" → international events (country-wise events)
+      // - If "Global" → global events (worldwide celebrations)
       let suggestions: string[] = [];
       
       if (market === 'Local (India)') {
-        // Only fetch local events for India
+        // Fetch local events for India
         suggestions = await generateEventSuggestions(brandProfile.industry, market, 'local');
-        console.log('✅ Local events loaded:', suggestions);
-      } else if (market === 'International' || market === 'Global') {
-        // Only fetch international events
+        console.log('✅ Local (India) events loaded:', suggestions);
+      } else if (market === 'International') {
+        // Fetch international events (country-wise)
         suggestions = await generateEventSuggestions(brandProfile.industry, market, 'international');
         console.log('✅ International events loaded:', suggestions);
+      } else if (market === 'Global') {
+        // Fetch global events (worldwide celebrations)
+        suggestions = await generateEventSuggestions(brandProfile.industry, market, 'global');
+        console.log('✅ Global events loaded:', suggestions);
       } else {
         // Fallback to local if market is not recognized
         suggestions = await generateEventSuggestions(brandProfile.industry, 'Local (India)', 'local');

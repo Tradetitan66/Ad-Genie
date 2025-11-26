@@ -12,14 +12,14 @@ export interface EventSuggestion {
 /**
  * Generate event suggestions using OpenAI API
  * @param industry - Industry from brand profile (e.g., "Fashion", "Food & Beverage")
- * @param market - Market type from content selection (e.g., "Local (India)", "International")
- * @param eventType - Type of events to generate ("local" or "international")
+ * @param market - Market type from content selection (e.g., "Local (India)", "International", "Global")
+ * @param eventType - Type of events to generate ("local", "international", or "global")
  * @returns Array of event names as strings
  */
 export async function generateEventSuggestions(
   industry: string,
   market: string,
-  eventType: 'local' | 'international'
+  eventType: 'local' | 'international' | 'global'
 ): Promise<string[]> {
   // Check if API key is configured
   if (!OPENROUTER_API_KEY || 
@@ -45,14 +45,29 @@ export async function generateEventSuggestions(
   if (market === 'Local (India)') {
     marketContext = 'Local India - Focus on Indian festivals, regional celebrations, and local events';
   } else if (market === 'International') {
-    marketContext = 'International - Focus on global holidays, international shopping events, and worldwide celebrations';
+    marketContext = 'International - Focus on country-wise events and festivals from different countries';
   } else {
-    marketContext = 'Global - Focus on major global holidays, international events, and worldwide celebrations';
+    marketContext = 'Global - Focus on major global festivals and events that are celebrated worldwide';
   }
 
-  const eventTypeContext = eventType === 'local' 
-    ? 'local Indian festivals, regional celebrations, and cultural events'
-    : 'international holidays, global shopping events, and worldwide celebrations';
+  // Create distinct event type context based on eventType
+  let eventTypeContext = '';
+  let eventExamples = '';
+  let eventFocus = '';
+  
+  if (eventType === 'local') {
+    eventTypeContext = 'local Indian festivals, regional celebrations, and cultural events';
+    eventExamples = 'Diwali, Holi, Eid, Pongal, Onam, Durga Puja, Ganesh Chaturthi, Raksha Bandhan';
+    eventFocus = `Focus on Indian festivals like Diwali, Holi, regional celebrations, and local cultural events that are relevant to the Indian market and the ${industry} industry.`;
+  } else if (eventType === 'international') {
+    eventTypeContext = 'country-wise events and festivals from various countries';
+    eventExamples = 'Black Friday (USA), Chinese New Year, Thanksgiving (USA), Bastille Day (France), Oktoberfest (Germany), Canada Day';
+    eventFocus = `Focus on country-specific events and festivals from various countries (e.g., Black Friday in USA, Chinese New Year, Thanksgiving, Bastille Day in France, etc.) that are relevant to the ${industry} industry. Include events from multiple countries, not just one.`;
+  } else { // global
+    eventTypeContext = 'major global festivals and events celebrated worldwide';
+    eventExamples = 'New Year, Christmas, International Women\'s Day, Earth Day, World Health Day, International Labor Day';
+    eventFocus = `Focus on major global festivals and events that are celebrated worldwide (e.g., New Year, Christmas, International Women's Day, Earth Day, etc.) that are relevant to the ${industry} industry. These should be events that are recognized and celebrated across multiple countries globally.`;
+  }
 
   const prompt = `You are an expert in festivals, events, and cultural celebrations worldwide.
 
@@ -64,16 +79,15 @@ Given:
 
 Generate a list of 10-15 relevant upcoming festivals, events, or celebrations that would be suitable for marketing campaigns in the ${industry} industry for the ${market} market.
 
-For local events: Focus on Indian festivals, regional celebrations, and local events that are relevant to the ${industry} industry.
-For international events: Focus on global holidays, international shopping events, and worldwide celebrations that are relevant to the ${industry} industry.
+${eventFocus}
 
 Consider:
 - Industry-specific events (e.g., fashion industry → fashion weeks, fashion festivals)
-- Market-specific events (India → Diwali, Holi; International → Black Friday, Valentine's Day)
+- Market-specific events (Examples: ${eventExamples})
 - Upcoming events based on the current date
 - Events that would be suitable for marketing campaigns
 
-Return ONLY a JSON array of event names as strings, like: ["Diwali", "Holi", "Eid", "Christmas"]
+Return ONLY a JSON array of event names as strings, like: ["${eventExamples.split(', ')[0]}", "${eventExamples.split(', ')[1] || 'Event2'}", "${eventExamples.split(', ')[2] || 'Event3'}"]
 Do not include any explanations, descriptions, or additional text. Only return the JSON array.`;
 
   try {

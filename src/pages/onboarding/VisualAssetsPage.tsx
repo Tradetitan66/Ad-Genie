@@ -229,9 +229,8 @@ export default function VisualAssetsPage() {
       }
     }
 
-    // For new onboarding: require exactly 1 image
-    // For edit mode: allow saving with any number of images (including 0)
-    if (!isEditMode && productImages.length !== 1) {
+    // Product image is mandatory for all users
+    if (productImages.length !== 1) {
       error('Please upload exactly 1 product image to continue');
       return;
     }
@@ -280,7 +279,7 @@ export default function VisualAssetsPage() {
   }
 
   return (
-    <OnboardingLayout currentStep={4} totalSteps={5} stepLabel={isEditMode ? "Edit your brand assets" : "Upload your brand assets"}>
+    <OnboardingLayout currentStep={4} totalSteps={5} stepLabel={isEditMode ? "Edit product images" : "Upload product images"}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -290,73 +289,17 @@ export default function VisualAssetsPage() {
           <h1 className="text-3xl font-bold text-slate-900 mb-2">
             {isEditMode ? 'Edit Your Brand Assets' : 'Upload Your Brand Assets'}
           </h1>
-          <p className="text-slate-600">{isEditMode ? 'Update your logo and product images' : 'Add your logo and product images'}</p>
+          <p className="text-slate-600">{isEditMode ? 'Update your product images' : 'Add your product images'}</p>
         </div>
 
         <div className="space-y-8">
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-3">
-              Logo Upload <span className="text-slate-400 text-xs">(Optional)</span>
-            </label>
-            {!logo ? (
-              <div
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={(e) => handleDrop(e, 'logo')}
-                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${
-                  dragActive ? 'border-[#2563EB] bg-blue-50' : 'border-slate-300 hover:border-slate-400'
-                }`}
-                onClick={() => document.getElementById('logo-input')?.click()}
-              >
-                <Upload className="mx-auto mb-4 text-slate-400" size={48} />
-                <p className="text-slate-600 mb-2">Drag & drop your logo here</p>
-                <p className="text-sm text-slate-400 mb-2">or click to browse</p>
-                <p className="text-xs text-slate-400">Accepted: PNG, SVG, JPG | Max size: 5MB</p>
-                <input
-                  id="logo-input"
-                  type="file"
-                  accept=".png,.svg,.jpg,.jpeg"
-                  onChange={(e) => e.target.files && handleLogoUpload(e.target.files[0])}
-                  className="hidden"
-                />
-              </div>
-            ) : (
-              <div className="flex items-center gap-4 p-4 border border-[#10B981] bg-green-50 rounded-lg">
-                <img src={logo} alt="Logo" className="w-24 h-24 object-contain rounded bg-white" />
-                <div className="flex-1">
-                  <p className="font-semibold text-slate-900">Logo uploaded</p>
-                  <p className="text-sm text-slate-600">Click buttons to modify</p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleRemoveLogo}
-                    disabled={uploading}
-                    className="px-3 py-2 text-sm bg-white border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700"
-                  >
-                    Remove
-                  </button>
-                  <button
-                    onClick={() => document.getElementById('logo-input')?.click()}
-                    disabled={uploading}
-                    className="px-3 py-2 text-sm bg-white border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700"
-                  >
-                    Replace
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-3">
-              Product Image {!isEditMode && <span className="text-[#EF4444]">*</span>} {isEditMode ? '(Optional)' : '(Required)'}
+              Product Image <span className="text-[#EF4444]">*</span> <span className="text-slate-600 text-sm">(Required)</span>
             </label>
             <p className="text-sm text-slate-500 mb-3">
-              {isEditMode 
-                ? `${productImages.length} image${productImages.length !== 1 ? 's' : ''} uploaded`
-                : productImages.length === 0
-                ? 'No image uploaded'
+              {productImages.length === 0
+                ? 'No image uploaded - 1 image required'
                 : '1 image uploaded'
               }
             </p>
@@ -462,15 +405,10 @@ export default function VisualAssetsPage() {
 
         <div className="mt-8 pt-6 border-t border-slate-200">
           <p className="text-sm text-slate-500 mb-4">
-            {isEditMode ? (
-              productImages.length === 0 
-                ? 'No product image uploaded. You can upload 1 image.'
-                : 'Product image uploaded. You can save changes.'
-            ) : (
-              productImages.length < 1
-                ? 'Please upload 1 product image to continue'
-                : 'Product image uploaded! You can continue.'
-            )}
+            {productImages.length < 1
+              ? 'Please upload 1 product image to continue'
+              : 'Product image uploaded! You can continue.'
+            }
           </p>
           <div className="flex gap-4">
             <button
@@ -487,7 +425,7 @@ export default function VisualAssetsPage() {
             </button>
             <button
               onClick={handleContinue}
-              disabled={(!isEditMode && productImages.length !== 1) || saving || uploading}
+              disabled={productImages.length !== 1 || saving || uploading}
               className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {saving ? 'Saving...' : uploading ? 'Processing...' : isEditMode ? 'Save Changes' : 'Continue →'}
