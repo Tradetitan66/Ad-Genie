@@ -7,9 +7,7 @@ import { campaignService } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
 import { downloadImage, downloadMultipleImages, ImageData } from '../../utils/imageDownload';
 import { imageService } from '../../services/imageService';
-// @ts-ignore - RotatingText is JSX component
-import RotatingText from '../../components/RotatingText.jsx';
-import '../../components/RotatingText.css';
+import RotatingText from '../../components/RotatingText';
 
 export default function AdGenieWorkingPage() {
   const navigate = useNavigate();

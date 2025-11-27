@@ -5,6 +5,7 @@ import { CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { sendBrandDataToWebhook, parseWebhookResponse, BrandWebhookData } from '../../services/webhookService';
 import { campaignService } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
+import RotatingText from '../../components/RotatingText';
 
 const steps = [
   'Analyzing preferences',
@@ -148,9 +149,27 @@ export default function GeneratingPage() {
           >
             <Loader2 className="text-white" size={32} />
           </motion.div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">
-            Generating Your Campaign Assets...
-          </h2>
+          <div className="mb-2">
+            <RotatingText
+              texts={[
+                'Ad-Genie Making your wish',
+                'Ad-Genie Making your wish real',
+                'Ad-Genie Making your dreams',
+                'Ad-Genie Making your dreams come true',
+                'Ad-Genie Creating your vision',
+                'Ad-Genie Bringing your ideas to life'
+              ]}
+              mainClassName="text-2xl font-bold text-slate-900"
+              staggerFrom="last"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '-120%' }}
+              staggerDuration={0.025}
+              splitLevelClassName="overflow-hidden pb-0.5"
+              transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+              rotationInterval={2000}
+            />
+          </div>
           <p className="text-slate-600">This will only take a few moments</p>
         </div>
 
