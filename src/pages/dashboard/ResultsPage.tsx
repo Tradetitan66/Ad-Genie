@@ -6,6 +6,7 @@ import { campaignService, userService } from '../../services/database';
 import { sendBrandDataToWebhook, parseWebhookResponse, BrandWebhookData, WebhookImageItem } from '../../services/webhookService';
 import { downloadImage, downloadMultipleImages, ImageData } from '../../utils/imageDownload';
 import { useToast } from '../../contexts/ToastContext';
+import { imageService } from '../../services/imageService';
 
 export default function ResultsPage() {
   const navigate = useNavigate();
@@ -172,21 +173,54 @@ export default function ResultsPage() {
 
       // Call webhook
       const webhookResponse = await sendBrandDataToWebhook(payload);
-      const newImages = parseWebhookResponse(webhookResponse);
+      const parsedImages = parseWebhookResponse(webhookResponse);
 
-      // Update campaign with generated assets
+      // Upload regenerated images to Supabase storage
+      console.log('📤 Uploading regenerated images to Supabase storage...');
+      const uploadedImages = await Promise.all(
+        parsedImages.map(async (image) => {
+          const originalUrl = image.url || image.image_url || image.imageUrl || image.src || '';
+          if (!originalUrl) return image;
+          
+          try {
+            // Get user ID from payload
+            const userId = payload.user_id;
+            // Upload to Supabase storage
+            const supabaseUrl = await imageService.uploadGeneratedImageToStorage(
+              userId,
+              originalUrl,
+              newCampaign.id
+            );
+            
+            // Return image with both original and Supabase URLs
+            return {
+              ...image,
+              url: supabaseUrl, // Use Supabase URL as primary
+              original_url: originalUrl, // Keep original URL as backup
+            };
+          } catch (error: any) {
+            console.error('Error uploading regenerated image to Supabase:', error);
+            // Return original image if upload fails
+            return image;
+          }
+        })
+      );
+      
+      console.log(`✅ Uploaded ${uploadedImages.length} regenerated images to Supabase storage`);
+
+      // Update campaign with generated assets (including both URLs)
       await campaignService.update(newCampaign.id, {
         status: 'completed',
         completed_at: new Date().toISOString(),
         generated_assets: {
           webhook_payload: payload,
-          images: newImages,
+          images: uploadedImages,
           webhook_response: webhookResponse,
         },
       });
 
       // Update state with new images
-      setImages(newImages);
+      setImages(uploadedImages);
       setCampaignId(newCampaign.id);
       success('Campaign regenerated successfully!');
     } catch (err: any) {

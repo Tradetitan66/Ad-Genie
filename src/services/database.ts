@@ -104,6 +104,12 @@ export interface Preferences {
   enable_auto_suggestions: boolean;
   content_type: string | null;
   campaign_market?: string | null;
+  notifications?: {
+    emailNotifications?: boolean;
+    campaignComplete?: boolean;
+    weeklyReport?: boolean;
+    marketingTips?: boolean;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -426,6 +432,7 @@ const localStoragePreferencesService = {
         campaign_timing: prefs.campaign_timing ?? null,
         seasonal_events: prefs.seasonal_events ?? [],
         enable_auto_suggestions: prefs.enable_auto_suggestions ?? true,
+        notifications: prefs.notifications,
         content_type: prefs.content_type ?? null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -435,11 +442,19 @@ const localStoragePreferencesService = {
       return newPref;
     } else {
       // Update existing - merge with existing values
-      preferences[index] = {
+      const updatedPref = {
         ...preferences[index],
         ...prefs,
         updated_at: new Date().toISOString(),
       };
+      // If notifications are provided, merge them with existing
+      if (prefs.notifications !== undefined) {
+        updatedPref.notifications = {
+          ...preferences[index].notifications,
+          ...prefs.notifications,
+        };
+      }
+      preferences[index] = updatedPref;
       this.savePreferences(preferences);
       return preferences[index];
     }

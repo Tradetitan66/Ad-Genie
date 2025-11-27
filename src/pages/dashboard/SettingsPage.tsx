@@ -141,6 +141,14 @@ export default function SettingsPage() {
           enableAutoSuggestions: preferences.enable_auto_suggestions,
         });
         setSeasonalEvents(preferences.seasonal_events || { local: [], international: [] });
+        if (preferences.notifications) {
+          setNotifications({
+            emailNotifications: preferences.notifications.emailNotifications ?? true,
+            campaignComplete: preferences.notifications.campaignComplete ?? true,
+            weeklyReport: preferences.notifications.weeklyReport ?? false,
+            marketingTips: preferences.notifications.marketingTips ?? true,
+          });
+        }
       }
     } catch (err) {
       console.error('Error loading user data:', err);
@@ -149,9 +157,13 @@ export default function SettingsPage() {
   };
 
   const handleSaveAccount = async () => {
+    if (!userId) {
+      error('User ID not found. Please refresh the page.');
+      return;
+    }
     setSaving(true);
     try {
-      await userService.update(accountData.email, {
+      await userService.update(userId, {
         display_name: accountData.displayName,
       });
       success('Account settings saved successfully');
@@ -164,6 +176,10 @@ export default function SettingsPage() {
   };
 
   const handleSaveBrand = async () => {
+    if (!userId) {
+      error('User ID not found. Please refresh the page.');
+      return;
+    }
     setSaving(true);
     try {
       const brandProfile = await brandProfileService.getByUserId(userId);
@@ -199,8 +215,14 @@ export default function SettingsPage() {
   };
 
   const handleSavePreferences = async () => {
+    if (!userId) {
+      error('User ID not found. Please refresh the page.');
+      return;
+    }
     setSaving(true);
     try {
+      // Get existing preferences to preserve notifications
+      const existingPreferences = await preferencesService.getByUserId(userId);
       await preferencesService.upsert({
         user_id: userId,
         campaign_goal: preferencesData.campaignGoal,
@@ -209,11 +231,40 @@ export default function SettingsPage() {
         campaign_timing: preferencesData.campaignTiming,
         seasonal_events: seasonalEvents,
         enable_auto_suggestions: preferencesData.enableAutoSuggestions,
+        notifications: existingPreferences?.notifications, // Preserve existing notifications
       });
       success('Preferences saved successfully');
     } catch (err) {
       console.error('Error saving preferences:', err);
       error('Failed to save preferences');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveNotifications = async () => {
+    if (!userId) {
+      error('User ID not found. Please refresh the page.');
+      return;
+    }
+    setSaving(true);
+    try {
+      // Get existing preferences first
+      const existingPreferences = await preferencesService.getByUserId(userId);
+      await preferencesService.upsert({
+        user_id: userId,
+        campaign_goal: existingPreferences?.campaign_goal || null,
+        brand_voice: existingPreferences?.brand_voice || null,
+        visual_styles: existingPreferences?.visual_styles || [],
+        campaign_timing: existingPreferences?.campaign_timing || null,
+        seasonal_events: existingPreferences?.seasonal_events || { local: [], international: [] },
+        enable_auto_suggestions: existingPreferences?.enable_auto_suggestions ?? true,
+        notifications: notifications,
+      });
+      success('Notification preferences saved successfully');
+    } catch (err) {
+      console.error('Error saving notifications:', err);
+      error('Failed to save notification preferences');
     } finally {
       setSaving(false);
     }
@@ -610,11 +661,12 @@ export default function SettingsPage() {
               </label>
             </div>
             <button
-              onClick={() => success('Notification preferences saved')}
-              className="flex items-center gap-2 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] transition-all"
+              onClick={handleSaveNotifications}
+              disabled={saving}
+              className="flex items-center gap-2 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <Save size={18} />
-              Save Changes
+              {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         );

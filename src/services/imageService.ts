@@ -408,7 +408,7 @@ export const imageService = {
 
   /**
    * Upload a generated image from webhook URL to Supabase storage
-   * Stores in brand-assets/{userId}/outputs/{campaignId}/{filename}
+   * Stores in output-images/{userId}/{campaignId}/{filename}
    */
   async uploadGeneratedImageToStorage(
     userId: string,
@@ -456,13 +456,13 @@ export const imageService = {
       
       const sanitizedFilename = urlFilename.replace(/[^a-zA-Z0-9.-]/g, '_');
       
-      // Upload to Supabase storage: brand-assets/{userId}/outputs/{campaignId}/{filename}
-      const filePath = `${userId}/outputs/${campaignId}/${sanitizedFilename}`;
+      // Upload to Supabase storage: output-images/{userId}/{campaignId}/{filename}
+      const filePath = `${userId}/${campaignId}/${sanitizedFilename}`;
       
-      console.log('📤 Uploading generated image to Supabase storage:', filePath);
+      console.log('📤 Uploading generated image to output-images bucket:', filePath);
       
       const { data, error } = await supabase.storage
-        .from('brand-assets')
+        .from('output-images')
         .upload(filePath, blob, {
           cacheControl: '3600',
           upsert: true, // Allow overwriting if file exists
@@ -474,11 +474,11 @@ export const imageService = {
         return imageUrl;
       }
 
-      console.log('✅ Generated image uploaded successfully to Supabase:', data.path);
+      console.log('✅ Generated image uploaded successfully to output-images bucket:', data.path);
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from('brand-assets')
+        .from('output-images')
         .getPublicUrl(data.path);
 
       console.log('🔗 Supabase storage URL generated:', urlData.publicUrl);
