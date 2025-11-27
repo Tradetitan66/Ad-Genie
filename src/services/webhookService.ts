@@ -1,7 +1,6 @@
 // Webhook service for sending brand data to n8n
-// Production URL (held for now): https://n8n.srv1004168.hstgr.cloud/webhook/07be41b0-cf9a-4cc3-8ba8-1fcc9652be51
-// Using test URL for now - Respond to Webhook is held for now
-const WEBHOOK_URL = 'https://n8n.srv1004168.hstgr.cloud/webhook-test/07be41b0-cf9a-4cc3-8ba8-1fcc9652be51';
+// Production URL - n8n workflow is complete with "Respond to Webhook" connected
+const WEBHOOK_URL = 'https://n8n.srv1004168.hstgr.cloud/webhook/07be41b0-cf9a-4cc3-8ba8-1fcc9652be51';
 
 export interface BrandWebhookData {
   user_id: string;
@@ -125,7 +124,7 @@ export async function sendBrandDataToWebhook(data: BrandWebhookData): Promise<We
   try {
     console.log('📤 Sending brand data to webhook:', WEBHOOK_URL);
     console.log('📋 Data:', JSON.stringify(data, null, 2));
-    console.log('⏳ Webhook will wait for respond node to be connected (this may take a while)...');
+    console.log('⏳ Waiting for webhook response (this may take a while)...');
 
     // Fetch with no timeout - will wait until respond node is connected
     // Browser default timeout is typically 5-10 minutes, which should be sufficient
