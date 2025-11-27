@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Plus, LogOut, Loader2 } from 'lucide-react';
-import { userService, brandProfileService, preferencesService } from '../../services/database';
+import { Building2, Plus, LogOut, Loader2, Download, Eye, Image, Calendar } from 'lucide-react';
+import { userService, brandProfileService, preferencesService, campaignService, Campaign } from '../../services/database';
 import { sendBrandDataToWebhook } from '../../services/webhookService';
 import { useToast } from '../../contexts/ToastContext';
+import { downloadMultipleImages, ImageData } from '../../utils/imageDownload';
 
 export default function CampaignHubPage() {
   const navigate = useNavigate();
@@ -12,10 +13,12 @@ export default function CampaignHubPage() {
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [sendingWebhook, setSendingWebhook] = useState(false);
+  const [previousCampaigns, setPreviousCampaigns] = useState<Campaign[]>([]);
 
   useEffect(() => {
     loadUser();
   }, [navigate]);
+
 
   const loadUser = async () => {
     const currentUserEmail = localStorage.getItem('currentUser');
@@ -40,6 +43,9 @@ export default function CampaignHubPage() {
             logo: brandProfile.logo,
           } : null,
         });
+        
+        // Load previous campaigns after user data is set
+        loadPreviousCampaignsForUser(user.id);
       } else {
         navigate('/login');
       }
@@ -50,6 +56,7 @@ export default function CampaignHubPage() {
       setLoading(false);
     }
   };
+
 
   const handleUseExisting = async () => {
     if (!userData?.userId) {
@@ -128,6 +135,81 @@ export default function CampaignHubPage() {
     localStorage.removeItem('currentUser');
     localStorage.removeItem('user'); // Also clear AuthContext user
     navigate('/');
+  };
+
+  const loadPreviousCampaignsForUser = async (userId: string) => {
+    try {
+      const allCampaigns = await campaignService.getByUserId(userId);
+      // Filter to show only completed campaigns with images
+      const completedCampaigns = allCampaigns.filter(
+        (campaign) =>
+          campaign.status === 'completed' &&
+          campaign.generated_assets &&
+          campaign.generated_assets.images &&
+          Array.isArray(campaign.generated_assets.images) &&
+          campaign.generated_assets.images.length > 0
+      );
+      // Sort by most recent first
+      completedCampaigns.sort((a, b) => {
+        const dateA = new Date(a.completed_at || a.created_at).getTime();
+        const dateB = new Date(b.completed_at || b.created_at).getTime();
+        return dateB - dateA;
+      });
+      setPreviousCampaigns(completedCampaigns);
+    } catch (error) {
+      console.error('Error loading previous campaigns:', error);
+    }
+  };
+
+  const handleDownloadAll = async (campaign: Campaign) => {
+    try {
+      if (!campaign.generated_assets?.images || !Array.isArray(campaign.generated_assets.images)) {
+        showError('No images available to download');
+        return;
+      }
+
+      const imageData: ImageData[] = campaign.generated_assets.images.map((img: any, index: number) => {
+        const imageUrl = img?.url || img?.image_url || img?.imageUrl || img?.src || img;
+        return {
+          url: typeof imageUrl === 'string' ? imageUrl : '',
+          title: img?.title || `Campaign-Image-${index + 1}`,
+          id: img?.id || `img-${index}`,
+        };
+      }).filter((img: ImageData) => img.url);
+
+      if (imageData.length === 0) {
+        showError('No valid image URLs found');
+        return;
+      }
+
+      await downloadMultipleImages(imageData);
+      success(`Downloaded ${imageData.length} image(s) successfully!`);
+    } catch (err: any) {
+      console.error('Error downloading images:', err);
+      showError(`Failed to download images: ${err.message}`);
+    }
+  };
+
+  const getContentTypeLabel = (type: string) => {
+    switch (type) {
+      case 'image-only':
+        return 'Images Only';
+      case 'ugc-only':
+        return 'UGC Only';
+      case 'image-ugc':
+        return 'Images + UGC';
+      default:
+        return type;
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(date);
   };
 
   if (loading) {
@@ -242,7 +324,102 @@ export default function CampaignHubPage() {
             </motion.div>
           </div>
 
-          <div className="text-center space-y-3">
+          {/* Previous Campaigns Section */}
+          {previousCampaigns.length > 0 && (
+            <div className="mt-12">
+              <h2 className="text-2xl font-bold text-slate-900 mb-6">Your Previous Campaigns</h2>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {previousCampaigns.map((campaign, index) => {
+                  const firstImage = campaign.generated_assets.images[0];
+                  const imageUrl = firstImage?.url || firstImage?.image_url || firstImage?.imageUrl || firstImage?.src || firstImage;
+                  const imageCount = campaign.generated_assets.images.length;
+                  
+                  return (
+                    <motion.div
+                      key={campaign.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-all"
+                    >
+                      {/* Thumbnail */}
+                      {typeof imageUrl === 'string' && imageUrl && (
+                        <div className="aspect-video bg-slate-100 relative group">
+                          <img
+                            src={imageUrl}
+                            alt="Campaign thumbnail"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate('/dashboard/results', { state: { campaignId: campaign.id } });
+                                }}
+                                className="px-4 py-2 bg-white rounded-lg shadow-lg flex items-center gap-2 hover:bg-slate-50"
+                              >
+                                <Eye size={16} />
+                                View
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Campaign Info */}
+                      <div className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Image size={16} className="text-slate-500" />
+                            <span className="text-sm font-semibold text-slate-900">
+                              {getContentTypeLabel(campaign.content_type)}
+                            </span>
+                          </div>
+                          <span className="text-xs text-slate-500">{imageCount} image{imageCount !== 1 ? 's' : ''}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-xs text-slate-500 mb-4">
+                          <Calendar size={12} />
+                          <span>{formatDate(campaign.completed_at || campaign.created_at)}</span>
+                        </div>
+                        
+                        {/* Action Buttons */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => navigate('/dashboard/results', { state: { campaignId: campaign.id } })}
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#2563EB] text-white font-semibold rounded-lg hover:bg-[#1d4ed8] transition-all text-sm"
+                          >
+                            <Eye size={16} />
+                            View
+                          </button>
+                          <button
+                            onClick={() => handleDownloadAll(campaign)}
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white text-[#2563EB] font-semibold rounded-lg border-2 border-[#2563EB] hover:bg-blue-50 transition-all text-sm"
+                          >
+                            <Download size={16} />
+                            Download
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {previousCampaigns.length === 0 && (
+            <div className="mt-12 text-center">
+              <p className="text-slate-600">No previous campaigns yet. Create your first campaign!</p>
+            </div>
+          )}
+
+          <div className="text-center space-y-3 mt-8">
             <button
               onClick={() => navigate('/onboarding/content-selection')}
               className="text-[#2563EB] hover:text-[#1d4ed8] font-medium"

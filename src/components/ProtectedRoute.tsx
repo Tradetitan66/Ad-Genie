@@ -22,7 +22,7 @@ export default function ProtectedRoute({
 
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [location.pathname]); // Refresh auth check when route changes
 
   const checkAuth = async () => {
     try {
@@ -96,11 +96,13 @@ export default function ProtectedRoute({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Allow access to ad-genie-working page during onboarding completion
-  // This page is part of the onboarding flow and should be accessible
+  // Allow access to ad-genie-working and results pages during onboarding completion
+  // These pages are part of the onboarding flow and should be accessible
   const isAdGenieWorkingPage = location.pathname === '/dashboard/ad-genie-working';
+  const isResultsPage = location.pathname === '/dashboard/results';
+  const skipOnboardingCheck = (location.state as any)?.skipOnboardingCheck === true;
   
-  if (requireOnboarding && !hasCompletedOnboarding && !isAdGenieWorkingPage) {
+  if (requireOnboarding && !hasCompletedOnboarding && !isAdGenieWorkingPage && !(isResultsPage && skipOnboardingCheck)) {
     return <Navigate to="/onboarding/welcome" replace />;
   }
 

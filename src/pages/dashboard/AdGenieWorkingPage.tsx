@@ -6,6 +6,7 @@ import { sendBrandDataToWebhook, parseWebhookResponse, BrandWebhookData, Webhook
 import { campaignService } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
 import { downloadImage, downloadMultipleImages, ImageData } from '../../utils/imageDownload';
+import { imageService } from '../../services/imageService';
 // @ts-ignore - RotatingText is JSX component
 import RotatingText from '../../components/RotatingText.jsx';
 import '../../components/RotatingText.css';
@@ -80,13 +81,46 @@ export default function AdGenieWorkingPage() {
       
       console.log(`📸 Parsed ${parsedImages.length} images from webhook response`);
       
-      // Update campaign with generated assets
+      // Upload images to Supabase storage
+      console.log('📤 Uploading generated images to Supabase storage...');
+      const uploadedImages = await Promise.all(
+        parsedImages.map(async (image) => {
+          const originalUrl = image.url || image.image_url || image.imageUrl || image.src || '';
+          if (!originalUrl) return image;
+          
+          try {
+            // Get user ID from payload
+            const userId = payload.user_id;
+            // Upload to Supabase storage
+            const supabaseUrl = await imageService.uploadGeneratedImageToStorage(
+              userId,
+              originalUrl,
+              campId
+            );
+            
+            // Return image with both original and Supabase URLs
+            return {
+              ...image,
+              url: supabaseUrl, // Use Supabase URL as primary
+              original_url: originalUrl, // Keep original URL as backup
+            };
+          } catch (error: any) {
+            console.error('Error uploading image to Supabase:', error);
+            // Return original image if upload fails
+            return image;
+          }
+        })
+      );
+      
+      console.log(`✅ Uploaded ${uploadedImages.length} images to Supabase storage`);
+      
+      // Update campaign with generated assets (including both URLs)
       await campaignService.update(campId, {
         status: 'completed',
         completed_at: new Date().toISOString(),
         generated_assets: {
           webhook_payload: payload,
-          images: parsedImages,
+          images: uploadedImages,
           webhook_response: webhookResponse,
         },
       });
@@ -100,8 +134,9 @@ export default function AdGenieWorkingPage() {
       navigate('/dashboard/results', {
         state: { 
           campaignId: campId, 
-          images: parsedImages, 
-          webhookPayload: payload 
+          images: uploadedImages, 
+          webhookPayload: payload,
+          skipOnboardingCheck: true // Allow access during onboarding completion
         }
       });
     } catch (err: any) {

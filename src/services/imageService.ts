@@ -405,4 +405,88 @@ export const imageService = {
     const response = await fetch(base64);
     return response.blob();
   },
+
+  /**
+   * Upload a generated image from webhook URL to Supabase storage
+   * Stores in brand-assets/{userId}/outputs/{campaignId}/{filename}
+   */
+  async uploadGeneratedImageToStorage(
+    userId: string,
+    imageUrl: string,
+    campaignId: string
+  ): Promise<string> {
+    // If Supabase isn't configured, return original URL
+    if (!isSupabaseConfigured()) {
+      console.warn('Supabase not configured, returning original URL');
+      return imageUrl;
+    }
+
+    // If it's already a data URL or not a valid HTTP(S) URL, return as-is
+    if (!imageUrl || imageUrl.startsWith('data:') || (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://'))) {
+      console.warn('Image URL is not a valid HTTP(S) URL, returning as-is:', imageUrl);
+      return imageUrl;
+    }
+
+    try {
+      // Fetch the image from the webhook URL
+      console.log('📥 Fetching image from webhook URL:', imageUrl);
+      const response = await fetch(imageUrl, {
+        mode: 'cors', // Enable CORS
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      
+      // Generate filename from URL or use timestamp
+      let urlFilename = `image-${Date.now()}.png`;
+      try {
+        const urlObj = new URL(imageUrl);
+        const urlPath = urlObj.pathname;
+        const extractedFilename = urlPath.split('/').pop();
+        if (extractedFilename && extractedFilename.includes('.')) {
+          urlFilename = extractedFilename;
+        }
+      } catch (urlError) {
+        // If URL parsing fails, use default filename
+        console.warn('Could not parse URL for filename, using default');
+      }
+      
+      const sanitizedFilename = urlFilename.replace(/[^a-zA-Z0-9.-]/g, '_');
+      
+      // Upload to Supabase storage: brand-assets/{userId}/outputs/{campaignId}/{filename}
+      const filePath = `${userId}/outputs/${campaignId}/${sanitizedFilename}`;
+      
+      console.log('📤 Uploading generated image to Supabase storage:', filePath);
+      
+      const { data, error } = await supabase.storage
+        .from('brand-assets')
+        .upload(filePath, blob, {
+          cacheControl: '3600',
+          upsert: true, // Allow overwriting if file exists
+        });
+
+      if (error) {
+        console.error('❌ Supabase storage upload error:', error);
+        // Return original URL if upload fails
+        return imageUrl;
+      }
+
+      console.log('✅ Generated image uploaded successfully to Supabase:', data.path);
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('brand-assets')
+        .getPublicUrl(data.path);
+
+      console.log('🔗 Supabase storage URL generated:', urlData.publicUrl);
+      return urlData.publicUrl;
+    } catch (error: any) {
+      console.error('❌ Failed to upload generated image to Supabase:', error);
+      // Return original URL if upload fails
+      return imageUrl;
+    }
+  },
 };
