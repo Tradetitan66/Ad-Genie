@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Sparkles, Download, RefreshCw } from 'lucide-react';
@@ -17,8 +17,15 @@ export default function AdGenieWorkingPage() {
   const [loading, setLoading] = useState(true);
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [webhookPayload, setWebhookPayload] = useState<BrandWebhookData | null>(null);
+  const webhookCalledRef = useRef(false);
 
   useEffect(() => {
+    // Prevent duplicate webhook calls (React StrictMode runs effects twice in development)
+    if (webhookCalledRef.current) {
+      console.log('⚠️ Webhook already called, skipping duplicate call');
+      return;
+    }
+
     console.log('🎬 AdGenieWorkingPage: Component mounted');
     console.log('📍 Current location:', location.pathname);
     console.log('📦 Location state:', location.state);
@@ -58,6 +65,9 @@ export default function AdGenieWorkingPage() {
     console.log('✅ State validated, setting up webhook call');
     setCampaignId(state.campaignId);
     setWebhookPayload(state.webhookPayload);
+
+    // Mark webhook as called to prevent duplicate calls
+    webhookCalledRef.current = true;
 
     // Trigger webhook immediately when page loads
     // Webhook will wait for respond node to be connected in n8n
@@ -287,7 +297,13 @@ export default function AdGenieWorkingPage() {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8">
+                <div className={`grid gap-6 mb-8 ${
+                  images.length === 1 
+                    ? 'grid-cols-1 max-w-md mx-auto' 
+                    : images.length === 2 
+                    ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto'
+                    : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+                }`}>
                   {images.map((image, index) => {
                     const imageUrl = image.url || image.image_url || image.imageUrl || image.src || '';
                     const imageTitle = image.title || `Image ${index + 1}`;

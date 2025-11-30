@@ -307,7 +307,13 @@ export default function ResultsPage() {
                 </motion.button>
               </div>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+            <div className={`grid gap-6 ${
+              images.length === 1 
+                ? 'grid-cols-1 max-w-md mx-auto' 
+                : images.length === 2 
+                ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto'
+                : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+            }`}>
               {images.map((image, index) => {
                 const imageUrl = image.url || image.image_url || image.imageUrl || image.src || '';
                 const imageTitle = image.title || `Image ${index + 1}`;

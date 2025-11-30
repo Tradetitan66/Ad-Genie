@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle, Loader2, AlertCircle } from 'lucide-react';
@@ -23,8 +23,15 @@ export default function GeneratingPage() {
   const [error, setError] = useState<string | null>(null);
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [webhookPayload, setWebhookPayload] = useState<BrandWebhookData | null>(null);
+  const webhookCalledRef = useRef(false);
 
   useEffect(() => {
+    // Prevent duplicate webhook calls (React StrictMode runs effects twice in development)
+    if (webhookCalledRef.current) {
+      console.log('⚠️ Webhook already called, skipping duplicate call');
+      return;
+    }
+
     const currentUserEmail = localStorage.getItem('currentUser');
     if (!currentUserEmail) {
       navigate('/login');
@@ -41,6 +48,9 @@ export default function GeneratingPage() {
 
     setCampaignId(state.campaignId);
     setWebhookPayload(state.webhookPayload);
+
+    // Mark webhook as called to prevent duplicate calls
+    webhookCalledRef.current = true;
 
     // Start generation process
     generateCampaign(state.campaignId, state.webhookPayload);
@@ -231,6 +241,8 @@ export default function GeneratingPage() {
                   setError(null);
                   setProgress(0);
                   setCurrentStep(0);
+                  // Reset ref to allow retry
+                  webhookCalledRef.current = false;
                   generateCampaign(campaignId, webhookPayload);
                 } else {
                   navigate('/dashboard/campaign-hub');
