@@ -59,19 +59,19 @@ export default function GeneratingPage() {
   const generateCampaign = async (campId: string, payload: BrandWebhookData) => {
     try {
       // Simulate progress steps
-      const stepDuration = 2000;
+    const stepDuration = 2000;
       let stepIndex = 0;
-      const stepInterval = setInterval(() => {
+    const stepInterval = setInterval(() => {
         setCurrentStep(stepIndex);
         stepIndex++;
         if (stepIndex >= steps.length) {
           clearInterval(stepInterval);
         }
-      }, stepDuration);
+    }, stepDuration);
 
       // Simulate progress bar
-      const progressInterval = setInterval(() => {
-        setProgress(prev => {
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
           if (prev >= 90) {
             clearInterval(progressInterval);
             return 90; // Stop at 90% until webhook responds
@@ -89,8 +89,8 @@ export default function GeneratingPage() {
         
         // Update progress to 100%
         setProgress(100);
-        clearInterval(progressInterval);
-        clearInterval(stepInterval);
+          clearInterval(progressInterval);
+          clearInterval(stepInterval);
         setCurrentStep(steps.length - 1);
 
         // Update campaign with generated assets
@@ -105,7 +105,7 @@ export default function GeneratingPage() {
         });
 
         // Navigate to results page
-        setTimeout(() => {
+          setTimeout(() => {
           navigate('/dashboard/results', {
             state: {
               campaignId: campId,
@@ -113,10 +113,10 @@ export default function GeneratingPage() {
               webhookPayload: payload,
             },
           });
-        }, 500);
+          }, 500);
       } catch (webhookError: any) {
         clearInterval(progressInterval);
-        clearInterval(stepInterval);
+      clearInterval(stepInterval);
         console.error('Webhook error:', webhookError);
         
         // Update campaign status to failed
@@ -254,11 +254,11 @@ export default function GeneratingPage() {
             </button>
           </div>
         ) : (
-          <p className="text-center text-sm text-slate-500">
+        <p className="text-center text-sm text-slate-500">
             {progress < 90 
               ? `Time remaining: ${Math.max(0, Math.ceil((100 - progress) * 0.08))} seconds`
               : 'Processing your images...'}
-          </p>
+        </p>
         )}
       </motion.div>
     </div>

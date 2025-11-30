@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Building2, Briefcase, Users, Globe, Upload, X, Target, Mic, RefreshCw, Plus, ChevronDown, ChevronUp, CheckCircle, Image as ImageIcon, Palette } from 'lucide-react';
@@ -75,6 +75,7 @@ export default function CombinedBrandAndPreferencesPage() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [manualEventInput, setManualEventInput] = useState('');
+  const hasLoadedSuggestionsRef = useRef(false);
 
   // Section collapse/expand state
   const [expandedSections, setExpandedSections] = useState({
@@ -83,9 +84,92 @@ export default function CombinedBrandAndPreferencesPage() {
     preferences: false
   });
 
+  // Define fetchAISuggestions before useEffect that uses it
+  const fetchAISuggestions = useCallback(async () => {
+    if (!userId) {
+      console.log('⚠️ No userId, skipping AI suggestions');
+      return;
+    }
+
+    console.log('🚀 Starting AI suggestions fetch...');
+    setLoadingSuggestions(true);
+    setSuggestionError(null);
+
+    try {
+      // Use brandData.industry if available, otherwise fetch from database
+      let industry = brandData.industry;
+      if (!industry) {
+        const brandProfile = await brandProfileService.getByUserId(userId);
+        if (!brandProfile || !brandProfile.industry) {
+          console.log('⚠️ No industry found, skipping AI suggestions');
+          setLoadingSuggestions(false);
+          hasLoadedSuggestionsRef.current = true;
+          return;
+        }
+        industry = brandProfile.industry;
+      }
+
+      console.log('📊 Using industry:', industry);
+
+      const preferences = await preferencesService.getByUserId(userId);
+      const marketOptions = ['Local (India)', 'International', 'Global'];
+      const market = preferences?.campaign_market || 
+        (preferences?.campaign_goal && marketOptions.includes(preferences.campaign_goal)
+          ? preferences.campaign_goal
+          : 'Local (India)');
+
+      console.log('🌍 Using market:', market);
+
+      let suggestions: string[] = [];
+      
+      if (market === 'Local (India)') {
+        console.log('🇮🇳 Fetching local (India) events...');
+        suggestions = await generateEventSuggestions(industry, market, 'local');
+      } else if (market === 'International') {
+        console.log('🌐 Fetching international events...');
+        suggestions = await generateEventSuggestions(industry, market, 'international');
+      } else if (market === 'Global') {
+        console.log('🌍 Fetching global events...');
+        suggestions = await generateEventSuggestions(industry, market, 'global');
+      } else {
+        console.log('🔄 Using fallback: Local (India)');
+        suggestions = await generateEventSuggestions(industry, 'Local (India)', 'local');
+      }
+
+      console.log('✅ AI suggestions received:', suggestions.length, 'events');
+      setAiSuggestions(suggestions);
+      hasLoadedSuggestionsRef.current = true;
+    } catch (err: any) {
+      console.error('❌ Error fetching AI suggestions:', err);
+      setSuggestionError(err.message || 'Failed to load AI suggestions');
+      hasLoadedSuggestionsRef.current = true;
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  }, [userId, brandData.industry]);
+
   useEffect(() => {
     loadData();
   }, []);
+
+  // Auto-load AI suggestions when preferences section is expanded and industry is available
+  useEffect(() => {
+    const shouldLoad = expandedSections.preferences && 
+                       userId && 
+                       brandData.industry && 
+                       !loadingSuggestions && 
+                       !hasLoadedSuggestionsRef.current;
+    
+    if (shouldLoad) {
+      console.log('🔄 Auto-loading AI suggestions:', { 
+        userId, 
+        industry: brandData.industry, 
+        expanded: expandedSections.preferences,
+        hasLoaded: hasLoadedSuggestionsRef.current
+      });
+      fetchAISuggestions();
+    }
+  }, [expandedSections.preferences, userId, brandData.industry, fetchAISuggestions, loadingSuggestions]);
 
   const loadData = async () => {
     try {
@@ -285,48 +369,6 @@ export default function CombinedBrandAndPreferencesPage() {
     }
   };
 
-  const fetchAISuggestions = async () => {
-    if (!userId) return;
-
-    setLoadingSuggestions(true);
-    setSuggestionError(null);
-
-    try {
-      const brandProfile = await brandProfileService.getByUserId(userId);
-      if (!brandProfile || !brandProfile.industry) {
-        console.log('⚠️ No industry found, skipping AI suggestions');
-        setLoadingSuggestions(false);
-        return;
-      }
-
-      const preferences = await preferencesService.getByUserId(userId);
-      const marketOptions = ['Local (India)', 'International', 'Global'];
-      const market = preferences?.campaign_market || 
-        (preferences?.campaign_goal && marketOptions.includes(preferences.campaign_goal)
-          ? preferences.campaign_goal
-          : 'Local (India)');
-
-      let suggestions: string[] = [];
-      
-      if (market === 'Local (India)') {
-        suggestions = await generateEventSuggestions(brandProfile.industry, market, 'local');
-      } else if (market === 'International') {
-        suggestions = await generateEventSuggestions(brandProfile.industry, market, 'international');
-      } else if (market === 'Global') {
-        suggestions = await generateEventSuggestions(brandProfile.industry, market, 'global');
-      } else {
-        suggestions = await generateEventSuggestions(brandProfile.industry, 'Local (India)', 'local');
-      }
-
-      setAiSuggestions(suggestions);
-    } catch (err: any) {
-      console.error('❌ Error fetching AI suggestions:', err);
-      setSuggestionError(err.message || 'Failed to load AI suggestions');
-    } finally {
-      setLoadingSuggestions(false);
-    }
-  };
-
   const handleSeasonalEventToggle = (event: string) => {
     if (preferencesData.seasonalEvents.includes(event)) {
       setPreferencesData({
@@ -379,7 +421,8 @@ export default function CombinedBrandAndPreferencesPage() {
         return preferencesData.campaignGoal.trim() !== '' &&
                preferencesData.brandVoice !== '' &&
                preferencesData.visualStyles.length >= 1 &&
-               preferencesData.visualStyles.length <= 3;
+               preferencesData.visualStyles.length <= 3 &&
+               preferencesData.seasonalEvents.length >= 1;
       default:
         return false;
     }
@@ -424,6 +467,10 @@ export default function CombinedBrandAndPreferencesPage() {
     }
     if (preferencesData.visualStyles.length < 1) {
       error('Please select at least 1 visual style');
+      return;
+    }
+    if (preferencesData.seasonalEvents.length < 1) {
+      error('Please select at least 1 seasonal event');
       return;
     }
 
@@ -874,18 +921,33 @@ export default function CombinedBrandAndPreferencesPage() {
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <label className="block text-sm font-semibold text-slate-700">
-                      Seasonal Interest
+                      Seasonal Interest <span className="text-red-500">*</span>
                     </label>
                     <button
                       type="button"
-                      onClick={fetchAISuggestions}
-                      disabled={loadingSuggestions}
+                      onClick={async () => {
+                        console.log('🔄 Manual refresh triggered');
+                        hasLoadedSuggestionsRef.current = false;
+                        setAiSuggestions([]);
+                        setSuggestionError(null);
+                        await fetchAISuggestions();
+                      }}
+                      disabled={loadingSuggestions || !userId}
                       className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-[#2563EB] bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      title={!userId ? 'Please complete brand information first' : 'Refresh AI suggestions'}
                     >
                       <RefreshCw className={`w-3 h-3 ${loadingSuggestions ? 'animate-spin' : ''}`} />
                       {loadingSuggestions ? 'Loading...' : 'Refresh Suggestions'}
                     </button>
                   </div>
+
+                  {!brandData.industry && (
+                    <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-xs text-yellow-800">
+                        ⚠️ Please select an industry in Section 1 (Brand Information) to enable AI suggestions.
+                      </p>
+                    </div>
+                  )}
 
                   {suggestionError && (
                     <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -896,9 +958,15 @@ export default function CombinedBrandAndPreferencesPage() {
                   )}
 
                   {loadingSuggestions && aiSuggestions.length === 0 ? (
-                    <div className="flex items-center gap-2 p-4 text-sm text-slate-500 mb-4">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Loading AI suggestions...
+                    <div className="flex items-center gap-2 p-4 text-sm text-slate-500 mb-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <Loader2 className="w-4 h-4 animate-spin text-[#2563EB]" />
+                      <span>Loading AI suggestions based on your industry and market...</span>
+                    </div>
+                  ) : !loadingSuggestions && aiSuggestions.length === 0 && !suggestionError && hasLoadedSuggestionsRef.current ? (
+                    <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                      <p className="text-xs text-slate-600">
+                        No suggestions available. Please add events manually below or click "Refresh Suggestions" to try again.
+                      </p>
                     </div>
                   ) : aiSuggestions.length > 0 ? (
                     <div className="mb-6">
@@ -1018,4 +1086,5 @@ export default function CombinedBrandAndPreferencesPage() {
     </OnboardingLayout>
   );
 }
+
 

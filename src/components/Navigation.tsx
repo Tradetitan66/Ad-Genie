@@ -10,7 +10,7 @@ interface NavigationProps {
   onLoginClick?: () => void;
 }
 
-export default function Navigation({ onLoginSuccess, onLoginClick }: NavigationProps = {}) {
+export default function Navigation({ onLoginSuccess, onLoginClick }: NavigationProps) {
   const [scrolled, setScrolled] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);

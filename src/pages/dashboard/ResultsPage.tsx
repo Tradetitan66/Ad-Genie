@@ -277,13 +277,13 @@ export default function ResultsPage() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-3xl font-bold text-slate-900">Generated Images ({images.length})</h2>
               <div className="flex gap-3">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                   onClick={handleDownloadAll}
-                  className="px-6 py-3 bg-[#2563EB] text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-[#1d4ed8]"
-                >
-                  <Download size={20} />
+                className="px-6 py-3 bg-[#2563EB] text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-[#1d4ed8]"
+              >
+                <Download size={20} />
                   Download All
                 </motion.button>
                 <motion.button
@@ -304,7 +304,7 @@ export default function ResultsPage() {
                       Regenerate
                     </>
                   )}
-                </motion.button>
+              </motion.button>
               </div>
             </div>
             <div className={`grid gap-6 ${
@@ -322,39 +322,39 @@ export default function ResultsPage() {
                 if (!imageUrl) return null;
 
                 return (
-                  <motion.div
+                <motion.div
                     key={imageId}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.3 + index * 0.1 }}
-                    className="group relative bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all"
-                  >
-                    <div className="aspect-square bg-slate-200">
-                      <img
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 + index * 0.1 }}
+                  className="group relative bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all"
+                >
+                  <div className="aspect-square bg-slate-200">
+                    <img
                         src={imageUrl}
                         alt={imageTitle}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                         onError={(e) => {
                           // Fallback if image fails to load
                           const target = e.target as HTMLImageElement;
                           target.src = 'https://via.placeholder.com/400x400?text=Image+Not+Available';
                         }}
-                      />
-                    </div>
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <div className="flex gap-3">
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
+                    />
+                  </div>
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div className="flex gap-3">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
                           onClick={() => handleDownloadImage(image)}
-                          className="p-3 bg-white rounded-full shadow-lg"
+                        className="p-3 bg-white rounded-full shadow-lg"
                           title="Download image"
-                        >
-                          <Download size={20} className="text-slate-900" />
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
+                      >
+                        <Download size={20} className="text-slate-900" />
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
                           onClick={() => {
                             if (navigator.share) {
                               navigator.share({
@@ -370,17 +370,17 @@ export default function ResultsPage() {
                               success('Image URL copied to clipboard');
                             }
                           }}
-                          className="p-3 bg-white rounded-full shadow-lg"
+                        className="p-3 bg-white rounded-full shadow-lg"
                           title="Share image"
-                        >
-                          <Share2 size={20} className="text-slate-900" />
-                        </motion.button>
-                      </div>
+                      >
+                        <Share2 size={20} className="text-slate-900" />
+                      </motion.button>
                     </div>
-                    <div className="p-4">
+                  </div>
+                  <div className="p-4">
                       <p className="font-semibold text-slate-900">{imageTitle}</p>
-                    </div>
-                  </motion.div>
+                  </div>
+                </motion.div>
                 );
               })}
             </div>
@@ -405,7 +405,7 @@ export default function ResultsPage() {
                 onClick={handleRegenerate}
                 disabled={regenerating}
                 className="px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] transition-all disabled:opacity-50"
-              >
+                      >
                 {regenerating ? 'Regenerating...' : 'Generate Images'}
               </button>
             )}
