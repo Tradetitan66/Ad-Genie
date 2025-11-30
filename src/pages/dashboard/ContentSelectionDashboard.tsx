@@ -50,11 +50,11 @@ export default function ContentSelectionDashboard() {
 
   const loadData = async () => {
     try {
-      const currentUserEmail = localStorage.getItem('currentUser');
-      if (!currentUserEmail) {
-        navigate('/login');
-        return;
-      }
+    const currentUserEmail = localStorage.getItem('currentUser');
+    if (!currentUserEmail) {
+      navigate('/login');
+      return;
+    }
 
       const user = await userService.getByEmail(currentUserEmail);
       if (!user) {
@@ -109,7 +109,7 @@ export default function ContentSelectionDashboard() {
       error(`Failed to save content type: ${err.message}`);
       setGenerating(false);
     }
-  };
+    };
 
   if (loading) {
     return (
@@ -120,7 +120,7 @@ export default function ContentSelectionDashboard() {
         </div>
       </div>
     );
-  }
+    }
 
   if (!brandProfile) {
     return (

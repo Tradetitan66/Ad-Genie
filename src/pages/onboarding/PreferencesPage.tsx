@@ -118,7 +118,7 @@ export default function PreferencesPage() {
       // Get market from campaign_market field (preferred) or fallback to campaign_goal
       const market = preferences?.campaign_market || 
         (preferences?.campaign_goal && marketOptions.includes(preferences.campaign_goal)
-          ? preferences.campaign_goal
+        ? preferences.campaign_goal
           : 'Local (India)'); // Default to Local if not set
 
       console.log('🤖 Fetching AI suggestions...', { industry: brandProfile.industry, market });

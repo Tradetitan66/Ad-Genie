@@ -31,7 +31,7 @@ export default function WelcomePage() {
   };
 
   return (
-    <OnboardingLayout currentStep={1} totalSteps={5} stepLabel="Welcome to Ad Genie">
+    <OnboardingLayout currentStep={1} totalSteps={3} stepLabel="Welcome to Ad Genie">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -64,11 +64,9 @@ export default function WelcomePage() {
             className="space-y-4 mb-12"
           >
             {[
-              'Choose content type (Image/UGC/Both)',
-              'Add your brand details',
-              'Upload brand assets',
-              'Select campaign preferences',
-              'Start generating campaigns'
+              'Choose content type and target market',
+              'Complete your brand profile and preferences',
+              'Review and generate your campaign'
             ].map((item, index) => (
               <motion.div
                 key={index}

@@ -291,20 +291,20 @@ export default function BrandDetailsPage() {
                 exit={{ opacity: 0, height: 0 }}
                 className="mt-3"
               >
-                <div className="relative">
-                  <Users className="absolute left-3 top-4 text-slate-400" size={20} />
-                  <textarea
+            <div className="relative">
+              <Users className="absolute left-3 top-4 text-slate-400" size={20} />
+              <textarea
                     value={customAudience}
                     onChange={(e) => {
                       setCustomAudience(e.target.value);
                       setFormData({ ...formData, audience: e.target.value });
                     }}
-                    maxLength={200}
-                    rows={3}
-                    className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
-                    placeholder="e.g., Young professionals aged 25-35, health-conscious consumers"
-                  />
-                </div>
+                maxLength={200}
+                rows={3}
+                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
+                placeholder="e.g., Young professionals aged 25-35, health-conscious consumers"
+              />
+            </div>
                 <p className="text-xs text-slate-500 mt-1">{customAudience.length}/200</p>
               </motion.div>
             )}

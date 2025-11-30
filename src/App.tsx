@@ -9,6 +9,7 @@ import PreferencesPage from './pages/onboarding/PreferencesPage';
 import BrandDetailsPage from './pages/onboarding/BrandDetailsPage';
 import VisualAssetsPage from './pages/onboarding/VisualAssetsPage';
 import ContentSelectionPage from './pages/onboarding/ContentSelectionPage';
+import CombinedBrandAndPreferencesPage from './pages/onboarding/CombinedBrandAndPreferencesPage';
 import ReviewPage from './pages/onboarding/ReviewPage';
 import CampaignHubPage from './pages/dashboard/CampaignHubPage';
 import ContentSelectionDashboard from './pages/dashboard/ContentSelectionDashboard';
@@ -36,6 +37,23 @@ function App() {
               }
             />
             <Route
+              path="/onboarding/brand-and-preferences"
+              element={
+                <ProtectedRoute>
+                  <CombinedBrandAndPreferencesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/onboarding/content-selection"
+              element={
+                <ProtectedRoute>
+                  <ContentSelectionPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Old onboarding pages kept for backward compatibility but not used in main flow */}
+            <Route
               path="/onboarding/preferences"
               element={
                 <ProtectedRoute>
@@ -56,14 +74,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <VisualAssetsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/onboarding/content-selection"
-              element={
-                <ProtectedRoute>
-                  <ContentSelectionPage />
                 </ProtectedRoute>
               }
             />

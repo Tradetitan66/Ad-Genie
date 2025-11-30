@@ -132,30 +132,30 @@ export default function ReviewPage() {
 
       // Prepare webhook payload
       const webhookData: BrandWebhookData = {
-        user_id: user.id,
-        user_email: user.email,
-        brand_name: brandProfile.brand_name,
-        industry: brandProfile.industry,
-        audience: brandProfile.audience || undefined,
-        website_url: brandProfile.website_url || undefined,
-        contact_email: brandProfile.contact_email,
-        logo_url: brandProfile.logo || null,
-        product_images: Array.isArray(brandProfile.product_images) ? brandProfile.product_images : [],
-        brand_colors: formattedBrandColors,
-        content_type: preferences?.content_type || userData.contentType || undefined,
-        campaign_goal: actualCampaignGoal,
-        campaign_market: campaignMarket,
-        brand_voice: preferences?.brand_voice || undefined,
-        visual_styles: Array.isArray(preferences?.visual_styles) && preferences.visual_styles.length > 0 ? preferences.visual_styles : undefined,
-        campaign_timing: undefined, // Removed - no longer used
-        seasonal_events: Array.isArray(preferences?.seasonal_events) && preferences.seasonal_events.length > 0
-          ? preferences.seasonal_events
-          : (preferences?.seasonal_events && typeof preferences.seasonal_events === 'object'
-            ? ((preferences.seasonal_events.local && preferences.seasonal_events.local.length > 0) || 
-               (preferences.seasonal_events.international && preferences.seasonal_events.international.length > 0))
-              ? preferences.seasonal_events
-              : undefined
-            : undefined),
+          user_id: user.id,
+          user_email: user.email,
+          brand_name: brandProfile.brand_name,
+          industry: brandProfile.industry,
+          audience: brandProfile.audience || undefined,
+          website_url: brandProfile.website_url || undefined,
+          contact_email: brandProfile.contact_email,
+          logo_url: brandProfile.logo || null,
+          product_images: Array.isArray(brandProfile.product_images) ? brandProfile.product_images : [],
+          brand_colors: formattedBrandColors,
+          content_type: preferences?.content_type || userData.contentType || undefined,
+          campaign_goal: actualCampaignGoal,
+          campaign_market: campaignMarket,
+          brand_voice: preferences?.brand_voice || undefined,
+          visual_styles: Array.isArray(preferences?.visual_styles) && preferences.visual_styles.length > 0 ? preferences.visual_styles : undefined,
+          campaign_timing: undefined, // Removed - no longer used
+          seasonal_events: Array.isArray(preferences?.seasonal_events) && preferences.seasonal_events.length > 0
+            ? preferences.seasonal_events
+            : (preferences?.seasonal_events && typeof preferences.seasonal_events === 'object'
+              ? ((preferences.seasonal_events.local && preferences.seasonal_events.local.length > 0) || 
+                 (preferences.seasonal_events.international && preferences.seasonal_events.international.length > 0))
+                ? preferences.seasonal_events
+                : undefined
+              : undefined),
       };
 
       // Store webhook payload for later use
@@ -177,9 +177,9 @@ export default function ReviewPage() {
       // Only update onboarding status if user hasn't completed onboarding yet
       // IMPORTANT: Update onboarding status BEFORE navigation to ensure ProtectedRoute allows access
       if (!user.has_completed_onboarding) {
-        await userService.update(userId, {
-          has_completed_onboarding: true
-        });
+      await userService.update(userId, {
+        has_completed_onboarding: true
+      });
         // Small delay to ensure database update is propagated before navigation
         await new Promise(resolve => setTimeout(resolve, 100));
       }
@@ -252,7 +252,7 @@ export default function ReviewPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate('/onboarding/preferences');
+                      navigate('/onboarding/brand-and-preferences');
                     }}
                     className="text-[#2563EB] hover:text-[#1d4ed8] flex items-center gap-1 text-sm"
                   >
@@ -296,7 +296,7 @@ export default function ReviewPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate('/onboarding/brand-details');
+                      navigate('/onboarding/brand-and-preferences');
                     }}
                     className="text-[#2563EB] hover:text-[#1d4ed8] flex items-center gap-1 text-sm"
                   >
@@ -328,7 +328,7 @@ export default function ReviewPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate('/onboarding/visual-assets');
+                      navigate('/onboarding/brand-and-preferences');
                     }}
                     className="text-[#2563EB] hover:text-[#1d4ed8] flex items-center gap-1 text-sm"
                   >
@@ -392,7 +392,7 @@ export default function ReviewPage() {
 
           <div className="flex gap-4">
             <button
-              onClick={() => navigate('/onboarding/preferences')}
+              onClick={() => navigate('/onboarding/brand-and-preferences')}
               className="px-6 py-4 rounded-lg border border-slate-300 hover:bg-slate-50 transition-all"
             >
               Back
