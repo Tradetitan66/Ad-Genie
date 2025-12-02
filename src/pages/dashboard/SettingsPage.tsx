@@ -140,7 +140,23 @@ export default function SettingsPage() {
           campaignTiming: preferences.campaign_timing || '',
           enableAutoSuggestions: preferences.enable_auto_suggestions,
         });
-        setSeasonalEvents(preferences.seasonal_events || { local: [], international: [] });
+        // Handle both formats: array (new) or object with local/international (old)
+        if (preferences.seasonal_events) {
+          if (Array.isArray(preferences.seasonal_events)) {
+            // New format: array of strings - convert to object format for settings page
+            setSeasonalEvents({ local: preferences.seasonal_events, international: [] });
+          } else if (typeof preferences.seasonal_events === 'object' && preferences.seasonal_events !== null) {
+            // Old format: object with local/international
+            setSeasonalEvents({
+              local: Array.isArray(preferences.seasonal_events.local) ? preferences.seasonal_events.local : [],
+              international: Array.isArray(preferences.seasonal_events.international) ? preferences.seasonal_events.international : [],
+            });
+          } else {
+            setSeasonalEvents({ local: [], international: [] });
+          }
+        } else {
+          setSeasonalEvents({ local: [], international: [] });
+        }
         if (preferences.notifications) {
           setNotifications({
             emailNotifications: preferences.notifications.emailNotifications ?? true,
@@ -285,15 +301,21 @@ export default function SettingsPage() {
   };
 
   const toggleSeasonalEvent = (event: string, type: 'local' | 'international') => {
-    const currentEvents = seasonalEvents[type];
+    // Ensure seasonalEvents is in the correct format
+    const safeSeasonalEvents = {
+      local: Array.isArray(seasonalEvents?.local) ? seasonalEvents.local : [],
+      international: Array.isArray(seasonalEvents?.international) ? seasonalEvents.international : [],
+    };
+    
+    const currentEvents = safeSeasonalEvents[type];
     if (currentEvents.includes(event)) {
       setSeasonalEvents({
-        ...seasonalEvents,
+        ...safeSeasonalEvents,
         [type]: currentEvents.filter((e) => e !== event),
       });
     } else {
       setSeasonalEvents({
-        ...seasonalEvents,
+        ...safeSeasonalEvents,
         [type]: [...currentEvents, event],
       });
     }
@@ -552,6 +574,12 @@ export default function SettingsPage() {
         );
 
       case 'events':
+        // Ensure seasonalEvents is in the correct format
+        const safeSeasonalEvents = {
+          local: Array.isArray(seasonalEvents?.local) ? seasonalEvents.local : [],
+          international: Array.isArray(seasonalEvents?.international) ? seasonalEvents.international : [],
+        };
+        
         return (
           <div className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
@@ -562,7 +590,7 @@ export default function SettingsPage() {
                     <label key={event} className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={seasonalEvents.local.includes(event)}
+                        checked={safeSeasonalEvents.local.includes(event)}
                         onChange={() => toggleSeasonalEvent(event, 'local')}
                         className="w-4 h-4 text-[#2563EB] rounded"
                       />
@@ -578,7 +606,7 @@ export default function SettingsPage() {
                     <label key={event} className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={seasonalEvents.international.includes(event)}
+                        checked={safeSeasonalEvents.international.includes(event)}
                         onChange={() => toggleSeasonalEvent(event, 'international')}
                         className="w-4 h-4 text-[#2563EB] rounded"
                       />
