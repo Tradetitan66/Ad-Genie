@@ -76,7 +76,7 @@ export default function Footer() {
         </div>
 
         <div className="text-center mt-8 text-sm text-slate-500">
-          © 2024 Ad-Genie. All rights reserved.
+          © 2025 Ad-Genie. All rights reserved.
         </div>
       </div>
     </footer>
