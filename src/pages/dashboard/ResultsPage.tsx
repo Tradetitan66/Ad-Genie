@@ -7,6 +7,7 @@ import { sendBrandDataToWebhook, parseWebhookResponse, BrandWebhookData, Webhook
 import { downloadImage, downloadMultipleImages, ImageData } from '../../utils/imageDownload';
 import { useToast } from '../../contexts/ToastContext';
 import { imageService } from '../../services/imageService';
+import { tokenService } from '../../services/tokenService';
 
 export default function ResultsPage() {
   const navigate = useNavigate();
@@ -177,14 +178,23 @@ export default function ResultsPage() {
 
       // Upload regenerated images to Supabase storage
       console.log('📤 Uploading regenerated images to Supabase storage...');
-      const uploadedImages = await Promise.all(
+      const uploadResults = await Promise.allSettled(
         parsedImages.map(async (image) => {
           const originalUrl = image.url || image.image_url || image.imageUrl || image.src || '';
-          if (!originalUrl) return image;
+          if (!originalUrl) {
+            console.warn('⚠️ Regenerated image has no URL, skipping upload');
+            return { image, uploaded: false, reason: 'no_url' };
+          }
           
           try {
             // Get user ID from payload
             const userId = payload.user_id;
+            if (!userId) {
+              throw new Error('User ID is missing from payload');
+            }
+            
+            console.log(`📤 Uploading regenerated image ${parsedImages.indexOf(image) + 1}/${parsedImages.length}...`);
+            
             // Upload to Supabase storage
             const supabaseUrl = await imageService.uploadGeneratedImageToStorage(
               userId,
@@ -192,21 +202,72 @@ export default function ResultsPage() {
               newCampaign.id
             );
             
-            // Return image with both original and Supabase URLs
-            return {
-              ...image,
-              url: supabaseUrl, // Use Supabase URL as primary
-              original_url: originalUrl, // Keep original URL as backup
-            };
+            // Check if upload actually succeeded (URL should be Supabase URL)
+            const isSupabaseUrl = supabaseUrl.includes('supabase.co/storage');
+            
+            if (isSupabaseUrl) {
+              console.log(`✅ Regenerated image ${parsedImages.indexOf(image) + 1} uploaded successfully to Supabase`);
+              return {
+                image: {
+                  ...image,
+                  url: supabaseUrl,
+                  original_url: originalUrl,
+                },
+                uploaded: true,
+              };
+            } else {
+              console.warn(`⚠️ Regenerated image ${parsedImages.indexOf(image) + 1} upload returned non-Supabase URL`);
+              return {
+                image: {
+                  ...image,
+                  url: originalUrl,
+                  original_url: originalUrl,
+                },
+                uploaded: false,
+                reason: 'fallback_to_original',
+              };
+            }
           } catch (error: any) {
-            console.error('Error uploading regenerated image to Supabase:', error);
-            // Return original image if upload fails
-            return image;
+            console.error(`❌ Error uploading regenerated image ${parsedImages.indexOf(image) + 1}:`, {
+              error: error,
+              message: error?.message,
+              originalUrl: originalUrl.substring(0, 100),
+            });
+            return {
+              image: {
+                ...image,
+                url: originalUrl,
+                original_url: originalUrl,
+              },
+              uploaded: false,
+              reason: 'upload_error',
+              error: error?.message,
+            };
           }
         })
       );
       
-      console.log(`✅ Uploaded ${uploadedImages.length} regenerated images to Supabase storage`);
+      // Process results
+      const uploadedImages = uploadResults.map((result) => {
+        if (result.status === 'fulfilled') {
+          return result.value.image;
+        } else {
+          console.error('❌ Unexpected error in upload promise:', result.reason);
+          return { url: '', original_url: '' };
+        }
+      });
+      
+      // Count successful uploads
+      const successfulUploads = uploadResults.filter(
+        (result) => result.status === 'fulfilled' && result.value.uploaded === true
+      ).length;
+      
+      const failedUploads = parsedImages.length - successfulUploads;
+      
+      console.log(`📊 Regeneration Upload Summary: ${successfulUploads}/${parsedImages.length} images uploaded to Supabase`);
+      if (failedUploads > 0) {
+        console.warn(`⚠️ ${failedUploads} regenerated image(s) failed to upload and are using webhook URLs`);
+      }
 
       // Update campaign with generated assets (including both URLs)
       await campaignService.update(newCampaign.id, {
@@ -218,6 +279,39 @@ export default function ResultsPage() {
           webhook_response: webhookResponse,
         },
       });
+
+      // Deduct Magic Tokens for campaign regeneration
+      try {
+        const campaignCost = tokenService.calculateCampaignCost(
+          payload.content_type || 'image-only',
+          { images: uploadedImages, videos: [] }
+        );
+        
+        // Deduct base cost (2 tokens)
+        await tokenService.deductTokens(
+          payload.user_id,
+          2,
+          'campaign_generation',
+          newCampaign.id,
+          `Campaign regeneration (${payload.content_type || 'image-only'})`
+        );
+        
+        // Deduct tokens for each image (1 token per image)
+        if (uploadedImages.length > 0) {
+          await tokenService.deductTokens(
+            payload.user_id,
+            uploadedImages.length,
+            'image',
+            newCampaign.id,
+            `${uploadedImages.length} image(s) regenerated`
+          );
+        }
+        
+        console.log(`✨ Deducted ${campaignCost} Magic Tokens for campaign regeneration`);
+      } catch (tokenError) {
+        console.error('Error deducting Magic Tokens:', tokenError);
+        // Don't block the flow - test mode allows negative tokens
+      }
 
       // Update state with new images
       setImages(uploadedImages);

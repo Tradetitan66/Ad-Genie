@@ -18,6 +18,7 @@
 
 .logoloop__track {
   display: flex;
+  gap: var(--logoloop-gap, 32px);
   will-change: transform;
 }
 

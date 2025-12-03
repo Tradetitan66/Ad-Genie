@@ -3,84 +3,54 @@ import LogoLoop from './LogoLoop';
 
 const companyLogos = [
   {
-    node: <div className="text-2xl font-bold text-slate-700">Google</div>,
-    alt: 'Google',
-    title: 'Google'
+    node: <div className="text-2xl font-bold text-slate-700 whitespace-nowrap">Freshworks</div>,
+    alt: 'Freshworks',
+    title: 'Freshworks'
   },
   {
-    node: <div className="text-2xl font-bold text-slate-700">Microsoft</div>,
-    alt: 'Microsoft',
-    title: 'Microsoft'
+    node: <div className="text-2xl font-bold text-slate-700 whitespace-nowrap">HubSpot</div>,
+    alt: 'HubSpot',
+    title: 'HubSpot'
   },
   {
-    node: <div className="text-2xl font-bold text-slate-700">Apple</div>,
-    alt: 'Apple',
-    title: 'Apple'
+    node: <div className="text-2xl font-bold text-slate-700 whitespace-nowrap">UrbanPiper</div>,
+    alt: 'UrbanPiper',
+    title: 'UrbanPiper'
   },
   {
-    node: <div className="text-2xl font-bold text-slate-700">Amazon</div>,
-    alt: 'Amazon',
-    title: 'Amazon'
+    node: <div className="text-2xl font-bold text-slate-700 whitespace-nowrap">Lenskart</div>,
+    alt: 'Lenskart',
+    title: 'Lenskart'
   },
   {
-    node: <div className="text-2xl font-bold text-slate-700">Meta</div>,
-    alt: 'Meta',
-    title: 'Meta'
+    node: <div className="text-2xl font-bold text-slate-700 whitespace-nowrap">Notion</div>,
+    alt: 'Notion',
+    title: 'Notion'
   },
   {
-    node: <div className="text-2xl font-bold text-slate-700">Netflix</div>,
-    alt: 'Netflix',
-    title: 'Netflix'
+    node: <div className="text-2xl font-bold text-slate-700 whitespace-nowrap">CRED</div>,
+    alt: 'CRED',
+    title: 'CRED'
   },
   {
-    node: <div className="text-2xl font-bold text-slate-700">Tesla</div>,
-    alt: 'Tesla',
-    title: 'Tesla'
+    node: <div className="text-2xl font-bold text-slate-700 whitespace-nowrap">Figma</div>,
+    alt: 'Figma',
+    title: 'Figma'
   },
   {
-    node: <div className="text-2xl font-bold text-slate-700">Spotify</div>,
-    alt: 'Spotify',
-    title: 'Spotify'
+    node: <div className="text-2xl font-bold text-slate-700 whitespace-nowrap">Zoho</div>,
+    alt: 'Zoho',
+    title: 'Zoho'
   },
   {
-    node: <div className="text-2xl font-bold text-slate-700">Airbnb</div>,
-    alt: 'Airbnb',
-    title: 'Airbnb'
+    node: <div className="text-2xl font-bold text-slate-700 whitespace-nowrap">Razorpay</div>,
+    alt: 'Razorpay',
+    title: 'Razorpay'
   },
   {
-    node: <div className="text-2xl font-bold text-slate-700">Uber</div>,
-    alt: 'Uber',
-    title: 'Uber'
-  },
-  {
-    node: <div className="text-2xl font-bold text-slate-700">Stripe</div>,
-    alt: 'Stripe',
-    title: 'Stripe'
-  },
-  {
-    node: <div className="text-2xl font-bold text-slate-700">Shopify</div>,
-    alt: 'Shopify',
-    title: 'Shopify'
-  },
-  {
-    node: <div className="text-2xl font-bold text-slate-700">Adobe</div>,
-    alt: 'Adobe',
-    title: 'Adobe'
-  },
-  {
-    node: <div className="text-2xl font-bold text-slate-700">Salesforce</div>,
-    alt: 'Salesforce',
-    title: 'Salesforce'
-  },
-  {
-    node: <div className="text-2xl font-bold text-slate-700">Nike</div>,
-    alt: 'Nike',
-    title: 'Nike'
-  },
-  {
-    node: <div className="text-2xl font-bold text-slate-700">Coca-Cola</div>,
-    alt: 'Coca-Cola',
-    title: 'Coca-Cola'
+    node: <div className="text-2xl font-bold text-slate-700 whitespace-nowrap">Nykaa</div>,
+    alt: 'Nykaa',
+    title: 'Nykaa'
   }
 ];
 
@@ -116,7 +86,7 @@ export default function CompanyLogos() {
             speed={80}
             direction="left"
             logoHeight={48}
-            gap={64}
+            gap={96}
             hoverSpeed={0}
             scaleOnHover={true}
             fadeOut={true}

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Plus, LogOut, Loader2, Download, Eye, Image, Calendar } from 'lucide-react';
+import { Building2, Plus, LogOut, Loader2, Download, Eye, Image, Calendar, Sparkles } from 'lucide-react';
 import { userService, brandProfileService, preferencesService, campaignService, Campaign } from '../../services/database';
 import { sendBrandDataToWebhook } from '../../services/webhookService';
 import { useToast } from '../../contexts/ToastContext';
 import { downloadMultipleImages, ImageData } from '../../utils/imageDownload';
+import TokenDisplay from '../../components/TokenDisplay';
+import { tokenService } from '../../services/tokenService';
 
 export default function CampaignHubPage() {
   const navigate = useNavigate();
@@ -14,6 +16,7 @@ export default function CampaignHubPage() {
   const [loading, setLoading] = useState(true);
   const [sendingWebhook, setSendingWebhook] = useState(false);
   const [previousCampaigns, setPreviousCampaigns] = useState<Campaign[]>([]);
+  const [magicTokens, setMagicTokens] = useState<number | null>(null);
 
   useEffect(() => {
     loadUser();
@@ -46,6 +49,10 @@ export default function CampaignHubPage() {
         
         // Load previous campaigns after user data is set
         loadPreviousCampaignsForUser(user.id);
+        
+        // Load Magic Tokens balance
+        const tokens = await tokenService.getUserTokens(user.id);
+        setMagicTokens(tokens);
       } else {
         navigate('/login');
       }
@@ -235,9 +242,28 @@ export default function CampaignHubPage() {
             <h1 className="text-4xl font-bold text-slate-900 mb-2">
               Welcome back, {userData.displayName}! 👋
             </h1>
-            <p className="text-xl text-slate-600">
+            <p className="text-xl text-slate-600 mb-6">
               Ready to create your next campaign?
             </p>
+            
+            {/* Magic Tokens Display */}
+            {userData.userId && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-lg shadow-sm mb-4"
+              >
+                <Sparkles className="text-amber-500" size={24} />
+                <div className="text-left">
+                  <p className="text-sm text-slate-600 font-medium">Magic Tokens</p>
+                  <TokenDisplay userId={userData.userId} size="large" showLabel={false} />
+                </div>
+                <div className="text-xs text-slate-500 ml-4 pl-4 border-l border-amber-200">
+                  <p>Test Mode</p>
+                  <p className="text-xs">Tokens not enforced</p>
+                </div>
+              </motion.div>
+            )}
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 mb-8">

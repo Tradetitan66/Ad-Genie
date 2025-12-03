@@ -275,8 +275,15 @@ export const imageService = {
     // Always attempt to upload to Supabase storage buckets
     const filePath = `${userId}/${fileName}`;
 
-    console.log('📤 Uploading to Supabase storage bucket:', filePath);
-    console.log('📋 File details:', { name: fileToUpload.name, size: fileToUpload.size, type: fileToUpload.type });
+    console.log('📤 Uploading to Supabase storage bucket:', {
+      bucket: 'brand-assets',
+      path: filePath,
+      fileName: fileToUpload.name,
+      fileSize: fileToUpload.size,
+      fileType: fileToUpload.type,
+      userId: userId,
+      type: type,
+    });
 
     try {
       const { data, error } = await supabase.storage
@@ -284,29 +291,81 @@ export const imageService = {
         .upload(filePath, fileToUpload, {
           cacheControl: '3600',
           upsert: false,
+          contentType: fileToUpload.type,
         });
 
       if (error) {
-        console.error('❌ Supabase storage upload error:', error);
+        console.error('❌ Supabase storage upload error details:', {
+          message: error.message,
+          statusCode: error.statusCode,
+          error: error,
+          path: filePath,
+          userId: userId,
+          bucket: 'brand-assets',
+          fileName: fileToUpload.name,
+          fileSize: fileToUpload.size,
+        });
+        
+        // Check for specific error types
+        if (error.message.includes('new row violates row-level security policy') || 
+            error.message.includes('RLS') ||
+            error.statusCode === 403) {
+          console.error('🚫 RLS Policy Error: Storage policies are blocking upload');
+          console.error('💡 Solution: Run migration 20250124000001_fix_brand_assets_storage_policies.sql');
+          throw new Error(`Storage policy error: Upload blocked by security policies. Please check storage bucket policies.`);
+        }
+        
+        if (error.statusCode === 413 || error.message.includes('too large')) {
+          throw new Error(`File too large: Maximum size is 10MB`);
+        }
+        
         throw error;
       }
 
-      console.log('✅ File uploaded successfully to Supabase:', data.path);
+      console.log('✅ File uploaded successfully to Supabase:', {
+        path: data.path,
+        id: data.id,
+        fullPath: data.fullPath,
+      });
 
       const { data: urlData } = supabase.storage
         .from('brand-assets')
         .getPublicUrl(data.path);
 
-      console.log('🔗 Public URL generated:', urlData.publicUrl);
-      return urlData.publicUrl;
+      const publicUrl = urlData.publicUrl;
+      console.log('🔗 Public URL generated:', publicUrl);
+      
+      // Verify the URL is actually a Supabase URL
+      if (!publicUrl.includes('supabase.co/storage')) {
+        console.error('❌ Generated URL does not appear to be a Supabase URL:', publicUrl);
+        throw new Error('Invalid Supabase URL generated');
+      }
+      
+      return publicUrl;
     } catch (error: any) {
-      console.error('❌ Failed to upload to Supabase storage:', error);
+      console.error('❌ Failed to upload to Supabase storage:', {
+        error: error,
+        message: error?.message,
+        stack: error?.stack,
+        userId: userId,
+        filePath: filePath,
+        fileName: fileToUpload.name,
+        fileSize: fileToUpload.size,
+        type: type,
+      });
+      
       // Only fall back to localStorage if Supabase is truly not configured
       // Otherwise, throw the error so user knows upload failed
       if (!isSupabaseConfigured()) {
         console.warn('⚠️ Supabase not configured, falling back to localStorage');
         return this.uploadToLocalStorage(userId, fileToUpload, type, false);
       }
+      
+      // Provide more helpful error messages
+      if (error?.message) {
+        throw new Error(`Failed to upload ${type} image: ${error.message}`);
+      }
+      
       // If Supabase is configured but upload failed, throw error
       throw new Error(`Failed to upload image to Supabase: ${error.message || error}`);
     }
@@ -413,45 +472,92 @@ export const imageService = {
   async uploadGeneratedImageToStorage(
     userId: string,
     imageUrl: string,
-    campaignId: string
+    campaignId: string,
+    retryCount = 0
   ): Promise<string> {
+    const MAX_RETRIES = 2;
+    
     // If Supabase isn't configured, return original URL
     if (!isSupabaseConfigured()) {
-      console.warn('Supabase not configured, returning original URL');
+      console.warn('⚠️ Supabase not configured, returning original URL');
       return imageUrl;
     }
 
     // If it's already a data URL or not a valid HTTP(S) URL, return as-is
     if (!imageUrl || imageUrl.startsWith('data:') || (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://'))) {
-      console.warn('Image URL is not a valid HTTP(S) URL, returning as-is:', imageUrl);
+      console.warn('⚠️ Image URL is not a valid HTTP(S) URL, returning as-is:', imageUrl);
+      return imageUrl;
+    }
+
+    // Check if it's already a Supabase URL
+    if (imageUrl.includes('supabase.co/storage')) {
+      console.log('✅ Image is already a Supabase URL, skipping upload');
       return imageUrl;
     }
 
     try {
-      // Fetch the image from the webhook URL
-      console.log('📥 Fetching image from webhook URL:', imageUrl);
-      const response = await fetch(imageUrl, {
-        mode: 'cors', // Enable CORS
-      });
+      // Fetch the image from the webhook URL with better error handling
+      console.log(`📥 [Attempt ${retryCount + 1}/${MAX_RETRIES + 1}] Fetching image from webhook URL:`, imageUrl.substring(0, 100) + '...');
+      
+      let response: Response;
+      try {
+        response = await fetch(imageUrl, {
+          mode: 'cors',
+          credentials: 'omit',
+          headers: {
+            'Accept': 'image/*',
+          },
+        });
+      } catch (fetchError: any) {
+        console.error('❌ Fetch error details:', {
+          name: fetchError.name,
+          message: fetchError.message,
+          stack: fetchError.stack,
+          url: imageUrl.substring(0, 100),
+        });
+        
+        // Retry on network errors
+        if (retryCount < MAX_RETRIES && (fetchError.name === 'TypeError' || fetchError.message.includes('Failed to fetch'))) {
+          console.log(`🔄 Retrying fetch (attempt ${retryCount + 2}/${MAX_RETRIES + 1})...`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+          return this.uploadGeneratedImageToStorage(userId, imageUrl, campaignId, retryCount + 1);
+        }
+        
+        throw new Error(`Network error fetching image: ${fetchError.message}`);
+      }
       
       if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unable to read error response');
+        console.error('❌ HTTP error fetching image:', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
+          errorBody: errorText.substring(0, 200),
+        });
         throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
       }
 
+      const contentType = response.headers.get('content-type') || 'image/png';
+      console.log('✅ Image fetched successfully, content-type:', contentType);
+      
       const blob = await response.blob();
+      console.log('✅ Image blob created, size:', blob.size, 'bytes');
+      
+      if (blob.size === 0) {
+        throw new Error('Fetched image blob is empty');
+      }
       
       // Generate filename from URL or use timestamp
       let urlFilename = `image-${Date.now()}.png`;
       try {
         const urlObj = new URL(imageUrl);
         const urlPath = urlObj.pathname;
-        const extractedFilename = urlPath.split('/').pop();
+        const extractedFilename = urlPath.split('/').pop()?.split('?')[0]; // Remove query params
         if (extractedFilename && extractedFilename.includes('.')) {
           urlFilename = extractedFilename;
         }
       } catch (urlError) {
-        // If URL parsing fails, use default filename
-        console.warn('Could not parse URL for filename, using default');
+        console.warn('⚠️ Could not parse URL for filename, using default');
       }
       
       const sanitizedFilename = urlFilename.replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -459,34 +565,90 @@ export const imageService = {
       // Upload to Supabase storage: output-images/{userId}/{campaignId}/{filename}
       const filePath = `${userId}/${campaignId}/${sanitizedFilename}`;
       
-      console.log('📤 Uploading generated image to output-images bucket:', filePath);
+      console.log('📤 Uploading to Supabase storage:', {
+        bucket: 'output-images',
+        path: filePath,
+        size: blob.size,
+        contentType: contentType,
+        userId: userId,
+        campaignId: campaignId,
+      });
       
       const { data, error } = await supabase.storage
         .from('output-images')
         .upload(filePath, blob, {
           cacheControl: '3600',
-          upsert: true, // Allow overwriting if file exists
+          upsert: true,
+          contentType: contentType,
         });
 
       if (error) {
-        console.error('❌ Supabase storage upload error:', error);
-        // Return original URL if upload fails
-        return imageUrl;
+        console.error('❌ Supabase storage upload error details:', {
+          message: error.message,
+          statusCode: error.statusCode,
+          error: error,
+          path: filePath,
+          userId: userId,
+          campaignId: campaignId,
+        });
+        
+        // Retry on certain errors
+        if (retryCount < MAX_RETRIES && (
+          error.message.includes('network') || 
+          error.message.includes('timeout') ||
+          error.statusCode === 408 ||
+          error.statusCode === 429
+        )) {
+          console.log(`🔄 Retrying upload (attempt ${retryCount + 2}/${MAX_RETRIES + 1})...`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+          return this.uploadGeneratedImageToStorage(userId, imageUrl, campaignId, retryCount + 1);
+        }
+        
+        throw new Error(`Supabase upload failed: ${error.message} (status: ${error.statusCode || 'unknown'})`);
       }
 
-      console.log('✅ Generated image uploaded successfully to output-images bucket:', data.path);
+      console.log('✅ Image uploaded successfully to Supabase:', {
+        path: data.path,
+        id: data.id,
+        fullPath: data.fullPath,
+      });
 
       // Get public URL
       const { data: urlData } = supabase.storage
         .from('output-images')
         .getPublicUrl(data.path);
 
-      console.log('🔗 Supabase storage URL generated:', urlData.publicUrl);
-      return urlData.publicUrl;
+      const supabaseUrl = urlData.publicUrl;
+      console.log('🔗 Supabase storage URL generated:', supabaseUrl);
+      
+      // Verify the URL is actually a Supabase URL
+      if (!supabaseUrl.includes('supabase.co/storage')) {
+        console.error('❌ Generated URL does not appear to be a Supabase URL:', supabaseUrl);
+        throw new Error('Invalid Supabase URL generated');
+      }
+      
+      return supabaseUrl;
     } catch (error: any) {
-      console.error('❌ Failed to upload generated image to Supabase:', error);
-      // Return original URL if upload fails
-      return imageUrl;
+      console.error('❌ Failed to upload generated image to Supabase:', {
+        error: error,
+        message: error?.message,
+        stack: error?.stack,
+        userId: userId,
+        campaignId: campaignId,
+        imageUrl: imageUrl.substring(0, 100),
+        retryCount: retryCount,
+      });
+      
+      // Only return original URL if we've exhausted retries
+      if (retryCount >= MAX_RETRIES) {
+        console.warn('⚠️ All retry attempts exhausted, returning original webhook URL');
+        return imageUrl;
+      }
+      
+      // Retry if we haven't exceeded max retries
+      console.log(`🔄 Retrying upload (attempt ${retryCount + 2}/${MAX_RETRIES + 1})...`);
+      await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+      return this.uploadGeneratedImageToStorage(userId, imageUrl, campaignId, retryCount + 1);
     }
   },
 };

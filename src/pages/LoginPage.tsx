@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { userService } from '../services/database';
 import { useToast } from '../contexts/ToastContext';
+import { tokenService } from '../services/tokenService';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -43,8 +44,12 @@ export default function LoginPage() {
       if (!user) {
         user = await userService.create(email, name);
         success('Welcome! Let\'s set up your account.');
+        // Initialize welcome Magic Tokens for new user
+        await tokenService.initializeWelcomeTokens(user.id);
       } else {
         success('Welcome back!');
+        // Initialize welcome Magic Tokens if user doesn't have any yet
+        await tokenService.initializeWelcomeTokens(user.id);
       }
 
       localStorage.setItem('currentUser', email);

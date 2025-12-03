@@ -6,6 +6,7 @@ import { sendBrandDataToWebhook, parseWebhookResponse, BrandWebhookData } from '
 import { campaignService } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
 import RotatingText from '../../components/RotatingText';
+import { tokenService } from '../../services/tokenService';
 
 const steps = [
   'Analyzing preferences',
@@ -103,6 +104,39 @@ export default function GeneratingPage() {
             webhook_response: webhookResponse,
           },
         });
+
+        // Deduct Magic Tokens for campaign generation
+        try {
+          const campaignCost = tokenService.calculateCampaignCost(
+            payload.content_type || 'image-only',
+            { images: images, videos: [] }
+          );
+          
+          // Deduct base cost (2 tokens)
+          await tokenService.deductTokens(
+            payload.user_id,
+            2,
+            'campaign_generation',
+            campId,
+            `Campaign generation (${payload.content_type || 'image-only'})`
+          );
+          
+          // Deduct tokens for each image (1 token per image)
+          if (images.length > 0) {
+            await tokenService.deductTokens(
+              payload.user_id,
+              images.length,
+              'image',
+              campId,
+              `${images.length} image(s) generated`
+            );
+          }
+          
+          console.log(`✨ Deducted ${campaignCost} Magic Tokens for campaign generation`);
+        } catch (tokenError) {
+          console.error('Error deducting Magic Tokens:', tokenError);
+          // Don't block the flow - test mode allows negative tokens
+        }
 
         // Navigate to results page
           setTimeout(() => {

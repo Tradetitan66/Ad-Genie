@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../contexts/ToastContext';
+import { userService } from '../services/database';
+import TokenDisplay from './TokenDisplay';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -34,6 +36,26 @@ export default function DashboardLayout({
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const currentUserEmail = localStorage.getItem('currentUser');
+      if (currentUserEmail) {
+        try {
+          const user = await userService.getByEmail(currentUserEmail);
+          if (user) {
+            setUserEmail(user.email);
+            setUserName(user.display_name || 'User');
+            setUserId(user.id);
+          }
+        } catch (error) {
+          console.error('Error loading user:', error);
+        }
+      }
+    };
+    loadUser();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -103,6 +125,11 @@ export default function DashboardLayout({
             </div>
 
             <div className="flex items-center gap-3">
+              {userId && (
+                <div className="hidden sm:flex items-center px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                  <TokenDisplay userId={userId} size="small" />
+                </div>
+              )}
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}

@@ -19,17 +19,42 @@ export default function CampaignsPage() {
 
   const loadCampaigns = async () => {
     try {
+      console.log('📋 CampaignsPage: Starting to load campaigns...');
+      
       const currentUserEmail = localStorage.getItem('currentUser');
-      if (!currentUserEmail) return;
+      if (!currentUserEmail) {
+        console.warn('⚠️ CampaignsPage: No user email found in localStorage');
+        setLoading(false);
+        return;
+      }
+
+      console.log('📧 CampaignsPage: User email from localStorage:', currentUserEmail);
 
       const user = await userService.getByEmail(currentUserEmail);
-      if (!user) return;
+      if (!user) {
+        console.error('❌ CampaignsPage: User not found for email:', currentUserEmail);
+        setLoading(false);
+        return;
+      }
 
+      console.log('👤 CampaignsPage: User found:', {
+        id: user.id,
+        email: user.email,
+        display_name: user.display_name
+      });
+
+      console.log('🔍 CampaignsPage: Querying campaigns for user_id:', user.id);
       const userCampaigns = await campaignService.getByUserId(user.id);
+      
+      console.log(`✅ CampaignsPage: Loaded ${userCampaigns.length} campaigns`);
       setCampaigns(userCampaigns);
-    } catch (err) {
-      console.error('Error loading campaigns:', err);
-      error('Failed to load campaigns');
+    } catch (err: any) {
+      console.error('❌ CampaignsPage: Error loading campaigns:', {
+        error: err,
+        message: err?.message,
+        stack: err?.stack
+      });
+      error('Failed to load campaigns. Please try refreshing the page.');
     } finally {
       setLoading(false);
     }

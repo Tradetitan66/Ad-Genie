@@ -5,6 +5,7 @@ export interface UserData {
   email: string;
   display_name: string | null;
   has_completed_onboarding: boolean;
+  tokens: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -555,14 +556,40 @@ export const preferencesService = {
 
 export const campaignService = {
   async getByUserId(userId: string): Promise<Campaign[]> {
-    const { data, error } = await supabase
-      .from('campaigns')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    try {
+      console.log('🔍 CampaignService: Querying campaigns for user_id:', userId);
+      
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data || [];
+      if (error) {
+        console.error('❌ CampaignService: Supabase query error:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+          userId: userId
+        });
+        // Return empty array instead of throwing to prevent UI breakage
+        return [];
+      }
+
+      const campaigns = data || [];
+      console.log(`✅ CampaignService: Found ${campaigns.length} campaigns for user_id: ${userId}`);
+      
+      return campaigns;
+    } catch (err: any) {
+      console.error('❌ CampaignService: Unexpected error in getByUserId:', {
+        error: err,
+        message: err?.message,
+        userId: userId
+      });
+      // Return empty array instead of throwing to prevent UI breakage
+      return [];
+    }
   },
 
   async create(campaign: Omit<Campaign, 'id' | 'created_at' | 'completed_at'>): Promise<Campaign> {
