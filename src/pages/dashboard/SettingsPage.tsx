@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import { Save, User, Building2, Palette, Calendar, Bell } from 'lucide-react';
 import DashboardLayout from '../../components/DashboardLayout';
 import { useToast } from '../../contexts/ToastContext';
@@ -59,7 +60,15 @@ const internationalEvents = [
 
 export default function SettingsPage() {
   const { success, error } = useToast();
-  const [activeTab, setActiveTab] = useState('account');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') || 'account';
+  const [activeTab, setActiveTab] = useState(tabFromUrl);
+  
+  // Update active tab when URL changes
+  useEffect(() => {
+    const tab = searchParams.get('tab') || 'account';
+    setActiveTab(tab);
+  }, [searchParams]);
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState('');
 
@@ -718,7 +727,10 @@ export default function SettingsPage() {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      setSearchParams({ tab: tab.id });
+                    }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left ${
                       activeTab === tab.id
                         ? 'bg-blue-50 text-[#2563EB] font-semibold'

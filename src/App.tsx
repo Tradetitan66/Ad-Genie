@@ -18,6 +18,7 @@ import AdGenieWorkingPage from './pages/dashboard/AdGenieWorkingPage';
 import ResultsPage from './pages/dashboard/ResultsPage';
 import SettingsPage from './pages/dashboard/SettingsPage';
 import CampaignsPage from './pages/dashboard/CampaignsPage';
+import WaitlistPage from './pages/WaitlistPage';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/waitlist" element={<WaitlistPage />} />
 
             <Route
               path="/onboarding/welcome"

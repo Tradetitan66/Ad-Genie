@@ -94,9 +94,7 @@ export default function Navigation({ onLoginSuccess, onLoginClick }: NavigationP
               FAQ
             </a>
             <motion.a
-              href="https://n8n.srv1004168.hstgr.cloud/form/b61ef1a4-2c13-473f-8508-37a60678189c"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/waitlist"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-full shadow-lg hover:shadow-amber-500/50 transition-shadow"
