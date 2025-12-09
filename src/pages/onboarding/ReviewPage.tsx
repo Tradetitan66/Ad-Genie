@@ -156,6 +156,9 @@ export default function ReviewPage() {
         ? preferences.campaign_goal
         : undefined;
 
+      // Get content type early (needed for product images logic)
+      const contentType = preferences?.content_type || userData.contentType || 'image-only';
+
       // Prepare product images array - include UGC image if uploaded
       const baseProductImages = Array.isArray(brandProfile.product_images) ? brandProfile.product_images : [];
       const productImages = contentType === 'ugc-only' || contentType === 'image-ugc'
@@ -182,7 +185,7 @@ export default function ReviewPage() {
           campaign_timing: undefined, // Removed - no longer used
           seasonal_events: Array.isArray(preferences?.seasonal_events) && preferences.seasonal_events.length > 0
             ? preferences.seasonal_events
-            : (preferences?.seasonal_events && typeof preferences.seasonal_events === 'object'
+            : (preferences?.seasonal_events && typeof preferences.seasonal_events === 'object' && !Array.isArray(preferences.seasonal_events)
               ? ((preferences.seasonal_events.local && preferences.seasonal_events.local.length > 0) || 
                  (preferences.seasonal_events.international && preferences.seasonal_events.international.length > 0))
                 ? preferences.seasonal_events
@@ -194,7 +197,6 @@ export default function ReviewPage() {
       setWebhookPayload(webhookData);
 
       // Create campaign record with status 'generating'
-      const contentType = preferences?.content_type || userData.contentType || 'image-only';
       const campaign = await campaignService.create({
         user_id: user.id,
         brand_profile_id: brandProfile.id,
