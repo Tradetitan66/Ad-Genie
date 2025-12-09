@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Edit2, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit2, Loader2, Upload } from 'lucide-react';
 import OnboardingLayout from '../../components/OnboardingLayout';
 import { userService, preferencesService, brandProfileService, campaignService } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
 import { sendBrandDataToWebhook, BrandWebhookData } from '../../services/webhookService';
+import { imageService } from '../../services/imageService';
 
 export default function ReviewPage() {
   const navigate = useNavigate();
@@ -22,6 +23,8 @@ export default function ReviewPage() {
     assets: true,
     content: true
   });
+  const [ugcImageUrl, setUgcImageUrl] = useState<string | null>(null);
+  const [uploadingUgcImage, setUploadingUgcImage] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -90,6 +93,29 @@ export default function ReviewPage() {
     });
   };
 
+  const handleUgcImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !userId) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      error('Please upload an image file');
+      return;
+    }
+
+    setUploadingUgcImage(true);
+    try {
+      const imageUrl = await imageService.uploadToStorage(userId, file, 'product', false);
+      setUgcImageUrl(imageUrl);
+      success('Image uploaded successfully!');
+    } catch (err: any) {
+      console.error('Error uploading UGC image:', err);
+      error(`Failed to upload image: ${err.message}`);
+    } finally {
+      setUploadingUgcImage(false);
+    }
+  };
+
   const handleGenerate = async () => {
     if (!userId) return;
 
@@ -130,6 +156,12 @@ export default function ReviewPage() {
         ? preferences.campaign_goal
         : undefined;
 
+      // Prepare product images array - include UGC image if uploaded
+      const baseProductImages = Array.isArray(brandProfile.product_images) ? brandProfile.product_images : [];
+      const productImages = contentType === 'ugc-only' || contentType === 'image-ugc'
+        ? (ugcImageUrl ? [...baseProductImages, ugcImageUrl] : baseProductImages)
+        : baseProductImages;
+
       // Prepare webhook payload
       const webhookData: BrandWebhookData = {
           user_id: user.id,
@@ -140,7 +172,7 @@ export default function ReviewPage() {
           website_url: brandProfile.website_url || undefined,
           contact_email: brandProfile.contact_email,
           logo_url: brandProfile.logo || null,
-          product_images: Array.isArray(brandProfile.product_images) ? brandProfile.product_images : [],
+          product_images: productImages,
           brand_colors: formattedBrandColors,
           content_type: preferences?.content_type || userData.contentType || undefined,
           campaign_goal: actualCampaignGoal,
@@ -171,6 +203,7 @@ export default function ReviewPage() {
         generated_assets: {
           webhook_payload: webhookData,
           images: [],
+          videos: contentType === 'ugc-only' || contentType === 'image-ugc' ? [] : undefined,
         },
       });
 
@@ -352,6 +385,46 @@ export default function ReviewPage() {
                       ))}
                     </div>
                   </div>
+                  {(userData.contentType === 'ugc-only' || userData.contentType === 'image-ugc') && (
+                    <div>
+                      <span className="font-semibold text-slate-700 text-sm block mb-2">UGC Source Image:</span>
+                      {ugcImageUrl ? (
+                        <div className="relative">
+                          <img src={ugcImageUrl} alt="UGC Source" className="w-full max-w-xs h-48 object-cover rounded border" />
+                          <button
+                            onClick={() => setUgcImageUrl(null)}
+                            className="mt-2 text-sm text-red-600 hover:text-red-700"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center w-full max-w-xs h-48 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            {uploadingUgcImage ? (
+                              <>
+                                <Loader2 className="w-8 h-8 text-[#2563EB] animate-spin mb-2" />
+                                <p className="text-sm text-slate-600">Uploading...</p>
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-8 h-8 text-slate-400 mb-2" />
+                                <p className="text-sm text-slate-600">Click to upload image</p>
+                                <p className="text-xs text-slate-500 mt-1">This image will be used for video generation</p>
+                              </>
+                            )}
+                          </div>
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleUgcImageUpload}
+                            disabled={uploadingUgcImage}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

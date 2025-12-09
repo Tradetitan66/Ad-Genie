@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Download, Share2, Home, RefreshCw, CheckCircle, Loader2 } from 'lucide-react';
 import { campaignService, userService } from '../../services/database';
-import { sendBrandDataToWebhook, parseWebhookResponse, BrandWebhookData, WebhookImageItem } from '../../services/webhookService';
+import { sendBrandDataToWebhook, parseWebhookResponse, BrandWebhookData, WebhookImageItem, WebhookVideoItem } from '../../services/webhookService';
 import { downloadImage, downloadMultipleImages, ImageData } from '../../utils/imageDownload';
 import { useToast } from '../../contexts/ToastContext';
 import { imageService } from '../../services/imageService';
@@ -16,6 +16,7 @@ export default function ResultsPage() {
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
   const [images, setImages] = useState<WebhookImageItem[]>([]);
+  const [videos, setVideos] = useState<WebhookVideoItem[]>([]);
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [webhookPayload, setWebhookPayload] = useState<BrandWebhookData | null>(null);
   const [campaignType, setCampaignType] = useState<string>('');
@@ -36,6 +37,7 @@ export default function ResultsPage() {
       const state = location.state as {
         campaignId?: string;
         images?: WebhookImageItem[];
+        videos?: WebhookVideoItem[];
         webhookPayload?: BrandWebhookData;
       } | null;
 
@@ -44,6 +46,9 @@ export default function ResultsPage() {
         setCampaignId(state.campaignId);
         if (state.images) {
           setImages(state.images);
+        }
+        if (state.videos) {
+          setVideos(state.videos);
         }
         if (state.webhookPayload) {
           setWebhookPayload(state.webhookPayload);
@@ -54,11 +59,14 @@ export default function ResultsPage() {
         if (campaign) {
           setCampaignType(campaign.content_type);
           
-          // If images weren't in state, try to get them from campaign
-          if (!state?.images && campaign.generated_assets) {
+          // If images/videos weren't in state, try to get them from campaign
+          if (campaign.generated_assets) {
             const assets = campaign.generated_assets;
-            if (assets.images && Array.isArray(assets.images)) {
+            if (!state?.images && assets.images && Array.isArray(assets.images)) {
               setImages(assets.images);
+            }
+            if (!state?.videos && assets.videos && Array.isArray(assets.videos)) {
+              setVideos(assets.videos);
             }
             
             // If webhook payload wasn't in state, try to get it from campaign
@@ -83,6 +91,9 @@ export default function ResultsPage() {
                 const assets = latestCampaign.generated_assets;
                 if (assets.images && Array.isArray(assets.images)) {
                   setImages(assets.images);
+                }
+                if (assets.videos && Array.isArray(assets.videos)) {
+                  setVideos(assets.videos);
                 }
                 if (assets.webhook_payload) {
                   setWebhookPayload(assets.webhook_payload);
@@ -115,24 +126,72 @@ export default function ResultsPage() {
     }
   };
 
-  const handleDownloadAll = async () => {
+  const handleDownloadVideo = async (video: WebhookVideoItem) => {
     try {
-      const imageData: ImageData[] = images.map((img, index) => ({
-        url: img.url || img.image_url || img.imageUrl || img.src || '',
-        title: img.title || `Image ${index + 1}`,
-        id: img.id || `img-${index}`,
-      })).filter(img => img.url); // Filter out images without URLs
-
-      if (imageData.length === 0) {
-        showError('No images available to download');
+      const videoUrl = video.url || video.video_url || video.videoUrl || video.src || '';
+      if (!videoUrl) {
+        showError('Video URL not found');
         return;
       }
-
-      await downloadMultipleImages(imageData);
-      success('All images downloaded successfully');
+      // Create a temporary anchor element to download the video
+      const link = document.createElement('a');
+      link.href = videoUrl;
+      link.download = video.title || `video-${Date.now()}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      success('Video download started');
     } catch (err: any) {
-      console.error('Error downloading images:', err);
-      showError(`Failed to download images: ${err.message}`);
+      console.error('Error downloading video:', err);
+      showError(`Failed to download video: ${err.message}`);
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    try {
+      if (campaignType === 'ugc-only') {
+        // Download all videos
+        if (videos.length === 0) {
+          showError('No videos available to download');
+          return;
+        }
+        // Download videos one by one
+        for (const video of videos) {
+          await handleDownloadVideo(video);
+          // Small delay between downloads
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        success('All videos downloaded successfully');
+      } else {
+        // Download all images (or images + videos for image-ugc)
+        const imageData: ImageData[] = images.map((img, index) => ({
+          url: img.url || img.image_url || img.imageUrl || img.src || '',
+          title: img.title || `Image ${index + 1}`,
+          id: img.id || `img-${index}`,
+        })).filter(img => img.url);
+
+        if (imageData.length === 0 && videos.length === 0) {
+          showError('No assets available to download');
+          return;
+        }
+
+        if (imageData.length > 0) {
+          await downloadMultipleImages(imageData);
+        }
+        
+        // Download videos if any
+        if (videos.length > 0) {
+          for (const video of videos) {
+            await handleDownloadVideo(video);
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+        
+        success('All assets downloaded successfully');
+      }
+    } catch (err: any) {
+      console.error('Error downloading assets:', err);
+      showError(`Failed to download assets: ${err.message}`);
     }
   };
 
@@ -361,6 +420,124 @@ export default function ResultsPage() {
           </p>
         </motion.div>
 
+        {videos.length > 0 && campaignType === 'ugc-only' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mb-12"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-bold text-slate-900">Generated Videos ({videos.length})</h2>
+              <div className="flex gap-3">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                  onClick={handleDownloadAll}
+                className="px-6 py-3 bg-[#2563EB] text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-[#1d4ed8]"
+              >
+                <Download size={20} />
+                  Download All
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleRegenerate}
+                  disabled={regenerating}
+                  className="px-6 py-3 bg-[#8B5CF6] text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-[#7c3aed] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {regenerating ? (
+                    <>
+                      <Loader2 size={20} className="animate-spin" />
+                      Regenerating...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw size={20} />
+                      Regenerate
+                    </>
+                  )}
+              </motion.button>
+              </div>
+            </div>
+            <div className={`grid gap-6 ${
+              videos.length === 1 
+                ? 'grid-cols-1 max-w-md mx-auto' 
+                : videos.length === 2 
+                ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto'
+                : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+            }`}>
+              {videos.map((video, index) => {
+                const videoUrl = video.url || video.video_url || video.videoUrl || video.src || '';
+                const videoTitle = video.title || `Video ${index + 1}`;
+                const videoId = video.id || `video-${index}`;
+
+                if (!videoUrl) return null;
+
+                return (
+                <motion.div
+                    key={videoId}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 + index * 0.1 }}
+                  className="group relative bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all"
+                >
+                  <div className="aspect-square bg-slate-200">
+                    <video
+                        src={videoUrl}
+                        className="w-full h-full object-cover"
+                        controls
+                        preload="metadata"
+                        onError={(e) => {
+                          console.error('Video failed to load:', videoUrl);
+                        }}
+                    />
+                  </div>
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div className="flex gap-3">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                          onClick={() => handleDownloadVideo(video)}
+                        className="p-3 bg-white rounded-full shadow-lg"
+                          title="Download video"
+                      >
+                        <Download size={20} className="text-slate-900" />
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                          onClick={() => {
+                            if (navigator.share) {
+                              navigator.share({
+                                title: videoTitle,
+                                url: videoUrl,
+                              }).catch(() => {
+                                navigator.clipboard.writeText(videoUrl);
+                                success('Video URL copied to clipboard');
+                              });
+                            } else {
+                              navigator.clipboard.writeText(videoUrl);
+                              success('Video URL copied to clipboard');
+                            }
+                          }}
+                        className="p-3 bg-white rounded-full shadow-lg"
+                          title="Share video"
+                      >
+                        <Share2 size={20} className="text-slate-900" />
+                      </motion.button>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                      <p className="font-semibold text-slate-900">{videoTitle}</p>
+                  </div>
+                </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
         {images.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -481,7 +658,7 @@ export default function ResultsPage() {
           </motion.div>
         )}
 
-        {images.length === 0 && !loading && (
+        {images.length === 0 && videos.length === 0 && !loading && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -490,9 +667,11 @@ export default function ResultsPage() {
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-slate-100 flex items-center justify-center">
               <CheckCircle size={40} className="text-slate-400" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">No images generated yet</h3>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">
+              {campaignType === 'ugc-only' ? 'No videos generated yet' : 'No images generated yet'}
+            </h3>
             <p className="text-slate-600 mb-6">
-              {webhookPayload ? 'Click regenerate to generate images' : 'Unable to regenerate: missing campaign data'}
+              {webhookPayload ? `Click regenerate to generate ${campaignType === 'ugc-only' ? 'videos' : 'images'}` : 'Unable to regenerate: missing campaign data'}
             </p>
             {webhookPayload && (
               <button
@@ -500,9 +679,94 @@ export default function ResultsPage() {
                 disabled={regenerating}
                 className="px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] transition-all disabled:opacity-50"
                       >
-                {regenerating ? 'Regenerating...' : 'Generate Images'}
+                {regenerating ? 'Regenerating...' : campaignType === 'ugc-only' ? 'Generate Videos' : 'Generate Images'}
               </button>
             )}
+          </motion.div>
+        )}
+
+        {videos.length > 0 && campaignType === 'image-ugc' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mb-12"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-bold text-slate-900">Generated Videos ({videos.length})</h2>
+            </div>
+            <div className={`grid gap-6 ${
+              videos.length === 1 
+                ? 'grid-cols-1 max-w-md mx-auto' 
+                : videos.length === 2 
+                ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto'
+                : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+            }`}>
+              {videos.map((video, index) => {
+                const videoUrl = video.url || video.video_url || video.videoUrl || video.src || '';
+                const videoTitle = video.title || `Video ${index + 1}`;
+                const videoId = video.id || `video-${index}`;
+
+                if (!videoUrl) return null;
+
+                return (
+                <motion.div
+                    key={videoId}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.5 + index * 0.1 }}
+                  className="group relative bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all"
+                >
+                  <div className="aspect-square bg-slate-200">
+                    <video
+                        src={videoUrl}
+                        className="w-full h-full object-cover"
+                        controls
+                        preload="metadata"
+                    />
+                  </div>
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div className="flex gap-3">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                          onClick={() => handleDownloadVideo(video)}
+                        className="p-3 bg-white rounded-full shadow-lg"
+                          title="Download video"
+                      >
+                        <Download size={20} className="text-slate-900" />
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                          onClick={() => {
+                            if (navigator.share) {
+                              navigator.share({
+                                title: videoTitle,
+                                url: videoUrl,
+                              }).catch(() => {
+                                navigator.clipboard.writeText(videoUrl);
+                                success('Video URL copied to clipboard');
+                              });
+                            } else {
+                              navigator.clipboard.writeText(videoUrl);
+                              success('Video URL copied to clipboard');
+                            }
+                          }}
+                        className="p-3 bg-white rounded-full shadow-lg"
+                          title="Share video"
+                      >
+                        <Share2 size={20} className="text-slate-900" />
+                      </motion.button>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                      <p className="font-semibold text-slate-900">{videoTitle}</p>
+                  </div>
+                </motion.div>
+                );
+              })}
+            </div>
           </motion.div>
         )}
 

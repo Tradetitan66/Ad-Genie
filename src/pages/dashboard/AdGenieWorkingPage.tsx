@@ -2,11 +2,12 @@ import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Sparkles, Download, RefreshCw } from 'lucide-react';
-import { sendBrandDataToWebhook, parseWebhookResponse, BrandWebhookData, WebhookImageItem } from '../../services/webhookService';
+import { sendBrandDataToWebhook, parseWebhookResponse, parseWebhookVideoResponse, BrandWebhookData, WebhookImageItem, WebhookVideoItem } from '../../services/webhookService';
 import { campaignService } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
 import { downloadImage, downloadMultipleImages, ImageData } from '../../utils/imageDownload';
 import { imageService } from '../../services/imageService';
+import { ugcService } from '../../services/ugcService';
 import { tokenService } from '../../services/tokenService';
 import RotatingText from '../../components/RotatingText';
 
@@ -83,12 +84,196 @@ export default function AdGenieWorkingPage() {
       // Call webhook - will wait until respond node is connected in n8n
       const webhookResponse = await sendBrandDataToWebhook(payload);
       
+      const contentType = payload.content_type || 'image-only';
+      
+      // Handle UGC-only campaigns
+      if (contentType === 'ugc-only') {
+        console.log('✅ Webhook response received, parsing videos...');
+        
+        // Parse videos from response
+        const parsedVideos = parseWebhookVideoResponse(webhookResponse);
+        
+        console.log(`🎬 Parsed ${parsedVideos.length} videos from webhook response`);
+        
+        // Upload videos to Supabase storage
+        console.log('📤 Uploading generated videos to Supabase storage...');
+        const uploadResults = await Promise.allSettled(
+          parsedVideos.map(async (video) => {
+            const originalUrl = video.url || video.video_url || video.videoUrl || video.src || '';
+            if (!originalUrl) {
+              console.warn('⚠️ Video has no URL, skipping upload');
+              return { video, uploaded: false, reason: 'no_url' };
+            }
+            
+            try {
+              // Get user ID from payload
+              const userId = payload.user_id;
+              if (!userId) {
+                throw new Error('User ID is missing from payload');
+              }
+              
+              console.log(`📤 Uploading video ${parsedVideos.indexOf(video) + 1}/${parsedVideos.length}...`);
+              
+              // Upload to Supabase storage
+              const supabaseUrl = await ugcService.uploadGeneratedVideoToStorage(
+                userId,
+                originalUrl,
+                campId
+              );
+              
+              // Check if upload actually succeeded (URL should be Supabase URL)
+              const isSupabaseUrl = supabaseUrl.includes('supabase.co/storage');
+              
+              if (isSupabaseUrl) {
+                console.log(`✅ Video ${parsedVideos.indexOf(video) + 1} uploaded successfully to Supabase`);
+                return {
+                  video: {
+                    ...video,
+                    url: supabaseUrl, // Use Supabase URL as primary
+                    original_url: originalUrl, // Keep original URL as backup
+                  },
+                  uploaded: true,
+                };
+              } else {
+                console.warn(`⚠️ Video ${parsedVideos.indexOf(video) + 1} upload returned non-Supabase URL, using original`);
+                return {
+                  video: {
+                    ...video,
+                    url: originalUrl,
+                    original_url: originalUrl,
+                  },
+                  uploaded: false,
+                  reason: 'fallback_to_original',
+                  returnedUrl: supabaseUrl,
+                };
+              }
+            } catch (error: any) {
+              console.error(`❌ Error uploading video ${parsedVideos.indexOf(video) + 1}:`, {
+                error: error,
+                message: error?.message,
+                originalUrl: originalUrl.substring(0, 100),
+              });
+              // Return original video if upload fails
+              return {
+                video: {
+                  ...video,
+                  url: originalUrl,
+                  original_url: originalUrl,
+                },
+                uploaded: false,
+                reason: 'upload_error',
+                error: error?.message,
+              };
+            }
+          })
+        );
+        
+        // Process results
+        const uploadedVideos = uploadResults.map((result) => {
+          if (result.status === 'fulfilled') {
+            return result.value.video;
+          } else {
+            console.error('❌ Unexpected error in upload promise:', result.reason);
+            // Return a placeholder video object
+            return {
+              url: '',
+              original_url: '',
+            };
+          }
+        });
+        
+        // Count successful uploads
+        const successfulUploads = uploadResults.filter(
+          (result) => result.status === 'fulfilled' && result.value.uploaded === true
+        ).length;
+        
+        const failedUploads = parsedVideos.length - successfulUploads;
+        
+        console.log(`📊 Upload Summary: ${successfulUploads}/${parsedVideos.length} videos uploaded to Supabase`);
+        if (failedUploads > 0) {
+          console.warn(`⚠️ ${failedUploads} video(s) failed to upload and are using webhook URLs`);
+          uploadResults.forEach((result, index) => {
+            if (result.status === 'fulfilled' && !result.value.uploaded) {
+              console.warn(`  - Video ${index + 1}: ${result.value.reason || 'unknown reason'}`);
+            }
+          });
+        }
+        
+        // Update campaign with generated assets (including videos)
+        await campaignService.update(campId, {
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          generated_assets: {
+            webhook_payload: payload,
+            videos: uploadedVideos,
+            webhook_response: webhookResponse,
+          },
+        });
+
+        // Deduct Magic Tokens for campaign generation
+        try {
+          const campaignCost = tokenService.calculateCampaignCost(
+            contentType,
+            { images: [], videos: uploadedVideos }
+          );
+          
+          // Deduct base cost (2 tokens)
+          await tokenService.deductTokens(
+            payload.user_id,
+            2,
+            'campaign_generation',
+            campId,
+            `Campaign generation (${contentType})`
+          );
+          
+          // Deduct tokens for each video (5 tokens per video)
+          if (uploadedVideos.length > 0) {
+            await tokenService.deductTokens(
+              payload.user_id,
+              uploadedVideos.length * 5,
+              'video',
+              campId,
+              `${uploadedVideos.length} video(s) generated`
+            );
+          }
+          
+          console.log(`✨ Deducted ${campaignCost} Magic Tokens for campaign generation`);
+        } catch (tokenError) {
+          console.error('Error deducting Magic Tokens:', tokenError);
+          // Don't block the flow - test mode allows negative tokens
+        }
+
+        // Stop loading and automatically navigate to ResultsPage with videos
+        setLoading(false);
+        success('Campaign generated successfully!');
+        
+        // Automatically navigate to ResultsPage to show videos with download options
+        console.log('🎯 Navigating to ResultsPage with generated videos...');
+        navigate('/dashboard/results', {
+          state: { 
+            campaignId: campId, 
+            videos: uploadedVideos, 
+            webhookPayload: payload,
+            skipOnboardingCheck: true // Allow access during onboarding completion
+          }
+        });
+        return;
+      }
+      
+      // Handle image-only or image-ugc campaigns
       console.log('✅ Webhook response received, parsing images...');
       
       // Parse images from response
       const parsedImages = parseWebhookResponse(webhookResponse);
       
       console.log(`📸 Parsed ${parsedImages.length} images from webhook response`);
+      
+      // For image-ugc, also parse videos if available
+      let parsedVideos: WebhookVideoItem[] = [];
+      if (contentType === 'image-ugc') {
+        parsedVideos = parseWebhookVideoResponse(webhookResponse);
+        console.log(`🎬 Parsed ${parsedVideos.length} videos from webhook response`);
+      }
       
       // Upload images to Supabase storage
       console.log('📤 Uploading generated images to Supabase storage...');
@@ -194,6 +379,80 @@ export default function AdGenieWorkingPage() {
         });
       }
       
+      // For image-ugc, upload videos as well
+      let uploadedVideos: WebhookVideoItem[] = [];
+      if (contentType === 'image-ugc' && parsedVideos.length > 0) {
+        console.log('📤 Uploading generated videos to Supabase storage...');
+        const videoUploadResults = await Promise.allSettled(
+          parsedVideos.map(async (video) => {
+            const originalUrl = video.url || video.video_url || video.videoUrl || video.src || '';
+            if (!originalUrl) {
+              console.warn('⚠️ Video has no URL, skipping upload');
+              return { video, uploaded: false, reason: 'no_url' };
+            }
+            
+            try {
+              const userId = payload.user_id;
+              if (!userId) {
+                throw new Error('User ID is missing from payload');
+              }
+              
+              console.log(`📤 Uploading video ${parsedVideos.indexOf(video) + 1}/${parsedVideos.length}...`);
+              
+              const supabaseUrl = await ugcService.uploadGeneratedVideoToStorage(
+                userId,
+                originalUrl,
+                campId
+              );
+              
+              const isSupabaseUrl = supabaseUrl.includes('supabase.co/storage');
+              
+              if (isSupabaseUrl) {
+                console.log(`✅ Video ${parsedVideos.indexOf(video) + 1} uploaded successfully to Supabase`);
+                return {
+                  video: {
+                    ...video,
+                    url: supabaseUrl,
+                    original_url: originalUrl,
+                  },
+                  uploaded: true,
+                };
+              } else {
+                return {
+                  video: {
+                    ...video,
+                    url: originalUrl,
+                    original_url: originalUrl,
+                  },
+                  uploaded: false,
+                  reason: 'fallback_to_original',
+                };
+              }
+            } catch (error: any) {
+              console.error(`❌ Error uploading video ${parsedVideos.indexOf(video) + 1}:`, error);
+              return {
+                video: {
+                  ...video,
+                  url: originalUrl,
+                  original_url: originalUrl,
+                },
+                uploaded: false,
+                reason: 'upload_error',
+                error: error?.message,
+              };
+            }
+          })
+        );
+        
+        uploadedVideos = videoUploadResults.map((result) => {
+          if (result.status === 'fulfilled') {
+            return result.value.video;
+          } else {
+            return { url: '', original_url: '' };
+          }
+        });
+      }
+      
       // Update campaign with generated assets (including both URLs)
       await campaignService.update(campId, {
         status: 'completed',
@@ -201,6 +460,7 @@ export default function AdGenieWorkingPage() {
         generated_assets: {
           webhook_payload: payload,
           images: uploadedImages,
+          videos: contentType === 'image-ugc' ? uploadedVideos : undefined,
           webhook_response: webhookResponse,
         },
       });
@@ -208,8 +468,8 @@ export default function AdGenieWorkingPage() {
       // Deduct Magic Tokens for campaign generation
       try {
         const campaignCost = tokenService.calculateCampaignCost(
-          payload.content_type || 'image-only',
-          { images: uploadedImages, videos: [] }
+          contentType,
+          { images: uploadedImages, videos: uploadedVideos }
         );
         
         // Deduct base cost (2 tokens)
@@ -218,7 +478,7 @@ export default function AdGenieWorkingPage() {
           2,
           'campaign_generation',
           campId,
-          `Campaign generation (${payload.content_type || 'image-only'})`
+          `Campaign generation (${contentType})`
         );
         
         // Deduct tokens for each image (1 token per image)
@@ -229,6 +489,17 @@ export default function AdGenieWorkingPage() {
             'image',
             campId,
             `${uploadedImages.length} image(s) generated`
+          );
+        }
+        
+        // Deduct tokens for each video (5 tokens per video)
+        if (uploadedVideos.length > 0) {
+          await tokenService.deductTokens(
+            payload.user_id,
+            uploadedVideos.length * 5,
+            'video',
+            campId,
+            `${uploadedVideos.length} video(s) generated`
           );
         }
         
@@ -243,11 +514,12 @@ export default function AdGenieWorkingPage() {
       success('Campaign generated successfully!');
       
       // Automatically navigate to ResultsPage to show images with download options
-      console.log('🎯 Navigating to ResultsPage with generated images...');
+      console.log('🎯 Navigating to ResultsPage with generated assets...');
       navigate('/dashboard/results', {
         state: { 
           campaignId: campId, 
-          images: uploadedImages, 
+          images: uploadedImages,
+          videos: contentType === 'image-ugc' ? uploadedVideos : undefined,
           webhookPayload: payload,
           skipOnboardingCheck: true // Allow access during onboarding completion
         }
