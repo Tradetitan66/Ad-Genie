@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { Sparkles, ArrowRight } from 'lucide-react';
 import { userService } from '../services/database';
 import { useToast } from '../contexts/ToastContext';
 import { tokenService } from '../services/tokenService';
@@ -44,11 +45,9 @@ export default function LoginPage() {
       if (!user) {
         user = await userService.create(email, name);
         success('Welcome! Let\'s set up your account.');
-        // Initialize welcome Magic Tokens for new user
         await tokenService.initializeWelcomeTokens(user.id);
       } else {
         success('Welcome back!');
-        // Initialize welcome Magic Tokens if user doesn't have any yet
         await tokenService.initializeWelcomeTokens(user.id);
       }
 
@@ -74,72 +73,123 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-      <div className="login">
-        <h1 className="h1">
-          <span className="ui">Ad Genie</span>
-        </h1>
-        
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            setErrors({ ...errors, name: '' });
-          }}
-          placeholder="Name"
-        />
-        {errors.name && (
-          <p className="text-red-400 text-xs mt-1 ml-4">{errors.name}</p>
-        )}
-
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            setErrors({ ...errors, email: '' });
-          }}
-          placeholder="Email"
-        />
-        {errors.email && (
-          <p className="text-red-400 text-xs mt-1 ml-4">{errors.email}</p>
-        )}
-
-        <div className="flex items-center gap-2 mt-4">
-          <input
-            type="checkbox"
-            id="rememberMe"
-            checked={rememberMe}
-            onChange={(e) => setRememberMe(e.target.checked)}
-            className="w-4 h-4 accent-[#af40ff]"
-          />
-          <label htmlFor="rememberMe" className="text-sm text-white/70 cursor-pointer">
-            Remember me
-          </label>
+    <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Logo Section - Centered above card */}
+        <div className="flex items-center justify-center gap-3 mb-8">
+          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-orange-500 shadow-md bg-white flex-shrink-0">
+            <img
+              src="/enhanced_design_a_contemporary_professional_logo_combining_a_streamlined_genie_figure_with_modern_tech_symbo_g4d4ei5j85xa3vwd3mit_1 (1).png"
+              alt="Ad-Genie Logo"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <span className="text-2xl font-bold text-slate-900">
+            Ad-Genie
+          </span>
+          <Sparkles className="text-amber-400 w-4 h-4" />
         </div>
 
-        <button
-          onClick={handleLogin}
-          disabled={loading}
-          className="btn"
-        >
-          {loading ? 'Please wait...' : 'Continue →'}
-        </button>
+        {/* Login Card */}
+        <div className="bg-white rounded-2xl shadow-lg p-8 md:p-12">
+          <h1 className="text-3xl font-bold text-[#2D3142] mb-2">Welcome Back</h1>
+          <p className="text-[#6B7280] mb-8">Sign in to continue to Ad-Genie</p>
 
-        <div className="text-center mt-6">
-          <p className="text-xs text-white/50">
-            Test Mode - No password required
-          </p>
-        </div>
+          <div className="space-y-6">
+            {/* Name Input */}
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-[#2D3142] mb-2">
+                Name
+              </label>
+              <input
+                type="text"
+                id="name"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setErrors({ ...errors, name: '' });
+                }}
+                className={`w-full px-4 py-3 rounded-lg border ${
+                  errors.name ? 'border-[#EF4444]' : 'border-[#E5E7EB]'
+                } text-[#2D3142] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all`}
+                placeholder="Enter your name"
+              />
+              {errors.name && (
+                <p className="text-[#EF4444] text-sm mt-1">{errors.name}</p>
+              )}
+            </div>
 
-        <div className="text-center mt-4">
-          <button
-            onClick={() => navigate('/')}
-            className="text-white/70 hover:text-white transition-colors text-sm underline"
-          >
-            ← Back to home
-          </button>
+            {/* Email Input */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-[#2D3142] mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setErrors({ ...errors, email: '' });
+                }}
+                className={`w-full px-4 py-3 rounded-lg border ${
+                  errors.email ? 'border-[#EF4444]' : 'border-[#E5E7EB]'
+                } text-[#2D3142] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all`}
+                placeholder="Enter your email"
+              />
+              {errors.email && (
+                <p className="text-[#EF4444] text-sm mt-1">{errors.email}</p>
+              )}
+            </div>
+
+            {/* Remember Me Checkbox */}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 accent-orange-500 cursor-pointer"
+              />
+              <label htmlFor="rememberMe" className="text-sm text-[#6B7280] cursor-pointer">
+                Remember me
+              </label>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              onClick={handleLogin}
+              disabled={loading}
+              className="w-full px-6 py-3 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-bold rounded-lg shadow-md hover:from-orange-500 hover:to-orange-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                'Please wait...'
+              ) : (
+                <>
+                  Continue
+                  <ArrowRight size={18} />
+                </>
+              )}
+            </button>
+
+            {/* Test Mode Notice */}
+            <div className="text-center pt-4 border-t border-[#E5E7EB]">
+              <p className="text-xs text-[#6B7280]">
+                Test Mode - No password required
+              </p>
+            </div>
+
+            {/* Back to Home Link */}
+            <div className="text-center">
+              <Link
+                to="/"
+                className="text-sm text-[#6B7280] hover:text-orange-500 transition-colors inline-flex items-center gap-1"
+              >
+                <ArrowRight size={16} className="rotate-180" />
+                Back to home
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </div>

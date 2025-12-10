@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Sparkles, CheckCircle, Loader2 } from 'lucide-react';
 import { waitlistService, WaitlistFormData } from '../services/waitlistService';
 import { useToast } from '../contexts/ToastContext';
+import PageHeader from '../components/PageHeader';
 
 export default function WaitlistPage() {
   const navigate = useNavigate();
@@ -115,7 +116,8 @@ export default function WaitlistPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 pt-24">
+      <PageHeader showLogout={false} />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

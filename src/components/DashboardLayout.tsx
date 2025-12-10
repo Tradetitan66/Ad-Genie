@@ -16,36 +16,36 @@ export default function DashboardLayout({
 }: DashboardLayoutProps) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex">
+    <div className="min-h-screen bg-[#FAFAFA] flex">
       <DashboardSidebar mobileOpen={mobileSidebarOpen} setMobileOpen={setMobileSidebarOpen} />
       <div className="flex-1 ml-0 md:ml-64">
         {/* Hamburger button (only visible on mobile) */}
         <button
-          className="md:hidden fixed top-4 left-4 z-50 bg-white rounded-lg border border-slate-200 shadow-md p-2 flex items-center justify-center"
+          className="md:hidden fixed top-4 left-4 z-50 bg-white rounded-lg border border-[#E5E7EB] shadow-md p-2 flex items-center justify-center"
           onClick={() => setMobileSidebarOpen(true)}
           aria-label="Open menu"
         >
-          <MenuIcon size={28} className="text-slate-700" />
+          <MenuIcon size={28} className="text-[#2D3142]" />
         </button>
         {breadcrumbs && breadcrumbs.length > 0 && (
-          <div className="bg-white border-b border-slate-200">
+          <div className="bg-white border-b border-[#E5E7EB]">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
               <nav aria-label="Breadcrumb">
                 <ol className="flex items-center gap-2 text-sm">
                   <li>
-                    <Link to="/dashboard/campaign-hub" className="text-slate-600 hover:text-slate-900 transition-colors">
+                    <Link to="/dashboard/campaign-hub" className="text-[#6B7280] hover:text-orange-500 transition-colors">
                       Dashboard
                     </Link>
                   </li>
                   {breadcrumbs.map((crumb, index) => (
                     <li key={index} className="flex items-center gap-2">
-                      <span className="text-slate-400">/</span>
+                      <span className="text-[#E5E7EB]">/</span>
                       {crumb.href ? (
-                        <Link to={crumb.href} className="text-slate-600 hover:text-slate-900 transition-colors">
+                        <Link to={crumb.href} className="text-[#6B7280] hover:text-orange-500 transition-colors">
                           {crumb.label}
                         </Link>
                       ) : (
-                        <span className="text-slate-900 font-medium">{crumb.label}</span>
+                        <span className="text-[#2D3142] font-medium">{crumb.label}</span>
                       )}
                     </li>
                   ))}

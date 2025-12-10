@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { Save, User, Building2, Palette, Calendar, Bell } from 'lucide-react';
-import DashboardLayout from '../../components/DashboardLayout';
+import PageHeader from '../../components/PageHeader';
 import { useToast } from '../../contexts/ToastContext';
 import { userService, brandProfileService, preferencesService } from '../../services/database';
 
@@ -336,19 +335,19 @@ export default function SettingsPage() {
         return (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#2D3142] mb-2">
                 Email Address
               </label>
               <input
                 type="email"
                 value={accountData.email}
                 disabled
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 bg-slate-50 text-slate-600"
+                className="w-full px-4 py-3 rounded-lg border border-[#E5E7EB] bg-[#FAFAFA] text-[#6B7280]"
               />
-              <p className="text-xs text-slate-500 mt-1">Email cannot be changed</p>
+              <p className="text-xs text-[#6B7280] mt-1">Email cannot be changed</p>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#2D3142] mb-2">
                 Display Name
               </label>
               <input
@@ -357,14 +356,14 @@ export default function SettingsPage() {
                 onChange={(e) =>
                   setAccountData({ ...accountData, displayName: e.target.value })
                 }
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:border-[#2563EB] transition-colors"
+                className="w-full px-4 py-3 rounded-lg border border-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
                 placeholder="Enter your display name"
               />
             </div>
             <button
               onClick={handleSaveAccount}
               disabled={saving}
-              className="flex items-center gap-2 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-semibold rounded-lg shadow-md hover:from-orange-500 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <Save size={18} />
               {saving ? 'Saving...' : 'Save Changes'}
@@ -376,23 +375,23 @@ export default function SettingsPage() {
         return (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#2D3142] mb-2">
                 Brand Name
               </label>
               <input
                 type="text"
                 value={brandData.brandName}
                 onChange={(e) => setBrandData({ ...brandData, brandName: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:border-[#2563EB] transition-colors"
+                className="w-full px-4 py-3 rounded-lg border border-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
                 placeholder="Enter your brand name"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Industry</label>
+              <label className="block text-sm font-semibold text-[#2D3142] mb-2">Industry</label>
               <select
                 value={brandData.industry}
                 onChange={(e) => setBrandData({ ...brandData, industry: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:border-[#2563EB] transition-colors"
+                className="w-full px-4 py-3 rounded-lg border border-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               >
                 <option value="">Select an industry</option>
                 {industries.map((industry) => (
@@ -403,48 +402,48 @@ export default function SettingsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#2D3142] mb-2">
                 Target Audience
               </label>
               <textarea
                 value={brandData.audience}
                 onChange={(e) => setBrandData({ ...brandData, audience: e.target.value })}
                 rows={3}
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:border-[#2563EB] transition-colors"
+                className="w-full px-4 py-3 rounded-lg border border-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
                 placeholder="e.g., Young professionals aged 25-35"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#2D3142] mb-2">
                 Website URL
               </label>
               <input
                 type="url"
                 value={brandData.websiteUrl}
                 onChange={(e) => setBrandData({ ...brandData, websiteUrl: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:border-[#2563EB] transition-colors"
+                className="w-full px-4 py-3 rounded-lg border border-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
                 placeholder="https://yourbrand.com"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#2D3142] mb-2">
                 Contact Email
               </label>
               <input
                 type="email"
                 value={brandData.contactEmail}
                 onChange={(e) => setBrandData({ ...brandData, contactEmail: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:border-[#2563EB] transition-colors"
+                className="w-full px-4 py-3 rounded-lg border border-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
                 placeholder="contact@yourbrand.com"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-3">
+              <label className="block text-sm font-semibold text-[#2D3142] mb-3">
                 Brand Colors
               </label>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs text-slate-600 mb-2">Primary</label>
+                  <label className="block text-xs text-[#6B7280] mb-2">Primary</label>
                   <input
                     type="color"
                     value={brandData.brandColors.primary}
@@ -458,7 +457,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-600 mb-2">Secondary</label>
+                  <label className="block text-xs text-[#6B7280] mb-2">Secondary</label>
                   <input
                     type="color"
                     value={brandData.brandColors.secondary}
@@ -472,7 +471,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-600 mb-2">Accent</label>
+                  <label className="block text-xs text-[#6B7280] mb-2">Accent</label>
                   <input
                     type="color"
                     value={brandData.brandColors.accent}
@@ -490,7 +489,7 @@ export default function SettingsPage() {
             <button
               onClick={handleSaveBrand}
               disabled={saving}
-              className="flex items-center gap-2 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-semibold rounded-lg shadow-md hover:from-orange-500 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <Save size={18} />
               {saving ? 'Saving...' : 'Save Changes'}
@@ -502,7 +501,7 @@ export default function SettingsPage() {
         return (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#2D3142] mb-2">
                 Campaign Goal
               </label>
               <textarea
@@ -511,12 +510,12 @@ export default function SettingsPage() {
                   setPreferencesData({ ...preferencesData, campaignGoal: e.target.value })
                 }
                 rows={3}
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:border-[#2563EB] transition-colors"
+                className="w-full px-4 py-3 rounded-lg border border-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
                 placeholder="e.g., Increase brand awareness, drive sales"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#2D3142] mb-2">
                 Brand Voice
               </label>
               <select
@@ -524,7 +523,7 @@ export default function SettingsPage() {
                 onChange={(e) =>
                   setPreferencesData({ ...preferencesData, brandVoice: e.target.value })
                 }
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:border-[#2563EB] transition-colors"
+                className="w-full px-4 py-3 rounded-lg border border-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               >
                 <option value="">Select a brand voice</option>
                 {brandVoices.map((voice) => (
@@ -535,7 +534,7 @@ export default function SettingsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#2D3142] mb-2">
                 Visual Styles (Select 1-3)
               </label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -545,8 +544,8 @@ export default function SettingsPage() {
                     onClick={() => toggleVisualStyle(style)}
                     className={`px-4 py-3 rounded-lg border-2 transition-all ${
                       preferencesData.visualStyles.includes(style)
-                        ? 'border-[#2563EB] bg-blue-50 text-[#2563EB]'
-                        : 'border-slate-300 hover:border-slate-400'
+                        ? 'border-orange-500 bg-orange-50 text-orange-600'
+                        : 'border-[#E5E7EB] hover:border-orange-300'
                     }`}
                   >
                     {style}
@@ -565,16 +564,16 @@ export default function SettingsPage() {
                     enableAutoSuggestions: e.target.checked,
                   })
                 }
-                className="w-5 h-5 text-[#2563EB]"
+                className="w-5 h-5 accent-orange-500"
               />
-              <label htmlFor="autoSuggestions" className="text-sm text-slate-700">
+              <label htmlFor="autoSuggestions" className="text-sm text-[#2D3142]">
                 Enable automatic seasonal suggestions
               </label>
             </div>
             <button
               onClick={handleSavePreferences}
               disabled={saving}
-              className="flex items-center gap-2 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-semibold rounded-lg shadow-md hover:from-orange-500 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <Save size={18} />
               {saving ? 'Saving...' : 'Save Changes'}
@@ -593,7 +592,7 @@ export default function SettingsPage() {
           <div className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <h3 className="font-semibold text-slate-700 mb-3">Local & Regional Events</h3>
+                <h3 className="font-semibold text-[#2D3142] mb-3">Local & Regional Events</h3>
                 <div className="space-y-2">
                   {localEvents.map((event) => (
                     <label key={event} className="flex items-center gap-2 cursor-pointer">
@@ -601,15 +600,15 @@ export default function SettingsPage() {
                         type="checkbox"
                         checked={safeSeasonalEvents.local.includes(event)}
                         onChange={() => toggleSeasonalEvent(event, 'local')}
-                        className="w-4 h-4 text-[#2563EB] rounded"
+                        className="w-4 h-4 accent-orange-500 rounded"
                       />
-                      <span className="text-sm text-slate-700">{event}</span>
+                      <span className="text-sm text-[#2D3142]">{event}</span>
                     </label>
                   ))}
                 </div>
               </div>
               <div>
-                <h3 className="font-semibold text-slate-700 mb-3">International Events</h3>
+                <h3 className="font-semibold text-[#2D3142] mb-3">International Events</h3>
                 <div className="space-y-2">
                   {internationalEvents.map((event) => (
                     <label key={event} className="flex items-center gap-2 cursor-pointer">
@@ -617,9 +616,9 @@ export default function SettingsPage() {
                         type="checkbox"
                         checked={safeSeasonalEvents.international.includes(event)}
                         onChange={() => toggleSeasonalEvent(event, 'international')}
-                        className="w-4 h-4 text-[#2563EB] rounded"
+                        className="w-4 h-4 accent-orange-500 rounded"
                       />
-                      <span className="text-sm text-slate-700">{event}</span>
+                      <span className="text-sm text-[#2D3142]">{event}</span>
                     </label>
                   ))}
                 </div>
@@ -628,7 +627,7 @@ export default function SettingsPage() {
             <button
               onClick={handleSavePreferences}
               disabled={saving}
-              className="flex items-center gap-2 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-semibold rounded-lg shadow-md hover:from-orange-500 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <Save size={18} />
               {saving ? 'Saving...' : 'Save Changes'}
@@ -640,10 +639,10 @@ export default function SettingsPage() {
         return (
           <div className="space-y-6">
             <div className="space-y-4">
-              <label className="flex items-center justify-between p-4 bg-slate-50 rounded-lg cursor-pointer">
+              <label className="flex items-center justify-between p-4 bg-[#FAFAFA] rounded-lg cursor-pointer">
                 <div>
-                  <p className="font-semibold text-slate-900">Email Notifications</p>
-                  <p className="text-sm text-slate-600">Receive email updates</p>
+                  <p className="font-semibold text-[#2D3142]">Email Notifications</p>
+                  <p className="text-sm text-[#6B7280]">Receive email updates</p>
                 </div>
                 <input
                   type="checkbox"
@@ -651,13 +650,13 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     setNotifications({ ...notifications, emailNotifications: e.target.checked })
                   }
-                  className="w-5 h-5 text-[#2563EB]"
+                  className="w-5 h-5 accent-orange-500"
                 />
               </label>
-              <label className="flex items-center justify-between p-4 bg-slate-50 rounded-lg cursor-pointer">
+              <label className="flex items-center justify-between p-4 bg-[#FAFAFA] rounded-lg cursor-pointer">
                 <div>
-                  <p className="font-semibold text-slate-900">Campaign Complete</p>
-                  <p className="text-sm text-slate-600">Notify when campaign generation finishes</p>
+                  <p className="font-semibold text-[#2D3142]">Campaign Complete</p>
+                  <p className="text-sm text-[#6B7280]">Notify when campaign generation finishes</p>
                 </div>
                 <input
                   type="checkbox"
@@ -665,13 +664,13 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     setNotifications({ ...notifications, campaignComplete: e.target.checked })
                   }
-                  className="w-5 h-5 text-[#2563EB]"
+                  className="w-5 h-5 accent-orange-500"
                 />
               </label>
-              <label className="flex items-center justify-between p-4 bg-slate-50 rounded-lg cursor-pointer">
+              <label className="flex items-center justify-between p-4 bg-[#FAFAFA] rounded-lg cursor-pointer">
                 <div>
-                  <p className="font-semibold text-slate-900">Weekly Report</p>
-                  <p className="text-sm text-slate-600">Get weekly campaign performance reports</p>
+                  <p className="font-semibold text-[#2D3142]">Weekly Report</p>
+                  <p className="text-sm text-[#6B7280]">Get weekly campaign performance reports</p>
                 </div>
                 <input
                   type="checkbox"
@@ -679,13 +678,13 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     setNotifications({ ...notifications, weeklyReport: e.target.checked })
                   }
-                  className="w-5 h-5 text-[#2563EB]"
+                  className="w-5 h-5 accent-orange-500"
                 />
               </label>
-              <label className="flex items-center justify-between p-4 bg-slate-50 rounded-lg cursor-pointer">
+              <label className="flex items-center justify-between p-4 bg-[#FAFAFA] rounded-lg cursor-pointer">
                 <div>
-                  <p className="font-semibold text-slate-900">Marketing Tips</p>
-                  <p className="text-sm text-slate-600">Receive helpful marketing tips</p>
+                  <p className="font-semibold text-[#2D3142]">Marketing Tips</p>
+                  <p className="text-sm text-[#6B7280]">Receive helpful marketing tips</p>
                 </div>
                 <input
                   type="checkbox"
@@ -693,14 +692,14 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     setNotifications({ ...notifications, marketingTips: e.target.checked })
                   }
-                  className="w-5 h-5 text-[#2563EB]"
+                  className="w-5 h-5 accent-orange-500"
                 />
               </label>
             </div>
             <button
               onClick={handleSaveNotifications}
               disabled={saving}
-              className="flex items-center gap-2 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-semibold rounded-lg shadow-md hover:from-orange-500 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <Save size={18} />
               {saving ? 'Saving...' : 'Save Changes'}
@@ -713,44 +712,81 @@ export default function SettingsPage() {
     }
   };
 
-  return (
-    <DashboardLayout breadcrumbs={[{ label: 'Settings' }]}>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Settings</h1>
-        <p className="text-slate-600 mb-8">Manage your account and preferences</p>
+  // Get active tab label for breadcrumb
+  const activeTabLabel = tabs.find(t => t.id === activeTab)?.label || 'Settings';
 
-        <div className="grid md:grid-cols-4 gap-6">
-          <div className="md:col-span-1">
-            <nav className="space-y-1" aria-label="Settings navigation">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id);
-                      setSearchParams({ tab: tab.id });
-                    }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left ${
-                      activeTab === tab.id
-                        ? 'bg-blue-50 text-[#2563EB] font-semibold'
-                        : 'text-slate-600 hover:bg-slate-50'
-                    }`}
-                    aria-current={activeTab === tab.id ? 'page' : undefined}
-                  >
-                    <Icon size={20} />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
+  return (
+    <div className="min-h-screen bg-[#FAFAFA]">
+      <PageHeader />
+      
+      {/* Breadcrumb */}
+      <div className="pt-20 pb-4 px-4 md:px-8">
+        <div className="max-w-[1400px] mx-auto">
+          <nav aria-label="Breadcrumb" className="mb-6">
+            <ol className="flex items-center gap-2 text-sm">
+              <li>
+                <Link to="/dashboard/campaign-hub" className="text-[#6B7280] hover:text-orange-500 transition-colors">
+                  Dashboard
+                </Link>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-[#E5E7EB]">/</span>
+                <Link to="/dashboard/settings" className="text-[#6B7280] hover:text-orange-500 transition-colors">
+                  Settings
+                </Link>
+              </li>
+              {activeTab !== 'account' && (
+                <li className="flex items-center gap-2">
+                  <span className="text-[#E5E7EB]">/</span>
+                  <span className="text-[#2D3142] font-medium">{activeTabLabel}</span>
+                </li>
+              )}
+            </ol>
+          </nav>
+        </div>
+      </div>
+
+      {/* Page Content */}
+      <div className="px-4 md:px-8 pb-12">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-[#2D3142] mb-2">Settings</h1>
+            <p className="text-[#6B7280]">Manage your account and preferences</p>
           </div>
 
-          <div className="md:col-span-3">
-            <div className="bg-white rounded-lg shadow-lg p-6">{renderContent()}</div>
+          <div className="grid md:grid-cols-4 gap-6">
+            <div className="md:col-span-1">
+              <nav className="space-y-1 bg-white rounded-2xl shadow-lg p-4" aria-label="Settings navigation">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        setSearchParams({ tab: tab.id });
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left ${
+                        activeTab === tab.id
+                          ? 'bg-orange-50 text-orange-600 font-semibold'
+                          : 'text-[#6B7280] hover:bg-[#FAFAFA]'
+                      }`}
+                      aria-current={activeTab === tab.id ? 'page' : undefined}
+                    >
+                      <Icon size={20} />
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            <div className="md:col-span-3">
+              <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8">{renderContent()}</div>
+            </div>
           </div>
         </div>
-      </motion.div>
-    </DashboardLayout>
+      </div>
+    </div>
   );
 }

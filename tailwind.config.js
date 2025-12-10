@@ -49,6 +49,30 @@ export default {
   				'3': 'hsl(var(--chart-3))',
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
+  			},
+  			genie: {
+  				primary: 'hsl(var(--genie-primary))',
+  				'primary-hover': 'hsl(var(--genie-primary-hover))',
+  				secondary: 'hsl(var(--genie-secondary))',
+  				'secondary-hover': 'hsl(var(--genie-secondary-hover))',
+  				accent: 'hsl(var(--genie-accent))',
+  				'accent-hover': 'hsl(var(--genie-accent-hover))',
+  				success: 'hsl(var(--genie-success))',
+  				warning: 'hsl(var(--genie-warning))',
+  				error: 'hsl(var(--genie-error))',
+  				info: 'hsl(var(--genie-info))',
+  				neutral: {
+  					50: 'hsl(var(--genie-neutral-50))',
+  					100: 'hsl(var(--genie-neutral-100))',
+  					200: 'hsl(var(--genie-neutral-200))',
+  					300: 'hsl(var(--genie-neutral-300))',
+  					400: 'hsl(var(--genie-neutral-400))',
+  					500: 'hsl(var(--genie-neutral-500))',
+  					600: 'hsl(var(--genie-neutral-600))',
+  					700: 'hsl(var(--genie-neutral-700))',
+  					800: 'hsl(var(--genie-neutral-800))',
+  					900: 'hsl(var(--genie-neutral-900))'
+  				}
   			}
   		}
   	}

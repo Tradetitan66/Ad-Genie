@@ -173,7 +173,8 @@ export default function GeneratingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#2563EB] to-[#8B5CF6] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-genie-primary via-genie-secondary to-genie-accent flex items-center justify-center p-4 pt-24">
+      <PageHeader />
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}

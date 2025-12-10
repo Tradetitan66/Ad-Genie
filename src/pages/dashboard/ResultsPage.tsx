@@ -8,6 +8,7 @@ import { downloadImage, downloadMultipleImages, ImageData } from '../../utils/im
 import { useToast } from '../../contexts/ToastContext';
 import { imageService } from '../../services/imageService';
 import { tokenService } from '../../services/tokenService';
+import PageHeader from '../../components/PageHeader';
 
 export default function ResultsPage() {
   const navigate = useNavigate();
@@ -389,62 +390,58 @@ export default function ResultsPage() {
       <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-[#2563EB] animate-spin mx-auto mb-4" />
-          <p className="text-slate-600">Loading campaign results...</p>
+          <p className="text-[#6B7280]">Loading campaign results...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] py-12 px-4">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-[#FAFAFA] pt-20 pb-20 px-4 md:px-8">
+      <PageHeader />
+      <div className="max-w-[1400px] mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+          className="text-center mb-6"
         >
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#10B981] bg-opacity-20 border border-[#10B981] rounded-full mb-6"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#10B981] bg-opacity-20 border border-[#10B981] rounded-full mb-4"
           >
-            <CheckCircle className="text-[#10B981]" size={24} />
-            <span className="text-[#10B981] font-semibold">Campaign Generated Successfully!</span>
+            <CheckCircle className="text-[#10B981]" size={20} />
+            <span className="text-[#10B981] font-semibold text-sm">Campaign Generated Successfully!</span>
           </motion.div>
-          <h1 className="text-5xl font-bold text-slate-900 mb-4">
+          <h1 className="text-3xl md:text-4xl font-bold text-[#2D3142] mb-2">
             Your Campaign is Ready
           </h1>
-          <p className="text-xl text-slate-600">
+          <p className="text-lg text-[#6B7280]">
             Download your assets and launch your campaign
           </p>
         </motion.div>
 
         {videos.length > 0 && campaignType === 'ugc-only' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mb-12"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-3xl font-bold text-slate-900">Generated Videos ({videos.length})</h2>
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-2xl font-bold text-[#2D3142]">Generated Videos ({videos.length})</h2>
               <div className="flex gap-3">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                   onClick={handleDownloadAll}
-                className="px-6 py-3 bg-[#2563EB] text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-[#1d4ed8]"
+                className="px-6 py-3 bg-genie-primary text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-genie-primary-hover"
               >
                 <Download size={20} />
-                  Download All
+                  {campaignType === 'ugc-only' ? 'Download All Videos' : 'Download All Assets'}
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleRegenerate}
                   disabled={regenerating}
-                  className="px-6 py-3 bg-[#8B5CF6] text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-[#7c3aed] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-3 bg-genie-secondary text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-genie-secondary-hover disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {regenerating ? (
                     <>
@@ -460,7 +457,7 @@ export default function ResultsPage() {
               </motion.button>
               </div>
             </div>
-            <div className={`grid gap-6 ${
+            <div className={`grid gap-4 ${
               videos.length === 1 
                 ? 'grid-cols-1 max-w-md mx-auto' 
                 : videos.length === 2 
@@ -482,7 +479,7 @@ export default function ResultsPage() {
                   transition={{ delay: 0.3 + index * 0.1 }}
                   className="group relative bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all"
                 >
-                  <div className="aspect-square bg-slate-200">
+                  <div className="aspect-video bg-[#FAFAFA] relative">
                     <video
                         src={videoUrl}
                         className="w-full h-full object-cover"
@@ -492,17 +489,16 @@ export default function ResultsPage() {
                           console.error('Video failed to load:', videoUrl);
                         }}
                     />
-                  </div>
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <div className="flex gap-3">
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
+                    <div className="flex gap-3 pointer-events-auto">
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                           onClick={() => handleDownloadVideo(video)}
-                        className="p-3 bg-white rounded-full shadow-lg"
+                        className="p-3 bg-white rounded-full shadow-lg hover:bg-[#FAFAFA] transition-colors"
                           title="Download video"
                       >
-                        <Download size={20} className="text-slate-900" />
+                        <Download size={20} className="text-[#2D3142]" />
                       </motion.button>
                       <motion.button
                         whileHover={{ scale: 1.1 }}
@@ -521,48 +517,44 @@ export default function ResultsPage() {
                               success('Video URL copied to clipboard');
                             }
                           }}
-                        className="p-3 bg-white rounded-full shadow-lg"
+                        className="p-3 bg-white rounded-full shadow-lg hover:bg-[#FAFAFA] transition-colors"
                           title="Share video"
                       >
-                        <Share2 size={20} className="text-slate-900" />
+                        <Share2 size={20} className="text-[#2D3142]" />
                       </motion.button>
                     </div>
                   </div>
+                  </div>
                   <div className="p-4">
-                      <p className="font-semibold text-slate-900">{videoTitle}</p>
+                      <p className="font-semibold text-[#2D3142]">{videoTitle}</p>
                   </div>
                 </motion.div>
                 );
               })}
             </div>
-          </motion.div>
+          </div>
         )}
 
         {images.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mb-12"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-3xl font-bold text-slate-900">Generated Images ({images.length})</h2>
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-2xl font-bold text-[#2D3142]">Generated Images ({images.length})</h2>
               <div className="flex gap-3">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                   onClick={handleDownloadAll}
-                className="px-6 py-3 bg-[#2563EB] text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-[#1d4ed8]"
+                className="px-6 py-3 bg-genie-primary text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-genie-primary-hover"
               >
                 <Download size={20} />
-                  Download All
+                  {campaignType === 'image-only' ? 'Download All Images' : 'Download All Assets'}
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleRegenerate}
                   disabled={regenerating}
-                  className="px-6 py-3 bg-[#8B5CF6] text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-[#7c3aed] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-3 bg-genie-secondary text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-genie-secondary-hover disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {regenerating ? (
                     <>
@@ -578,7 +570,7 @@ export default function ResultsPage() {
               </motion.button>
               </div>
             </div>
-            <div className={`grid gap-6 ${
+            <div className={`grid gap-4 ${
               images.length === 1 
                 ? 'grid-cols-1 max-w-md mx-auto' 
                 : images.length === 2 
@@ -600,7 +592,7 @@ export default function ResultsPage() {
                   transition={{ delay: 0.3 + index * 0.1 }}
                   className="group relative bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all"
                 >
-                  <div className="aspect-square bg-slate-200">
+                  <div className="aspect-square bg-[#FAFAFA] relative">
                     <img
                         src={imageUrl}
                         alt={imageTitle}
@@ -611,73 +603,73 @@ export default function ResultsPage() {
                           target.src = 'https://via.placeholder.com/400x400?text=Image+Not+Available';
                         }}
                     />
-                  </div>
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <div className="flex gap-3">
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                          onClick={() => handleDownloadImage(image)}
-                        className="p-3 bg-white rounded-full shadow-lg"
-                          title="Download image"
-                      >
-                        <Download size={20} className="text-slate-900" />
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                          onClick={() => {
-                            if (navigator.share) {
-                              navigator.share({
-                                title: imageTitle,
-                                url: imageUrl,
-                              }).catch(() => {
-                                // Fallback to copying URL
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
+                      <div className="flex gap-3 pointer-events-auto">
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                            onClick={() => handleDownloadImage(image)}
+                          className="p-3 bg-white rounded-full shadow-lg hover:bg-[#FAFAFA] transition-colors"
+                            title="Download image"
+                        >
+                          <Download size={20} className="text-[#2D3142]" />
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                            onClick={() => {
+                              if (navigator.share) {
+                                navigator.share({
+                                  title: imageTitle,
+                                  url: imageUrl,
+                                }).catch(() => {
+                                  // Fallback to copying URL
+                                  navigator.clipboard.writeText(imageUrl);
+                                  success('Image URL copied to clipboard');
+                                });
+                              } else {
                                 navigator.clipboard.writeText(imageUrl);
                                 success('Image URL copied to clipboard');
-                              });
-                            } else {
-                              navigator.clipboard.writeText(imageUrl);
-                              success('Image URL copied to clipboard');
-                            }
-                          }}
-                        className="p-3 bg-white rounded-full shadow-lg"
-                          title="Share image"
-                      >
-                        <Share2 size={20} className="text-slate-900" />
-                      </motion.button>
+                              }
+                            }}
+                          className="p-3 bg-white rounded-full shadow-lg hover:bg-[#FAFAFA] transition-colors"
+                            title="Share image"
+                        >
+                          <Share2 size={20} className="text-[#2D3142]" />
+                        </motion.button>
+                      </div>
                     </div>
                   </div>
                   <div className="p-4">
-                      <p className="font-semibold text-slate-900">{imageTitle}</p>
+                      <p className="font-semibold text-[#2D3142]">{imageTitle}</p>
                   </div>
                 </motion.div>
                 );
               })}
             </div>
-          </motion.div>
+          </div>
         )}
 
         {images.length === 0 && videos.length === 0 && !loading && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-lg shadow-lg p-12 text-center"
+            className="bg-white rounded-2xl shadow-lg p-8 text-center"
           >
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-slate-100 flex items-center justify-center">
-              <CheckCircle size={40} className="text-slate-400" />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#FAFAFA] flex items-center justify-center">
+              <CheckCircle size={32} className="text-[#6B7280]" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">
+            <h3 className="text-xl font-bold text-[#2D3142] mb-2">
               {campaignType === 'ugc-only' ? 'No videos generated yet' : 'No images generated yet'}
             </h3>
-            <p className="text-slate-600 mb-6">
+            <p className="text-[#6B7280] mb-4">
               {webhookPayload ? `Click regenerate to generate ${campaignType === 'ugc-only' ? 'videos' : 'images'}` : 'Unable to regenerate: missing campaign data'}
             </p>
             {webhookPayload && (
               <button
                 onClick={handleRegenerate}
                 disabled={regenerating}
-                className="px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] transition-all disabled:opacity-50"
+                className="px-6 py-3 bg-genie-primary text-white font-semibold rounded-lg shadow-md hover:bg-genie-primary-hover transition-all disabled:opacity-50"
                       >
                 {regenerating ? 'Regenerating...' : campaignType === 'ugc-only' ? 'Generate Videos' : 'Generate Images'}
               </button>
@@ -686,16 +678,11 @@ export default function ResultsPage() {
         )}
 
         {videos.length > 0 && campaignType === 'image-ugc' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mb-12"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-3xl font-bold text-slate-900">Generated Videos ({videos.length})</h2>
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-2xl font-bold text-[#2D3142]">Generated Videos ({videos.length})</h2>
             </div>
-            <div className={`grid gap-6 ${
+            <div className={`grid gap-4 ${
               videos.length === 1 
                 ? 'grid-cols-1 max-w-md mx-auto' 
                 : videos.length === 2 
@@ -734,7 +721,7 @@ export default function ResultsPage() {
                         className="p-3 bg-white rounded-full shadow-lg"
                           title="Download video"
                       >
-                        <Download size={20} className="text-slate-900" />
+                        <Download size={20} className="text-[#2D3142]" />
                       </motion.button>
                       <motion.button
                         whileHover={{ scale: 1.1 }}
@@ -756,46 +743,43 @@ export default function ResultsPage() {
                         className="p-3 bg-white rounded-full shadow-lg"
                           title="Share video"
                       >
-                        <Share2 size={20} className="text-slate-900" />
+                        <Share2 size={20} className="text-[#2D3142]" />
                       </motion.button>
                     </div>
                   </div>
                   <div className="p-4">
-                      <p className="font-semibold text-slate-900">{videoTitle}</p>
+                      <p className="font-semibold text-[#2D3142]">{videoTitle}</p>
                   </div>
                 </motion.div>
                 );
               })}
             </div>
-          </motion.div>
+          </div>
         )}
 
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="flex justify-center gap-4"
-        >
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/dashboard/campaign-hub')}
-            className="px-8 py-4 bg-[#2563EB] text-white font-bold rounded-lg shadow-lg flex items-center gap-3 hover:bg-[#1d4ed8]"
-          >
-            <RefreshCw size={20} />
-            Create New Campaign
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/dashboard/campaigns')}
-            className="px-8 py-4 bg-white text-slate-700 font-bold rounded-lg shadow-lg border-2 border-slate-300 flex items-center gap-3 hover:bg-slate-50"
-          >
-            <Home size={20} />
-            View All Campaigns
-          </motion.button>
-        </motion.div>
+      </div>
+      
+      {/* Fixed Bottom Action Buttons */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E5E7EB] shadow-lg z-40 py-3">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-8">
+          <div className="flex justify-center gap-3">
+            <button
+              onClick={() => navigate('/dashboard/campaign-hub')}
+              className="px-6 py-2.5 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-bold rounded-lg shadow-md flex items-center gap-2 hover:from-orange-500 hover:to-orange-700 transition-all"
+            >
+              <RefreshCw size={18} />
+              Create New Campaign
+            </button>
+            <button
+              onClick={() => navigate('/dashboard/campaigns')}
+              className="px-6 py-2.5 bg-white text-[#6B7280] font-bold rounded-lg shadow-md border-2 border-[#E5E7EB] flex items-center gap-2 hover:bg-[#FAFAFA] transition-all"
+            >
+              <Home size={18} />
+              View All Campaigns
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

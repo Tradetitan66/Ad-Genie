@@ -72,17 +72,17 @@ export default function DashboardSidebar({ mobileOpen = false, setMobileOpen }: 
   const sidebarContent = (
     <div className="flex flex-col h-full w-64 bg-white border-r border-slate-200 shadow-sm">
       <div className="flex items-center gap-2 h-16 px-6 border-b border-slate-100 relative">
-        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-amber-400 shadow-md bg-white flex-shrink-0">
+        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-genie-primary shadow-md bg-white flex-shrink-0">
           <img
             src="/enhanced_design_a_contemporary_professional_logo_combining_a_streamlined_genie_figure_with_modern_tech_symbo_g4d4ei5j85xa3vwd3mit_1 (1).png"
             alt="Ad-Genie Logo"
             className="w-full h-full object-contain"
           />
         </div>
-        <span className="text-xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-transparent bg-clip-text">
+        <span className="text-xl font-bold bg-gradient-to-r from-genie-primary via-genie-secondary to-genie-accent text-transparent bg-clip-text">
           Ad-Genie
         </span>
-        <Sparkles className="text-amber-400 w-4 h-4 ml-1" />
+        <Sparkles className="text-genie-accent w-4 h-4 ml-1" />
         {/* Close button on mobile */}
         {setMobileOpen && (
           <button className="md:hidden absolute right-4 top-4" onClick={handleCloseDrawer} aria-label="Close sidebar">
@@ -161,37 +161,28 @@ export default function DashboardSidebar({ mobileOpen = false, setMobileOpen }: 
         </div>
       </div>
       {/* Account Section */}
-      <div className="border-t border-slate-100 px-6 py-4 relative">
-        <button
-          className="flex items-center gap-3 w-full text-left text-slate-700 font-medium focus:outline-none"
-          onClick={() => setAccountOpen((open) => !open)}
-        >
-          <User size={20} className="text-slate-600" />
-          <div>
-            <div className="text-sm font-semibold">{userName}</div>
-            <div className="text-xs text-slate-500">{userEmail}</div>
-          </div>
-          <ChevronDown size={16} className={`ml-auto text-slate-400 transition-transform ${accountOpen ? 'rotate-180' : ''}`} />
-        </button>
-        {accountOpen && (
-          <div className="absolute bottom-20 left-6 right-6 bg-white rounded-lg shadow-lg border border-slate-200 p-4 z-50">
-            <Link
-              to="/dashboard/settings"
-              className="flex items-center gap-3 px-4 py-2 rounded-md text-sm hover:bg-slate-50 transition-colors"
-              onClick={() => { setAccountOpen(false); handleCloseDrawer(); }}
-            >
-              <Settings size={18} />
-              Settings
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 px-4 py-2 rounded-md text-sm text-red-600 hover:bg-red-50 transition-colors w-full mt-2"
-            >
-              <LogOut size={18} />
-              Logout
-            </button>
-          </div>
-        )}
+      <div className="border-t border-slate-100 px-6 py-4">
+        <div className="mb-3">
+          <div className="text-sm font-semibold text-slate-900">{userName}</div>
+          <div className="text-xs text-slate-500">{userEmail}</div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Link
+            to="/dashboard/settings"
+            className="flex items-center gap-3 px-4 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+            onClick={handleCloseDrawer}
+          >
+            <Settings size={18} />
+            Settings
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-4 py-2 rounded-md text-sm text-red-600 hover:bg-red-50 transition-colors w-full"
+          >
+            <LogOut size={18} />
+            Logout
+          </button>
+        </div>
       </div>
     </div>
   );

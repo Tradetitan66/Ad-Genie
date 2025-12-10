@@ -10,6 +10,7 @@ import { imageService } from '../../services/imageService';
 import { ugcService } from '../../services/ugcService';
 import { tokenService } from '../../services/tokenService';
 import RotatingText from '../../components/RotatingText';
+import PageHeader from '../../components/PageHeader';
 
 export default function AdGenieWorkingPage() {
   const navigate = useNavigate();
@@ -19,6 +20,8 @@ export default function AdGenieWorkingPage() {
   const [loading, setLoading] = useState(true);
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [webhookPayload, setWebhookPayload] = useState<BrandWebhookData | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState('Initializing...');
   const webhookCalledRef = useRef(false);
 
   useEffect(() => {
@@ -80,15 +83,24 @@ export default function AdGenieWorkingPage() {
   const callWebhookAndWait = async (campId: string, payload: BrandWebhookData) => {
     try {
       console.log('📞 Calling webhook - this may take a while as it waits for respond node...');
+      setProgress(10);
+      setProgressMessage('Connecting to webhook...');
       
       // Call webhook - will wait until respond node is connected in n8n
+      setProgress(30);
+      setProgressMessage('Processing your campaign request...');
       const webhookResponse = await sendBrandDataToWebhook(payload);
+      
+      setProgress(50);
+      setProgressMessage('Receiving generated content...');
       
       const contentType = payload.content_type || 'image-only';
       
       // Handle UGC-only campaigns
       if (contentType === 'ugc-only') {
         console.log('✅ Webhook response received, parsing videos...');
+        setProgress(60);
+        setProgressMessage('Parsing video content...');
         
         // Parse videos from response
         const parsedVideos = parseWebhookVideoResponse(webhookResponse);
@@ -97,6 +109,8 @@ export default function AdGenieWorkingPage() {
         
         // Upload videos to Supabase storage
         console.log('📤 Uploading generated videos to Supabase storage...');
+        setProgress(70);
+        setProgressMessage(`Uploading ${parsedVideos.length} video${parsedVideos.length !== 1 ? 's' : ''}...`);
         const uploadResults = await Promise.allSettled(
           parsedVideos.map(async (video) => {
             const originalUrl = video.url || video.video_url || video.videoUrl || video.src || '';
@@ -199,6 +213,8 @@ export default function AdGenieWorkingPage() {
           });
         }
         
+        setProgress(85);
+        setProgressMessage('Finalizing campaign...');
         // Update campaign with generated assets (including videos)
         await campaignService.update(campId, {
           status: 'completed',
@@ -243,6 +259,12 @@ export default function AdGenieWorkingPage() {
           // Don't block the flow - test mode allows negative tokens
         }
 
+        setProgress(100);
+        setProgressMessage('Campaign ready!');
+        
+        // Small delay to show 100% before navigation
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         // Stop loading and automatically navigate to ResultsPage with videos
         setLoading(false);
         success('Campaign generated successfully!');
@@ -262,6 +284,8 @@ export default function AdGenieWorkingPage() {
       
       // Handle image-only or image-ugc campaigns
       console.log('✅ Webhook response received, parsing images...');
+      setProgress(60);
+      setProgressMessage('Parsing image content...');
       
       // Parse images from response
       const parsedImages = parseWebhookResponse(webhookResponse);
@@ -277,6 +301,8 @@ export default function AdGenieWorkingPage() {
       
       // Upload images to Supabase storage
       console.log('📤 Uploading generated images to Supabase storage...');
+      setProgress(70);
+      setProgressMessage(`Uploading ${parsedImages.length} image${parsedImages.length !== 1 ? 's' : ''}...`);
       const uploadResults = await Promise.allSettled(
         parsedImages.map(async (image) => {
           const originalUrl = image.url || image.image_url || image.imageUrl || image.src || '';
@@ -383,6 +409,8 @@ export default function AdGenieWorkingPage() {
       let uploadedVideos: WebhookVideoItem[] = [];
       if (contentType === 'image-ugc' && parsedVideos.length > 0) {
         console.log('📤 Uploading generated videos to Supabase storage...');
+        setProgress(80);
+        setProgressMessage(`Uploading ${parsedVideos.length} video${parsedVideos.length !== 1 ? 's' : ''}...`);
         const videoUploadResults = await Promise.allSettled(
           parsedVideos.map(async (video) => {
             const originalUrl = video.url || video.video_url || video.videoUrl || video.src || '';
@@ -453,6 +481,8 @@ export default function AdGenieWorkingPage() {
         });
       }
       
+      setProgress(85);
+      setProgressMessage('Finalizing campaign...');
       // Update campaign with generated assets (including both URLs)
       await campaignService.update(campId, {
         status: 'completed',
@@ -509,6 +539,12 @@ export default function AdGenieWorkingPage() {
         // Don't block the flow - test mode allows negative tokens
       }
 
+      setProgress(100);
+      setProgressMessage('Campaign ready!');
+      
+      // Small delay to show 100% before navigation
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Stop loading and automatically navigate to ResultsPage with images
       setLoading(false);
       success('Campaign generated successfully!');
@@ -526,6 +562,8 @@ export default function AdGenieWorkingPage() {
       });
     } catch (err: any) {
       console.error('❌ Webhook error:', err);
+      setProgress(0);
+      setProgressMessage('Error occurred');
       showError(`Failed to generate campaign: ${err.message}`);
       
       // Update campaign status to failed
@@ -593,7 +631,8 @@ export default function AdGenieWorkingPage() {
   console.log('🎨 AdGenieWorkingPage: Rendering, loading state:', loading);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#2563EB] to-[#8B5CF6] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-genie-primary via-genie-secondary to-genie-accent flex items-center justify-center p-4 pt-24">
+      <PageHeader />
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -605,7 +644,7 @@ export default function AdGenieWorkingPage() {
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              className="inline-flex w-20 h-20 bg-gradient-to-br from-[#2563EB] to-[#8B5CF6] rounded-full items-center justify-center mb-8"
+              className="inline-flex w-20 h-20 bg-gradient-to-br from-genie-primary via-genie-secondary to-genie-accent rounded-full items-center justify-center mb-8"
             >
               <Sparkles className="text-white" size={40} />
             </motion.div>
@@ -623,7 +662,23 @@ export default function AdGenieWorkingPage() {
               />
             </div>
             
-            <p className="text-slate-600 text-lg">Please wait while we create your campaign...</p>
+            <p className="text-slate-600 text-lg mb-6">{progressMessage}</p>
+            
+            {/* Progress Bar */}
+            <div className="max-w-md mx-auto">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-semibold text-[#2D3142]">Progress</span>
+                <span className="text-sm font-bold text-orange-500">{progress}%</span>
+              </div>
+              <div className="w-full bg-[#E5E7EB] rounded-full h-3 overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  className="h-full bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 rounded-full shadow-sm"
+                />
+              </div>
+            </div>
           </div>
         ) : (
           // Show images when webhook responds
@@ -657,7 +712,7 @@ export default function AdGenieWorkingPage() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={handleDownloadAll}
-                      className="px-6 py-3 bg-[#2563EB] text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-[#1d4ed8]"
+                      className="px-6 py-3 bg-genie-primary text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-genie-primary-hover"
                     >
                       <Download size={20} />
                       Download All
@@ -666,7 +721,7 @@ export default function AdGenieWorkingPage() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={handleRegenerate}
-                      className="px-6 py-3 bg-[#8B5CF6] text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-[#7c3aed]"
+                      className="px-6 py-3 bg-genie-secondary text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-genie-secondary-hover"
                     >
                       <RefreshCw size={20} />
                       Regenerate
@@ -733,7 +788,7 @@ export default function AdGenieWorkingPage() {
                     onClick={() => navigate('/dashboard/results', {
                       state: { campaignId, images, webhookPayload }
                     })}
-                    className="px-8 py-4 bg-[#2563EB] text-white font-bold rounded-lg shadow-lg hover:bg-[#1d4ed8] transition-all"
+                    className="px-8 py-4 bg-genie-primary text-white font-bold rounded-lg shadow-lg hover:bg-genie-primary-hover transition-all"
                   >
                     View Full Results
                   </motion.button>
@@ -753,7 +808,7 @@ export default function AdGenieWorkingPage() {
                 {webhookPayload && (
                   <button
                     onClick={handleRegenerate}
-                    className="px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg hover:bg-[#1d4ed8] transition-all"
+                    className="px-6 py-3 bg-genie-primary text-white font-semibold rounded-lg hover:bg-genie-primary-hover transition-all"
                   >
                     Try Again
                   </button>

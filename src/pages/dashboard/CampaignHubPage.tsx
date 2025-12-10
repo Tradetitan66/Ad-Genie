@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { Building2, Plus, LogOut, Loader2, Download, Eye, Image, Calendar, Sparkles } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Building2, Plus, LogOut, Loader2, Download, Eye, Image, Calendar, Sparkles, ArrowRight, X } from 'lucide-react';
 import { userService, brandProfileService, preferencesService, campaignService, Campaign } from '../../services/database';
 import { sendBrandDataToWebhook } from '../../services/webhookService';
 import { useToast } from '../../contexts/ToastContext';
 import { downloadMultipleImages, ImageData } from '../../utils/imageDownload';
 import TokenDisplay from '../../components/TokenDisplay';
 import { tokenService } from '../../services/tokenService';
+import { supabase } from '../../lib/supabase';
+import CampaignSidebar from '../../components/CampaignSidebar';
+import CampaignStatsBar from '../../components/CampaignStatsBar';
 
 export default function CampaignHubPage() {
   const navigate = useNavigate();
@@ -17,6 +19,12 @@ export default function CampaignHubPage() {
   const [sendingWebhook, setSendingWebhook] = useState(false);
   const [previousCampaigns, setPreviousCampaigns] = useState<Campaign[]>([]);
   const [magicTokens, setMagicTokens] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({
+    status: 'all',
+    contentType: 'all',
+    dateRange: 'all',
+  });
 
   useEffect(() => {
     loadUser();
@@ -138,10 +146,18 @@ export default function CampaignHubPage() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('user'); // Also clear AuthContext user
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('user');
+      navigate('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('user');
+      navigate('/');
+    }
   };
 
   const loadPreviousCampaignsForUser = async (userId: string) => {
@@ -219,11 +235,150 @@ export default function CampaignHubPage() {
     }).format(date);
   };
 
+  // Filter and search campaigns
+  const filteredCampaigns = useMemo(() => {
+    let filtered = [...previousCampaigns];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((campaign) => {
+        const contentType = getContentTypeLabel(campaign.content_type).toLowerCase();
+        const date = formatDate(campaign.completed_at || campaign.created_at).toLowerCase();
+        return contentType.includes(query) || date.includes(query);
+      });
+    }
+
+    // Status filter
+    if (filters.status !== 'all') {
+      filtered = filtered.filter((campaign) => campaign.status === filters.status);
+    }
+
+    // Content type filter
+    if (filters.contentType !== 'all') {
+      filtered = filtered.filter((campaign) => campaign.content_type === filters.contentType);
+    }
+
+    // Date range filter
+    if (filters.dateRange !== 'all') {
+      const now = new Date();
+      const filterDate = new Date();
+      
+      switch (filters.dateRange) {
+        case 'today':
+          filterDate.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          filterDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          filterDate.setMonth(now.getMonth() - 1);
+          break;
+        case 'year':
+          filterDate.setFullYear(now.getFullYear() - 1);
+          break;
+      }
+      
+      filtered = filtered.filter((campaign) => {
+        const campaignDate = new Date(campaign.completed_at || campaign.created_at);
+        return campaignDate >= filterDate;
+      });
+    }
+
+    return filtered;
+  }, [previousCampaigns, searchQuery, filters]);
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const total = previousCampaigns.length;
+    const active = previousCampaigns.filter((c) => c.status === 'generating').length;
+    const completed = previousCampaigns.filter((c) => c.status === 'completed').length;
+    return { total, active, completed };
+  }, [previousCampaigns]);
+
+  // Get active filter labels
+  const getActiveFilters = () => {
+    const activeFilters: Array<{ key: string; label: string; type: 'status' | 'contentType' | 'dateRange' | 'search' }> = [];
+
+    // Search query
+    if (searchQuery.trim()) {
+      activeFilters.push({
+        key: 'search',
+        label: `Search: "${searchQuery}"`,
+        type: 'search',
+      });
+    }
+
+    // Status filter
+    if (filters.status !== 'all') {
+      const statusLabels: Record<string, string> = {
+        completed: 'Completed',
+        generating: 'Generating',
+        failed: 'Failed',
+      };
+      activeFilters.push({
+        key: 'status',
+        label: `Status: ${statusLabels[filters.status] || filters.status}`,
+        type: 'status',
+      });
+    }
+
+    // Content type filter
+    if (filters.contentType !== 'all') {
+      activeFilters.push({
+        key: 'contentType',
+        label: `Type: ${getContentTypeLabel(filters.contentType)}`,
+        type: 'contentType',
+      });
+    }
+
+    // Date range filter
+    if (filters.dateRange !== 'all') {
+      const dateLabels: Record<string, string> = {
+        today: 'Today',
+        week: 'This Week',
+        month: 'This Month',
+        year: 'This Year',
+      };
+      activeFilters.push({
+        key: 'dateRange',
+        label: `Date: ${dateLabels[filters.dateRange] || filters.dateRange}`,
+        type: 'dateRange',
+      });
+    }
+
+    return activeFilters;
+  };
+
+  // Clear a specific filter
+  const clearFilter = (type: 'status' | 'contentType' | 'dateRange' | 'search') => {
+    if (type === 'search') {
+      setSearchQuery('');
+    } else {
+      setFilters((prev) => ({
+        ...prev,
+        [type]: 'all',
+      }));
+    }
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSearchQuery('');
+    setFilters({
+      status: 'all',
+      contentType: 'all',
+      dateRange: 'all',
+    });
+  };
+
+  const activeFilters = getActiveFilters();
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB]">
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA]">
         <div className="text-center">
-          <p className="text-slate-600">Loading...</p>
+          <p className="text-[#6B7280]">Loading...</p>
         </div>
       </div>
     );
@@ -232,72 +387,95 @@ export default function CampaignHubPage() {
   if (!userData) return null;
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] py-12 px-4">
-      <div className="max-w-5xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+    <div className="min-h-screen bg-[#FAFAFA]">
+      {/* Header Navigation Bar */}
+      <header className="bg-[#2D3142] shadow-sm h-16 flex items-center justify-between px-6 md:px-8 fixed top-0 left-0 right-0 z-50">
+        {/* Logo - Left Side */}
+        <Link
+          to="/dashboard/campaign-hub"
+          className="flex items-center gap-3"
         >
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-slate-900 mb-2">
+          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-orange-500 shadow-md bg-white flex-shrink-0">
+            <img
+              src="/enhanced_design_a_contemporary_professional_logo_combining_a_streamlined_genie_figure_with_modern_tech_symbo_g4d4ei5j85xa3vwd3mit_1 (1).png"
+              alt="Ad-Genie Logo"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <span className="text-xl font-bold text-orange-500">
+            Ad-Genie
+          </span>
+          <Sparkles className="text-amber-400 w-4 h-4" />
+        </Link>
+
+        {/* Logout Button - Right Side */}
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 px-4 py-2 text-white border border-white/30 rounded-lg hover:bg-white/10 hover:border-white/50 transition-all"
+        >
+          <LogOut size={18} />
+          <span className="font-medium">Logout</span>
+        </button>
+      </header>
+
+      {/* Sidebar */}
+      <CampaignSidebar
+        onFilterChange={setFilters}
+        onSearchChange={setSearchQuery}
+      />
+
+      {/* Main Content Area */}
+      <main className="lg:ml-[280px] pt-16">
+        {/* Stats Bar */}
+        <CampaignStatsBar
+          totalCampaigns={stats.total}
+          activeCampaigns={stats.active}
+          completedCampaigns={stats.completed}
+          userId={userData?.userId || null}
+        />
+
+        {/* Page Content */}
+        <div className="max-w-[1400px] mx-auto px-8 py-8">
+          <div className="mb-6">
+            <h1 className="text-3xl md:text-4xl font-bold text-[#2D3142] mb-1">
               Welcome back, {userData.displayName}! 👋
             </h1>
-            <p className="text-xl text-slate-600 mb-6">
+            <p className="text-lg text-[#6B7280]">
               Ready to create your next campaign?
             </p>
-            
-            {/* Magic Tokens Display */}
-            {userData.userId && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-lg shadow-sm mb-4"
-              >
-                <Sparkles className="text-amber-500" size={24} />
-                <div className="text-left">
-                  <p className="text-sm text-slate-600 font-medium">Magic Tokens</p>
-                  <TokenDisplay userId={userData.userId} size="large" showLabel={false} />
-                </div>
-                <div className="text-xs text-slate-500 ml-4 pl-4 border-l border-amber-200">
-                  <p>Test Mode</p>
-                  <p className="text-xs">Tokens not enforced</p>
-                </div>
-              </motion.div>
-            )}
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 mb-8">
-            <motion.div
-              whileHover={!sendingWebhook ? { scale: 1.02 } : {}}
-              className="bg-white rounded-lg shadow-lg p-8 cursor-pointer"
+          <div className="grid md:grid-cols-2 gap-4 mb-8">
+            <div
+              className="bg-white rounded-2xl shadow-lg p-6 cursor-pointer hover:shadow-xl transition-shadow"
               onClick={handleUseExisting}
             >
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-[#2563EB] to-[#8B5CF6] rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Building2 size={32} className="text-white" />
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-orange-400 to-orange-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
+                  <Building2 size={24} className="text-white" />
                 </div>
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-slate-900 mb-1">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-xl md:text-2xl font-bold text-[#2D3142] mb-2">
                     Use Existing Brand Profile
                   </h2>
                   {userData.brandProfile && (
-                    <div className="mt-4">
-                      <div className="flex items-center gap-3">
+                    <div className="mt-3">
+                      <div className="flex items-center gap-2.5">
                         {userData.brandProfile.logo && (
                           <img
                             src={userData.brandProfile.logo}
                             alt="Logo"
-                            className="w-12 h-12 object-contain rounded border"
+                            className="w-10 h-10 object-contain rounded-lg border border-[#E5E7EB] flex-shrink-0"
                           />
                         )}
-                        <div>
-                          <p className="font-semibold text-slate-900">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-sm text-[#2D3142] truncate">
                             {userData.brandProfile.brandName}
                           </p>
-                          <p className="text-sm text-slate-500">
+                          <p className="text-xs text-[#6B7280] truncate">
                             {userData.brandProfile.industry}
                           </p>
-                          <p className="text-xs text-slate-400 mt-1">
+                          <p className="text-[10px] text-[#6B7280] mt-0.5">
                             Last used: {new Date().toLocaleDateString()}
                           </p>
                         </div>
@@ -306,71 +484,99 @@ export default function CampaignHubPage() {
                   )}
                 </div>
               </div>
-              <p className="text-slate-600 mb-6">
+              <p className="text-sm text-[#6B7280] mb-4">
                 Use your saved preferences
               </p>
               <button 
                 disabled={sendingWebhook}
-                className="w-full px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg hover:bg-[#1d4ed8] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full px-5 py-2.5 bg-gradient-to-r from-orange-400 to-orange-600 text-white text-sm font-bold rounded-lg hover:from-orange-500 hover:to-orange-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {sendingWebhook ? (
                   <>
-                    <Loader2 size={20} className="animate-spin" />
+                    <Loader2 size={18} className="animate-spin" />
                     Sending...
                   </>
                 ) : (
                   <>
-                    Continue with {userData.brandProfile?.brandName || 'Profile'} →
+                    Continue with {userData.brandProfile?.brandName || 'Profile'}
+                    <ArrowRight size={16} />
                   </>
                 )}
               </button>
-            </motion.div>
+            </div>
 
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              className="bg-white rounded-lg shadow-lg p-8 cursor-pointer"
+            <div
+              className="bg-white rounded-2xl shadow-lg p-6 cursor-pointer hover:shadow-xl transition-shadow"
               onClick={() => navigate('/onboarding/content-selection')}
             >
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-[#10B981] to-[#8B5CF6] rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Plus size={32} className="text-white" />
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-orange-400 to-orange-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
+                  <Plus size={24} className="text-white" />
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900 mb-1">
+                <div className="flex-1">
+                  <h2 className="text-xl md:text-2xl font-bold text-[#2D3142] mb-2">
                     Start Fresh Campaign
                   </h2>
                 </div>
               </div>
-              <p className="text-slate-600 mb-6">
+              <p className="text-sm text-[#6B7280] mb-4">
                 New brand or different direction
               </p>
-              <button className="w-full px-6 py-3 bg-white text-[#2563EB] font-semibold rounded-lg border-2 border-[#2563EB] hover:bg-blue-50 transition-all">
+              <button className="w-full px-5 py-2.5 bg-white text-orange-500 text-sm font-bold rounded-lg border-2 border-orange-500 hover:bg-orange-50 transition-all">
                 Set Up New Campaign
               </button>
-            </motion.div>
+            </div>
           </div>
 
           {/* Previous Campaigns Section */}
           {previousCampaigns.length > 0 && (
-            <div className="mt-12">
-              <h2 className="text-2xl font-bold text-slate-900 mb-6">Your Previous Campaigns</h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {previousCampaigns.map((campaign, index) => {
+            <div className="mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-[#2D3142]">
+                  Your Campaigns {filteredCampaigns.length !== previousCampaigns.length && `(${filteredCampaigns.length} of ${previousCampaigns.length})`}
+                </h2>
+              </div>
+
+              {/* Active Filter Tags */}
+              {activeFilters.length > 0 && (
+                <div className="mb-6 flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide mr-1">Active filters:</span>
+                  {activeFilters.map((filter) => (
+                    <button
+                      key={filter.key}
+                      onClick={() => clearFilter(filter.type)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-700 border border-orange-200 rounded-lg hover:bg-orange-100 hover:border-orange-300 transition-all group text-sm"
+                      aria-label={`Remove ${filter.label} filter`}
+                    >
+                      <span className="font-medium">{filter.label}</span>
+                      <X size={14} className="text-orange-600 group-hover:text-orange-700 flex-shrink-0" />
+                    </button>
+                  ))}
+                  {activeFilters.length > 1 && (
+                    <button
+                      onClick={clearAllFilters}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-[#6B7280] border border-[#E5E7EB] rounded-lg hover:bg-[#FAFAFA] hover:border-[#6B7280] transition-all text-sm font-medium"
+                      aria-label="Clear all filters"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                {filteredCampaigns.map((campaign) => {
                   const firstImage = campaign.generated_assets.images[0];
                   const imageUrl = firstImage?.url || firstImage?.image_url || firstImage?.imageUrl || firstImage?.src || firstImage;
                   const imageCount = campaign.generated_assets.images.length;
                   
                   return (
-                    <motion.div
+                    <div
                       key={campaign.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-all"
+                      className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
                     >
                       {/* Thumbnail */}
                       {typeof imageUrl === 'string' && imageUrl && (
-                        <div className="aspect-video bg-slate-100 relative group">
+                        <div className="aspect-[4/3] bg-[#FAFAFA] relative group cursor-pointer" onClick={() => navigate('/dashboard/results', { state: { campaignId: campaign.id } })}>
                           <img
                             src={imageUrl}
                             alt="Campaign thumbnail"
@@ -380,14 +586,14 @@ export default function CampaignHubPage() {
                               target.style.display = 'none';
                             }}
                           />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                             <div className="flex gap-2">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   navigate('/dashboard/results', { state: { campaignId: campaign.id } });
                                 }}
-                                className="px-4 py-2 bg-white rounded-lg shadow-lg flex items-center gap-2 hover:bg-slate-50"
+                                className="px-4 py-2 bg-white rounded-lg shadow-lg flex items-center gap-2 hover:bg-[#FAFAFA] font-medium"
                               >
                                 <Eye size={16} />
                                 View
@@ -398,18 +604,18 @@ export default function CampaignHubPage() {
                       )}
                       
                       {/* Campaign Info */}
-                      <div className="p-4">
+                      <div className="p-6">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            <Image size={16} className="text-slate-500" />
-                            <span className="text-sm font-semibold text-slate-900">
+                            <Image size={16} className="text-[#6B7280]" />
+                            <span className="text-sm font-semibold text-[#2D3142]">
                               {getContentTypeLabel(campaign.content_type)}
                             </span>
                           </div>
-                          <span className="text-xs text-slate-500">{imageCount} image{imageCount !== 1 ? 's' : ''}</span>
+                          <span className="text-xs text-[#6B7280]">{imageCount} image{imageCount !== 1 ? 's' : ''}</span>
                         </div>
                         
-                        <div className="flex items-center gap-2 text-xs text-slate-500 mb-4">
+                        <div className="flex items-center gap-2 text-xs text-[#6B7280] mb-4">
                           <Calendar size={12} />
                           <span>{formatDate(campaign.completed_at || campaign.created_at)}</span>
                         </div>
@@ -418,21 +624,21 @@ export default function CampaignHubPage() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => navigate('/dashboard/results', { state: { campaignId: campaign.id } })}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#2563EB] text-white font-semibold rounded-lg hover:bg-[#1d4ed8] transition-all text-sm"
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-bold rounded-lg hover:from-orange-500 hover:to-orange-700 transition-all text-sm"
                           >
                             <Eye size={16} />
                             View
                           </button>
                           <button
                             onClick={() => handleDownloadAll(campaign)}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white text-[#2563EB] font-semibold rounded-lg border-2 border-[#2563EB] hover:bg-blue-50 transition-all text-sm"
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white text-orange-500 font-bold rounded-lg border-2 border-orange-500 hover:bg-orange-50 transition-all text-sm"
                           >
                             <Download size={16} />
                             Download
                           </button>
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   );
                 })}
               </div>
@@ -440,29 +646,47 @@ export default function CampaignHubPage() {
           )}
 
           {previousCampaigns.length === 0 && (
-            <div className="mt-12 text-center">
-              <p className="text-slate-600">No previous campaigns yet. Create your first campaign!</p>
+            <div className="mt-12 text-center py-16">
+              <div className="inline-flex flex-col items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-[#FAFAFA] flex items-center justify-center">
+                  <Image size={32} className="text-[#6B7280]" />
+                </div>
+                <div>
+                  <p className="text-[#2D3142] text-lg font-semibold mb-1">No campaigns yet</p>
+                  <p className="text-[#6B7280]">Create your first campaign to get started!</p>
+                </div>
+                <Link
+                  to="/dashboard/content-selection"
+                  className="mt-4 px-6 py-3 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-bold rounded-lg hover:from-orange-500 hover:to-orange-700 transition-all inline-flex items-center gap-2"
+                >
+                  <Plus size={18} />
+                  Create Campaign
+                </Link>
+              </div>
             </div>
           )}
 
-          <div className="text-center space-y-3 mt-8">
-            <button
-              onClick={() => navigate('/onboarding/content-selection')}
-              className="text-[#2563EB] hover:text-[#1d4ed8] font-medium"
-            >
-              Edit Brand Profile
-            </button>
-            <span className="mx-4 text-slate-300">•</span>
-            <button
-              onClick={handleLogout}
-              className="text-slate-600 hover:text-slate-900 font-medium inline-flex items-center gap-2"
-            >
-              <LogOut size={16} />
-              Logout
-            </button>
-          </div>
-        </motion.div>
-      </div>
+          {previousCampaigns.length > 0 && filteredCampaigns.length === 0 && (
+            <div className="mt-6 text-center py-12">
+              <div className="bg-white rounded-2xl shadow-lg p-8 md:p-12">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#FAFAFA] flex items-center justify-center">
+                  <Image size={32} className="text-[#6B7280]" />
+                </div>
+                <h3 className="text-xl font-bold text-[#2D3142] mb-2">No campaigns match your filters</h3>
+                <p className="text-[#6B7280] mb-6">Try adjusting your search or filters to see more results.</p>
+                {activeFilters.length > 0 && (
+                  <button
+                    onClick={clearAllFilters}
+                    className="px-6 py-3 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-bold rounded-lg hover:from-orange-500 hover:to-orange-700 transition-all inline-flex items-center gap-2"
+                  >
+                    Clear All Filters
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 }

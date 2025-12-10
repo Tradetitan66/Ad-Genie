@@ -36,6 +36,28 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+    
+    /* Ad-Genie Design System Colors */
+    --genie-primary: 240 100% 50%;
+    --genie-primary-hover: 240 100% 45%;
+    --genie-secondary: 270 91% 65%;
+    --genie-secondary-hover: 270 91% 60%;
+    --genie-accent: 188 94% 47%;
+    --genie-accent-hover: 188 94% 42%;
+    --genie-success: 142 76% 36%;
+    --genie-warning: 38 92% 50%;
+    --genie-error: 0 84% 60%;
+    --genie-info: 199 89% 48%;
+    --genie-neutral-50: 210 40% 98%;
+    --genie-neutral-100: 210 40% 96%;
+    --genie-neutral-200: 214 32% 91%;
+    --genie-neutral-300: 213 27% 84%;
+    --genie-neutral-400: 215 20% 65%;
+    --genie-neutral-500: 215 16% 47%;
+    --genie-neutral-600: 215 19% 35%;
+    --genie-neutral-700: 215 25% 27%;
+    --genie-neutral-800: 217 33% 17%;
+    --genie-neutral-900: 222 47% 11%;
   }
   .dark {
     --background: 0 0% 3.9%;
