@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Edit2, Loader2, Upload } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit2, Loader2 } from 'lucide-react';
 import OnboardingLayout from '../../components/OnboardingLayout';
 import { userService, preferencesService, brandProfileService, campaignService } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
@@ -23,8 +22,6 @@ export default function ReviewPage() {
     assets: true,
     content: true
   });
-  const [ugcImageUrl, setUgcImageUrl] = useState<string | null>(null);
-  const [uploadingUgcImage, setUploadingUgcImage] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -93,28 +90,6 @@ export default function ReviewPage() {
     });
   };
 
-  const handleUgcImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !userId) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      error('Please upload an image file');
-      return;
-    }
-
-    setUploadingUgcImage(true);
-    try {
-      const imageUrl = await imageService.uploadToStorage(userId, file, 'product', false);
-      setUgcImageUrl(imageUrl);
-      success('Image uploaded successfully!');
-    } catch (err: any) {
-      console.error('Error uploading UGC image:', err);
-      error(`Failed to upload image: ${err.message}`);
-    } finally {
-      setUploadingUgcImage(false);
-    }
-  };
 
   const handleGenerate = async () => {
     if (!userId) return;
@@ -157,13 +132,24 @@ export default function ReviewPage() {
         : undefined;
 
       // Get content type early (needed for product images logic)
-      const contentType = preferences?.content_type || userData.contentType || 'image-only';
+      // CRITICAL: Use only freshly fetched preferences - no fallback to avoid stale data
+      if (!preferences?.content_type) {
+        console.error('❌ Content type validation failed:', {
+          hasPreferences: !!preferences,
+          preferencesContentType: preferences?.content_type,
+          userDataContentType: userData?.contentType,
+          userId
+        });
+        error('Content type not selected. Please select a content type first.');
+        setGenerating(false);
+        navigate('/onboarding/content-selection');
+        return;
+      }
+      const contentType = preferences.content_type;
+      console.log('✅ Content type validated:', contentType);
 
-      // Prepare product images array - include UGC image if uploaded
-      const baseProductImages = Array.isArray(brandProfile.product_images) ? brandProfile.product_images : [];
-      const productImages = contentType === 'ugc-only' || contentType === 'image-ugc'
-        ? (ugcImageUrl ? [...baseProductImages, ugcImageUrl] : baseProductImages)
-        : baseProductImages;
+      // Prepare product images array - use product images from brand profile
+      const productImages = Array.isArray(brandProfile.product_images) ? brandProfile.product_images : [];
 
       // Prepare webhook payload
       const webhookData: BrandWebhookData = {
@@ -177,7 +163,7 @@ export default function ReviewPage() {
           logo_url: brandProfile.logo || null,
           product_images: productImages,
           brand_colors: formattedBrandColors,
-          content_type: preferences?.content_type || userData.contentType || undefined,
+          content_type: contentType, // CRITICAL: This is now guaranteed to be set (validated above)
           campaign_goal: actualCampaignGoal,
           campaign_market: campaignMarket,
           brand_voice: preferences?.brand_voice || undefined,
@@ -208,6 +194,9 @@ export default function ReviewPage() {
           videos: contentType === 'ugc-only' || contentType === 'image-ugc' ? [] : undefined,
         },
       });
+
+      // Trigger stats refresh event
+      window.dispatchEvent(new Event('campaignUpdated'));
 
       // Only update onboarding status if user hasn't completed onboarding yet
       // IMPORTANT: Update onboarding status BEFORE navigation to ensure ProtectedRoute allows access
@@ -252,7 +241,7 @@ export default function ReviewPage() {
       <OnboardingLayout currentStep={5} totalSteps={5} stepLabel="Loading review...">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <Loader2 className="w-12 h-12 text-[#2563EB] animate-spin mx-auto mb-4" />
+            <Loader2 className="w-12 h-12 text-orange-500 animate-spin mx-auto mb-4" />
             <p className="text-slate-600">Loading...</p>
           </div>
         </div>
@@ -264,32 +253,28 @@ export default function ReviewPage() {
 
   return (
     <OnboardingLayout currentStep={5} totalSteps={5} stepLabel="Review and launch">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-lg shadow-lg p-8"
-      >
+      <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+          <h1 className="text-3xl md:text-4xl font-bold text-[#2D3142] mb-2">
             Review & Launch Your First Campaign
           </h1>
-          <p className="text-slate-600">Almost done! Review your information below</p>
+          <p className="text-[#6B7280]">Almost done! Review your information below</p>
         </div>
 
-          <div className="space-y-4 mb-8">
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
+          <div className="space-y-6 mb-8">
+            <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
               <button
                 onClick={() => toggleSection('preferences')}
-                className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
+                className="w-full flex items-center justify-between p-4 md:p-6 bg-[#FAFAFA] hover:bg-orange-50 transition-colors border-b border-[#E5E7EB]"
               >
-                <h3 className="font-bold text-slate-900">Your Preferences</h3>
+                <h3 className="text-lg font-bold text-[#2D3142]">Your Preferences</h3>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate('/onboarding/brand-and-preferences');
                     }}
-                    className="text-[#2563EB] hover:text-[#1d4ed8] flex items-center gap-1 text-sm"
+                    className="text-orange-500 hover:text-orange-600 flex items-center gap-1.5 text-sm font-medium transition-colors"
                   >
                     <Edit2 size={14} />
                     Edit
@@ -298,20 +283,20 @@ export default function ReviewPage() {
                 </div>
               </button>
               {expandedSections.preferences && userData.preferences && (
-                <div className="p-4 space-y-3 text-sm">
+                <div className="p-6 space-y-3 text-sm">
                   <div>
-                    <span className="font-semibold text-slate-700">Campaign Goal:</span>
-                    <p className="text-slate-600 mt-1">{userData.preferences.campaignGoal}</p>
+                    <span className="font-semibold text-[#2D3142]">Campaign Goal:</span>
+                    <p className="text-[#6B7280] mt-1">{userData.preferences.campaignGoal}</p>
                   </div>
                   <div>
-                    <span className="font-semibold text-slate-700">Brand Voice:</span>
-                    <span className="ml-2 text-slate-600">{userData.preferences.brandVoice}</span>
+                    <span className="font-semibold text-[#2D3142]">Brand Voice:</span>
+                    <span className="ml-2 text-[#6B7280]">{userData.preferences.brandVoice}</span>
                   </div>
                   <div>
-                    <span className="font-semibold text-slate-700">Visual Styles:</span>
+                    <span className="font-semibold text-[#2D3142]">Visual Styles:</span>
                     <div className="flex flex-wrap gap-2 mt-1">
                       {userData.preferences.visualStyles.map((style: string) => (
-                        <span key={style} className="px-3 py-1 bg-blue-100 text-[#2563EB] rounded-full text-xs">
+                        <span key={style} className="px-3 py-1 bg-orange-50 text-orange-700 border border-orange-200 rounded-full text-xs">
                           {style}
                         </span>
                       ))}
@@ -321,19 +306,19 @@ export default function ReviewPage() {
               )}
             </div>
 
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
+            <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
               <button
                 onClick={() => toggleSection('brand')}
-                className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
+                className="w-full flex items-center justify-between p-4 md:p-6 bg-[#FAFAFA] hover:bg-orange-50 transition-colors border-b border-[#E5E7EB]"
               >
-                <h3 className="font-bold text-slate-900">Brand Details</h3>
+                <h3 className="text-lg font-bold text-[#2D3142]">Brand Details</h3>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate('/onboarding/brand-and-preferences');
                     }}
-                    className="text-[#2563EB] hover:text-[#1d4ed8] flex items-center gap-1 text-sm"
+                    className="text-orange-500 hover:text-orange-600 flex items-center gap-1.5 text-sm font-medium transition-colors"
                   >
                     <Edit2 size={14} />
                     Edit
@@ -342,30 +327,30 @@ export default function ReviewPage() {
                 </div>
               </button>
               {expandedSections.brand && userData.brandProfile && (
-                <div className="p-4 space-y-3 text-sm">
-                  <div><span className="font-semibold text-slate-700">Brand Name:</span> <span className="text-slate-600">{userData.brandProfile.brandName}</span></div>
-                  <div><span className="font-semibold text-slate-700">Industry:</span> <span className="text-slate-600">{userData.brandProfile.industry}</span></div>
+                <div className="p-6 space-y-3 text-sm">
+                  <div><span className="font-semibold text-[#2D3142]">Brand Name:</span> <span className="text-[#6B7280]">{userData.brandProfile.brandName}</span></div>
+                  <div><span className="font-semibold text-[#2D3142]">Industry:</span> <span className="text-[#6B7280]">{userData.brandProfile.industry}</span></div>
                   {userData.brandProfile.audience && (
-                    <div><span className="font-semibold text-slate-700">Target Audience:</span> <p className="text-slate-600 mt-1">{userData.brandProfile.audience}</p></div>
+                    <div><span className="font-semibold text-[#2D3142]">Target Audience:</span> <p className="text-[#6B7280] mt-1">{userData.brandProfile.audience}</p></div>
                   )}
-                  <div><span className="font-semibold text-slate-700">Website:</span> <a href={userData.brandProfile.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-[#2563EB] ml-2">{userData.brandProfile.websiteUrl}</a></div>
+                  <div><span className="font-semibold text-[#2D3142]">Website:</span> <a href={userData.brandProfile.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-600 ml-2 transition-colors">{userData.brandProfile.websiteUrl}</a></div>
                 </div>
               )}
             </div>
 
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
+            <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
               <button
                 onClick={() => toggleSection('assets')}
-                className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
+                className="w-full flex items-center justify-between p-4 md:p-6 bg-[#FAFAFA] hover:bg-orange-50 transition-colors border-b border-[#E5E7EB]"
               >
-                <h3 className="font-bold text-slate-900">Visual Assets</h3>
+                <h3 className="text-lg font-bold text-[#2D3142]">Visual Assets</h3>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate('/onboarding/brand-and-preferences');
                     }}
-                    className="text-[#2563EB] hover:text-[#1d4ed8] flex items-center gap-1 text-sm"
+                    className="text-orange-500 hover:text-orange-600 flex items-center gap-1.5 text-sm font-medium transition-colors"
                   >
                     <Edit2 size={14} />
                     Edit
@@ -374,76 +359,52 @@ export default function ReviewPage() {
                 </div>
               </button>
               {expandedSections.assets && userData.brandProfile && (
-                <div className="p-4 space-y-3">
+                <div className="p-6 space-y-4">
                   <div>
-                    <span className="font-semibold text-slate-700 text-sm">Logo:</span>
-                    <img src={userData.brandProfile.logo} alt="Logo" className="w-24 h-24 object-contain mt-2 border rounded" />
-                  </div>
-                  <div>
-                    <span className="font-semibold text-slate-700 text-sm">Product Images ({userData.brandProfile.productImages.length}):</span>
-                    <div className="grid grid-cols-4 gap-2 mt-2">
-                      {userData.brandProfile.productImages.map((img: string, i: number) => (
-                        <img key={i} src={img} alt={`Product ${i + 1}`} className="w-full h-20 object-cover rounded" />
-                      ))}
-                    </div>
-                  </div>
-                  {(userData.contentType === 'ugc-only' || userData.contentType === 'image-ugc') && (
-                    <div>
-                      <span className="font-semibold text-slate-700 text-sm block mb-2">UGC Source Image:</span>
-                      {ugcImageUrl ? (
-                        <div className="relative">
-                          <img src={ugcImageUrl} alt="UGC Source" className="w-full max-w-xs h-48 object-cover rounded border" />
-                          <button
-                            onClick={() => setUgcImageUrl(null)}
-                            className="mt-2 text-sm text-red-600 hover:text-red-700"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ) : (
-                        <label className="flex flex-col items-center justify-center w-full max-w-xs h-48 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            {uploadingUgcImage ? (
-                              <>
-                                <Loader2 className="w-8 h-8 text-[#2563EB] animate-spin mb-2" />
-                                <p className="text-sm text-slate-600">Uploading...</p>
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                                <p className="text-sm text-slate-600">Click to upload image</p>
-                                <p className="text-xs text-slate-500 mt-1">This image will be used for video generation</p>
-                              </>
-                            )}
-                          </div>
-                          <input
-                            type="file"
-                            className="hidden"
-                            accept="image/*"
-                            onChange={handleUgcImageUpload}
-                            disabled={uploadingUgcImage}
-                          />
-                        </label>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-semibold text-[#2D3142] text-sm">
+                        Product Image for Campaign
+                      </span>
+                      {userData.brandProfile.productImages.length > 1 && (
+                        <span className="text-xs text-[#6B7280]">
+                          Image 1 of {userData.brandProfile.productImages.length}
+                        </span>
                       )}
                     </div>
-                  )}
-                </div>
+                    {userData.brandProfile.productImages.length > 0 ? (
+                      <div className="relative">
+                        <img 
+                          src={userData.brandProfile.productImages[0]} 
+                          alt="Product image for campaign" 
+                          className="w-full max-w-md h-auto rounded-xl border-2 border-[#E5E7EB] shadow-md object-contain bg-white"
+                        />
+                        <p className="text-xs text-[#6B7280] mt-2">
+                          This image will be used to generate your campaign assets
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="border-2 border-dashed border-[#E5E7EB] rounded-xl p-8 text-center">
+                        <p className="text-sm text-[#6B7280]">No product image uploaded</p>
+                      </div>
+                    )}
+                   </div>
+                 </div>
               )}
             </div>
 
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
+            <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
               <button
                 onClick={() => toggleSection('content')}
-                className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
+                className="w-full flex items-center justify-between p-4 md:p-6 bg-[#FAFAFA] hover:bg-orange-50 transition-colors border-b border-[#E5E7EB]"
               >
-                <h3 className="font-bold text-slate-900">Content Type</h3>
+                <h3 className="text-lg font-bold text-[#2D3142]">Content Type</h3>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate('/onboarding/content-selection');
                     }}
-                    className="text-[#2563EB] hover:text-[#1d4ed8] flex items-center gap-1 text-sm"
+                    className="text-orange-500 hover:text-orange-600 flex items-center gap-1.5 text-sm font-medium transition-colors"
                   >
                     <Edit2 size={14} />
                     Edit
@@ -452,15 +413,15 @@ export default function ReviewPage() {
                 </div>
               </button>
               {expandedSections.content && (
-                <div className="p-4">
-                  <p className="text-sm text-slate-600 capitalize">{userData.contentType?.replace('-', ' ')}</p>
+                <div className="p-6">
+                  <p className="text-sm text-[#6B7280] capitalize">{userData.contentType?.replace('-', ' ')}</p>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
-            <p className="text-sm text-slate-700 text-center">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-8">
+            <p className="text-sm text-[#2D3142] text-center">
               Estimated delivery: <span className="font-semibold">5-10 minutes</span>
             </p>
           </div>
@@ -475,12 +436,19 @@ export default function ReviewPage() {
             <button
               onClick={handleGenerate}
               disabled={generating}
-              className="flex-1 px-8 py-4 bg-[#2563EB] text-white font-bold rounded-lg shadow-lg hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all text-lg"
+              className="flex-1 px-8 py-4 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-bold rounded-lg shadow-lg hover:from-orange-500 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-lg flex items-center justify-center gap-2"
             >
-              {generating ? 'Launching...' : 'Generate Campaign Assets'}
+              {generating ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Launching...
+                </>
+              ) : (
+                'Generate Campaign Assets'
+              )}
             </button>
           </div>
-      </motion.div>
+      </div>
     </OnboardingLayout>
   );
 }

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Plus, Sparkles } from 'lucide-react';
+import { Plus, Sparkles, Loader2 } from 'lucide-react';
 import TokenDisplay from './TokenDisplay';
 
 interface CampaignStatsBarProps {
@@ -7,6 +7,7 @@ interface CampaignStatsBarProps {
   activeCampaigns: number;
   completedCampaigns: number;
   userId: string | null;
+  isLoading?: boolean;
 }
 
 export default function CampaignStatsBar({
@@ -14,6 +15,7 @@ export default function CampaignStatsBar({
   activeCampaigns,
   completedCampaigns,
   userId,
+  isLoading = false,
 }: CampaignStatsBarProps) {
   return (
     <div className="bg-white border-b border-[#E5E7EB] px-8 py-4">
@@ -22,21 +24,33 @@ export default function CampaignStatsBar({
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-2">
             <span className="text-sm text-[#6B7280]">Total Campaigns</span>
-            <span className="text-2xl font-bold text-[#2D3142]">{totalCampaigns}</span>
+            {isLoading ? (
+              <Loader2 size={20} className="text-[#6B7280] animate-spin" />
+            ) : (
+              <span className="text-2xl font-bold text-[#2D3142]">{totalCampaigns}</span>
+            )}
           </div>
           
           <div className="h-8 w-px bg-[#E5E7EB]" />
           
           <div className="flex items-center gap-2">
             <span className="text-sm text-[#6B7280]">Active</span>
-            <span className="text-2xl font-bold text-orange-500">{activeCampaigns}</span>
+            {isLoading ? (
+              <Loader2 size={20} className="text-orange-500 animate-spin" />
+            ) : (
+              <span className="text-2xl font-bold text-orange-500">{activeCampaigns}</span>
+            )}
           </div>
           
           <div className="h-8 w-px bg-[#E5E7EB]" />
           
           <div className="flex items-center gap-2">
             <span className="text-sm text-[#6B7280]">Completed</span>
-            <span className="text-2xl font-bold text-[#10B981]">{completedCampaigns}</span>
+            {isLoading ? (
+              <Loader2 size={20} className="text-[#10B981] animate-spin" />
+            ) : (
+              <span className="text-2xl font-bold text-[#10B981]">{completedCampaigns}</span>
+            )}
           </div>
           
           {userId && (

@@ -689,6 +689,20 @@ export const campaignService = {
         ? preferences.campaign_goal
         : undefined;
 
+      // CRITICAL: Prefer preferences.content_type over campaign.content_type
+      // campaign.content_type should match, but preferences is the source of truth
+      const contentType = preferences?.content_type || campaign.content_type || undefined;
+      
+      // Log warning if content_type is missing
+      if (!contentType) {
+        console.warn('⚠️ Warning: content_type is missing in reconstructed webhook payload', {
+          campaignId: campaign.id,
+          hasPreferences: !!preferences,
+          preferencesContentType: preferences?.content_type,
+          campaignContentType: campaign.content_type
+        });
+      }
+      
       return {
         user_id: user.id,
         user_email: user.email,
@@ -700,7 +714,7 @@ export const campaignService = {
         logo_url: brandProfile.logo || null,
         product_images: Array.isArray(brandProfile.product_images) ? brandProfile.product_images : [],
         brand_colors: formattedBrandColors,
-        content_type: preferences?.content_type || campaign.content_type || undefined,
+        content_type: contentType,
         campaign_goal: actualCampaignGoal,
         campaign_market: campaignMarket,
         brand_voice: preferences?.brand_voice || undefined,

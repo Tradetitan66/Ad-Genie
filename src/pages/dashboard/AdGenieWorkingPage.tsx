@@ -226,6 +226,9 @@ export default function AdGenieWorkingPage() {
           },
         });
 
+        // Trigger stats refresh event
+        window.dispatchEvent(new Event('campaignUpdated'));
+
         // Deduct Magic Tokens for campaign generation
         try {
           const campaignCost = tokenService.calculateCampaignCost(
@@ -495,6 +498,9 @@ export default function AdGenieWorkingPage() {
         },
       });
 
+      // Trigger stats refresh event
+      window.dispatchEvent(new Event('campaignUpdated'));
+
       // Deduct Magic Tokens for campaign generation
       try {
         const campaignCost = tokenService.calculateCampaignCost(
@@ -571,6 +577,8 @@ export default function AdGenieWorkingPage() {
         await campaignService.update(campId, {
           status: 'failed',
         });
+        // Trigger stats refresh event (failed campaigns should also update stats)
+        window.dispatchEvent(new Event('campaignUpdated'));
       } catch (updateError) {
         console.error('Failed to update campaign status:', updateError);
       }

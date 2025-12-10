@@ -34,7 +34,7 @@ export default function OnboardingLayout({
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
+    <div className="min-h-screen bg-[#FAFAFA]">
       <header className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -76,7 +76,7 @@ export default function OnboardingLayout({
                 <div className="flex items-center gap-3">
                   <div className="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden">
                     <motion.div
-                      className="bg-gradient-to-r from-[#2563EB] to-[#8B5CF6] h-full rounded-full"
+                      className="bg-gradient-to-r from-orange-400 to-orange-600 h-full rounded-full"
                       initial={{ width: 0 }}
                       animate={{ width: `${progressPercentage}%` }}
                       transition={{ duration: 0.5, ease: 'easeOut' }}

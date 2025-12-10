@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Download, Share2, Home, RefreshCw, CheckCircle, Loader2 } from 'lucide-react';
+import { Download, Share2, Home, RefreshCw, CheckCircle, Loader2, Trash2 } from 'lucide-react';
 import { campaignService, userService } from '../../services/database';
 import { sendBrandDataToWebhook, parseWebhookResponse, BrandWebhookData, WebhookImageItem, WebhookVideoItem } from '../../services/webhookService';
 import { downloadImage, downloadMultipleImages, ImageData } from '../../utils/imageDownload';
@@ -21,6 +21,7 @@ export default function ResultsPage() {
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [webhookPayload, setWebhookPayload] = useState<BrandWebhookData | null>(null);
   const [campaignType, setCampaignType] = useState<string>('');
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   useEffect(() => {
     const currentUserEmail = localStorage.getItem('currentUser');
@@ -216,6 +217,28 @@ export default function ResultsPage() {
     await regenerateWithPayload(campaignId, webhookPayload);
   };
 
+  const handleDeleteCampaign = async () => {
+    if (!campaignId) {
+      showError('Campaign ID not found');
+      return;
+    }
+
+    try {
+      await campaignService.delete(campaignId);
+      success('Campaign deleted successfully');
+      setDeleteConfirm(false);
+      
+      // Trigger stats refresh event
+      window.dispatchEvent(new Event('campaignUpdated'));
+      
+      // Navigate back to campaign hub
+      navigate('/dashboard/campaign-hub');
+    } catch (err: any) {
+      console.error('Error deleting campaign:', err);
+      showError(`Failed to delete campaign: ${err.message}`);
+    }
+  };
+
   const regenerateWithPayload = async (campId: string, payload: BrandWebhookData) => {
     try {
       setRegenerating(true);
@@ -340,6 +363,9 @@ export default function ResultsPage() {
         },
       });
 
+      // Trigger stats refresh event
+      window.dispatchEvent(new Event('campaignUpdated'));
+
       // Deduct Magic Tokens for campaign regeneration
       try {
         const campaignCost = tokenService.calculateCampaignCost(
@@ -455,6 +481,37 @@ export default function ResultsPage() {
                     </>
                   )}
               </motion.button>
+              {deleteConfirm ? (
+                <>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleDeleteCampaign}
+                    className="px-6 py-3 bg-red-600 text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-red-700"
+                  >
+                    <Trash2 size={20} />
+                    Confirm Delete
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setDeleteConfirm(false)}
+                    className="px-6 py-3 bg-[#E5E7EB] text-[#2D3142] font-bold rounded-lg shadow-lg hover:bg-[#D1D5DB]"
+                  >
+                    Cancel
+                  </motion.button>
+                </>
+              ) : (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setDeleteConfirm(true)}
+                  className="px-6 py-3 bg-red-50 text-red-600 font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-red-100 border-2 border-red-200"
+                >
+                  <Trash2 size={20} />
+                  Delete Campaign
+                </motion.button>
+              )}
               </div>
             </div>
             <div className={`grid gap-4 ${
@@ -477,9 +534,13 @@ export default function ResultsPage() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3 + index * 0.1 }}
-                  className="group relative bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all"
+                  className={`group relative bg-white overflow-hidden shadow-lg hover:shadow-2xl transition-all ${
+                    videos.length === 2 ? 'rounded-2xl' : 'rounded-lg'
+                  }`}
                 >
-                  <div className="aspect-video bg-[#FAFAFA] relative">
+                  <div className={`aspect-video bg-[#FAFAFA] relative ${
+                    videos.length === 2 ? 'rounded-t-2xl' : 'rounded-t-lg'
+                  }`}>
                     <video
                         src={videoUrl}
                         className="w-full h-full object-cover"
@@ -525,8 +586,15 @@ export default function ResultsPage() {
                     </div>
                   </div>
                   </div>
-                  <div className="p-4">
-                      <p className="font-semibold text-[#2D3142]">{videoTitle}</p>
+                  <div className={`${videos.length === 2 ? 'p-5' : 'p-4'}`}>
+                    <div className="flex items-center justify-between">
+                      <p className={`font-semibold text-[#2D3142] ${videos.length === 2 ? 'text-lg' : 'text-base'}`}>{videoTitle}</p>
+                      {videos.length === 2 && (
+                        <span className="px-3 py-1 bg-orange-50 text-orange-700 text-xs font-semibold rounded-full border border-orange-200">
+                          Video {index + 1}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
                 );
@@ -568,6 +636,37 @@ export default function ResultsPage() {
                     </>
                   )}
               </motion.button>
+              {deleteConfirm ? (
+                <>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleDeleteCampaign}
+                    className="px-6 py-3 bg-red-600 text-white font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-red-700"
+                  >
+                    <Trash2 size={20} />
+                    Confirm Delete
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setDeleteConfirm(false)}
+                    className="px-6 py-3 bg-[#E5E7EB] text-[#2D3142] font-bold rounded-lg shadow-lg hover:bg-[#D1D5DB]"
+                  >
+                    Cancel
+                  </motion.button>
+                </>
+              ) : (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setDeleteConfirm(true)}
+                  className="px-6 py-3 bg-red-50 text-red-600 font-bold rounded-lg shadow-lg flex items-center gap-2 hover:bg-red-100 border-2 border-red-200"
+                >
+                  <Trash2 size={20} />
+                  Delete Campaign
+                </motion.button>
+              )}
               </div>
             </div>
             <div className={`grid gap-4 ${
@@ -682,12 +781,12 @@ export default function ResultsPage() {
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-2xl font-bold text-[#2D3142]">Generated Videos ({videos.length})</h2>
             </div>
-            <div className={`grid gap-4 ${
+            <div className={`grid ${
               videos.length === 1 
-                ? 'grid-cols-1 max-w-md mx-auto' 
+                ? 'grid-cols-1 max-w-md mx-auto gap-4' 
                 : videos.length === 2 
-                ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto'
-                : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+                ? 'grid-cols-1 md:grid-cols-2 max-w-6xl mx-auto gap-6 md:gap-8'
+                : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'
             }`}>
               {videos.map((video, index) => {
                 const videoUrl = video.url || video.video_url || video.videoUrl || video.src || '';
@@ -702,9 +801,13 @@ export default function ResultsPage() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.5 + index * 0.1 }}
-                  className="group relative bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all"
+                  className={`group relative bg-white overflow-hidden shadow-lg hover:shadow-2xl transition-all ${
+                    videos.length === 2 ? 'rounded-2xl' : 'rounded-lg'
+                  }`}
                 >
-                  <div className="aspect-square bg-slate-200">
+                  <div className={`aspect-video bg-[#FAFAFA] relative ${
+                    videos.length === 2 ? 'rounded-t-2xl' : 'rounded-t-lg'
+                  }`}>
                     <video
                         src={videoUrl}
                         className="w-full h-full object-cover"
@@ -747,8 +850,15 @@ export default function ResultsPage() {
                       </motion.button>
                     </div>
                   </div>
-                  <div className="p-4">
-                      <p className="font-semibold text-[#2D3142]">{videoTitle}</p>
+                  <div className={`${videos.length === 2 ? 'p-5' : 'p-4'}`}>
+                    <div className="flex items-center justify-between">
+                      <p className={`font-semibold text-[#2D3142] ${videos.length === 2 ? 'text-lg' : 'text-base'}`}>{videoTitle}</p>
+                      {videos.length === 2 && (
+                        <span className="px-3 py-1 bg-orange-50 text-orange-700 text-xs font-semibold rounded-full border border-orange-200">
+                          Video {index + 1}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
                 );

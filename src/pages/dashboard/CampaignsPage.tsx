@@ -65,6 +65,9 @@ export default function CampaignsPage() {
       setCampaigns(campaigns.filter((c) => c.id !== campaignId));
       success('Campaign deleted successfully');
       setDeleteConfirm(null);
+      
+      // Trigger stats refresh event
+      window.dispatchEvent(new Event('campaignUpdated'));
     } catch (err) {
       console.error('Error deleting campaign:', err);
       error('Failed to delete campaign');
@@ -242,36 +245,96 @@ export default function CampaignsPage() {
                     <span className="truncate">{formatDate(campaign.created_at)}</span>
                   </div>
 
-                  {/* Show thumbnail if images are available */}
-                  {campaign.status === 'completed' && campaign.generated_assets?.images && 
-                   Array.isArray(campaign.generated_assets.images) && 
-                   campaign.generated_assets.images.length > 0 && (
-                    <div className="mb-3">
-                      <div className="aspect-[4/3] bg-[#FAFAFA] rounded-lg overflow-hidden">
-                        {(() => {
-                          const firstImage = campaign.generated_assets.images[0];
-                          const imageUrl = firstImage?.url || firstImage?.image_url || firstImage?.imageUrl || firstImage?.src || firstImage;
-                          if (typeof imageUrl === 'string' && imageUrl) {
-                            return (
-                              <img
-                                src={imageUrl}
-                                alt="Campaign thumbnail"
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                }}
-                              />
-                            );
-                          }
-                          return null;
-                        })()}
+                  {/* Show thumbnail if images or videos are available */}
+                  {campaign.status === 'completed' && campaign.generated_assets && (() => {
+                    const isUgcOnly = campaign.content_type === 'ugc-only';
+                    const isImageUgc = campaign.content_type === 'image-ugc';
+                    
+                    // Get images
+                    const images = campaign.generated_assets.images || [];
+                    const firstImage = images[0];
+                    const imageUrl = firstImage?.url || firstImage?.image_url || firstImage?.imageUrl || firstImage?.src || firstImage;
+                    const imageCount = images.length;
+                    
+                    // Get videos
+                    const videos = campaign.generated_assets.videos || [];
+                    const firstVideo = videos[0];
+                    const videoUrl = firstVideo?.url || firstVideo?.video_url || firstVideo?.videoUrl || firstVideo?.src || (typeof firstVideo === 'string' ? firstVideo : null);
+                    const videoCount = videos.length;
+                    
+                    // Determine thumbnail and count based on content type
+                    let thumbnailUrl: string | null = null;
+                    let assetCount = 0;
+                    let assetType: 'image' | 'video' = 'image';
+                    
+                    if (isUgcOnly) {
+                      // UGC-only: use video
+                      thumbnailUrl = typeof videoUrl === 'string' ? videoUrl : null;
+                      assetCount = videoCount;
+                      assetType = 'video';
+                    } else if (isImageUgc) {
+                      // Image+UGC: prefer image, fallback to video
+                      if (imageUrl && typeof imageUrl === 'string') {
+                        thumbnailUrl = imageUrl;
+                        assetCount = imageCount;
+                        assetType = 'image';
+                      } else if (videoUrl && typeof videoUrl === 'string') {
+                        thumbnailUrl = videoUrl;
+                        assetCount = videoCount;
+                        assetType = 'video';
+                      }
+                    } else {
+                      // Image-only: use image
+                      thumbnailUrl = typeof imageUrl === 'string' ? imageUrl : null;
+                      assetCount = imageCount;
+                      assetType = 'image';
+                    }
+                    
+                    if (!thumbnailUrl) return null;
+                    
+                    return (
+                      <div className="mb-3">
+                        <div className="aspect-[4/3] bg-[#FAFAFA] rounded-lg overflow-hidden">
+                          {assetType === 'video' ? (
+                            <video
+                              src={thumbnailUrl}
+                              className="w-full h-full object-cover"
+                              muted
+                              playsInline
+                              onMouseEnter={(e) => {
+                                const video = e.currentTarget;
+                                video.play().catch(() => {
+                                  // Autoplay failed, that's okay
+                                });
+                              }}
+                              onMouseLeave={(e) => {
+                                const video = e.currentTarget;
+                                video.pause();
+                                video.currentTime = 0;
+                              }}
+                              onError={(e) => {
+                                const target = e.currentTarget;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <img
+                              src={thumbnailUrl}
+                              alt="Campaign thumbnail"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          )}
+                        </div>
+                        <p className="text-[10px] text-[#6B7280] mt-1.5 text-center">
+                          {assetCount} {assetType}{assetCount !== 1 ? 's' : ''}
+                        </p>
                       </div>
-                      <p className="text-[10px] text-[#6B7280] mt-1.5 text-center">
-                        {campaign.generated_assets.images.length} image{campaign.generated_assets.images.length !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   <div className="flex gap-2">
                     {campaign.status === 'completed' && (

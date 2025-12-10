@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Building2, Plus, LogOut, Loader2, Download, Eye, Image, Calendar, Sparkles, ArrowRight, X } from 'lucide-react';
+import { Building2, Plus, LogOut, Loader2, Download, Eye, Image, Video, Calendar, Sparkles, ArrowRight, X, Trash2 } from 'lucide-react';
 import { userService, brandProfileService, preferencesService, campaignService, Campaign } from '../../services/database';
 import { sendBrandDataToWebhook } from '../../services/webhookService';
 import { useToast } from '../../contexts/ToastContext';
@@ -19,7 +19,9 @@ export default function CampaignHubPage() {
   const [sendingWebhook, setSendingWebhook] = useState(false);
   const [previousCampaigns, setPreviousCampaigns] = useState<Campaign[]>([]);
   const [magicTokens, setMagicTokens] = useState<number | null>(null);
+  const [refreshingStats, setRefreshingStats] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     status: 'all',
     contentType: 'all',
@@ -29,6 +31,46 @@ export default function CampaignHubPage() {
   useEffect(() => {
     loadUser();
   }, [navigate]);
+
+  // Refresh campaign data function
+  const refreshCampaignData = useCallback(async () => {
+    if (!userData?.userId) return;
+    
+    setRefreshingStats(true);
+    try {
+      await loadPreviousCampaignsForUser(userData.userId);
+      // Also refresh magic tokens
+      const tokens = await tokenService.getUserTokens(userData.userId);
+      setMagicTokens(tokens);
+    } catch (error) {
+      console.error('Error refreshing campaign data:', error);
+    } finally {
+      setRefreshingStats(false);
+    }
+  }, [userData?.userId]);
+
+  // Refresh on window focus
+  useEffect(() => {
+    const handleFocus = () => {
+      // Refresh when user returns to tab
+      if (userData?.userId) {
+        refreshCampaignData();
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [userData?.userId, refreshCampaignData]);
+
+  // Listen for campaign update events
+  useEffect(() => {
+    const handleCampaignUpdate = () => {
+      refreshCampaignData();
+    };
+    
+    window.addEventListener('campaignUpdated', handleCampaignUpdate);
+    return () => window.removeEventListener('campaignUpdated', handleCampaignUpdate);
+  }, [refreshCampaignData]);
 
 
   const loadUser = async () => {
@@ -160,17 +202,47 @@ export default function CampaignHubPage() {
     }
   };
 
+  // Clear campaign cache function
+  const clearCampaignCache = () => {
+    // Clear temporary campaign selection cache
+    localStorage.removeItem('selectedContentType');
+    
+    // Log for debugging
+    console.log('🧹 Campaign cache cleared - starting fresh campaign');
+  };
+
+  // Handle start fresh campaign
+  const handleStartFreshCampaign = () => {
+    // Clear any cached campaign data
+    clearCampaignCache();
+    
+    // Navigate to content selection (first step of onboarding)
+    navigate('/onboarding/content-selection');
+  };
+
   const loadPreviousCampaignsForUser = async (userId: string) => {
     try {
       const allCampaigns = await campaignService.getByUserId(userId);
-      // Filter to show only completed campaigns with images
+      // Filter to show completed campaigns with images OR videos
       const completedCampaigns = allCampaigns.filter(
-        (campaign) =>
-          campaign.status === 'completed' &&
-          campaign.generated_assets &&
-          campaign.generated_assets.images &&
-          Array.isArray(campaign.generated_assets.images) &&
-          campaign.generated_assets.images.length > 0
+        (campaign) => {
+          if (campaign.status !== 'completed' || !campaign.generated_assets) {
+            return false;
+          }
+          
+          // Check if campaign has images
+          const hasImages = campaign.generated_assets.images &&
+            Array.isArray(campaign.generated_assets.images) &&
+            campaign.generated_assets.images.length > 0;
+          
+          // Check if campaign has videos
+          const hasVideos = campaign.generated_assets.videos &&
+            Array.isArray(campaign.generated_assets.videos) &&
+            campaign.generated_assets.videos.length > 0;
+          
+          // Show if campaign has either images or videos
+          return hasImages || hasVideos;
+        }
       );
       // Sort by most recent first
       completedCampaigns.sort((a, b) => {
@@ -210,6 +282,22 @@ export default function CampaignHubPage() {
     } catch (err: any) {
       console.error('Error downloading images:', err);
       showError(`Failed to download images: ${err.message}`);
+    }
+  };
+
+  const handleDeleteCampaign = async (campaignId: string) => {
+    try {
+      await campaignService.delete(campaignId);
+      // Remove from local state
+      setPreviousCampaigns(previousCampaigns.filter((c) => c.id !== campaignId));
+      success('Campaign deleted successfully');
+      setDeleteConfirm(null);
+      
+      // Trigger stats refresh event
+      window.dispatchEvent(new Event('campaignUpdated'));
+    } catch (err: any) {
+      console.error('Error deleting campaign:', err);
+      showError(`Failed to delete campaign: ${err.message}`);
     }
   };
 
@@ -432,6 +520,7 @@ export default function CampaignHubPage() {
           activeCampaigns={stats.active}
           completedCampaigns={stats.completed}
           userId={userData?.userId || null}
+          isLoading={refreshingStats}
         />
 
         {/* Page Content */}
@@ -507,7 +596,7 @@ export default function CampaignHubPage() {
 
             <div
               className="bg-white rounded-2xl shadow-lg p-6 cursor-pointer hover:shadow-xl transition-shadow"
-              onClick={() => navigate('/onboarding/content-selection')}
+              onClick={handleStartFreshCampaign}
             >
               <div className="flex items-start gap-3 mb-4">
                 <div className="w-12 h-12 bg-gradient-to-r from-orange-400 to-orange-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
@@ -565,9 +654,49 @@ export default function CampaignHubPage() {
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                 {filteredCampaigns.map((campaign) => {
-                  const firstImage = campaign.generated_assets.images[0];
+                  // Determine content type and get appropriate assets
+                  const isUgcOnly = campaign.content_type === 'ugc-only';
+                  const isImageUgc = campaign.content_type === 'image-ugc';
+                  
+                  // Get images
+                  const images = campaign.generated_assets?.images || [];
+                  const firstImage = images[0];
                   const imageUrl = firstImage?.url || firstImage?.image_url || firstImage?.imageUrl || firstImage?.src || firstImage;
-                  const imageCount = campaign.generated_assets.images.length;
+                  const imageCount = images.length;
+                  
+                  // Get videos
+                  const videos = campaign.generated_assets?.videos || [];
+                  const firstVideo = videos[0];
+                  const videoUrl = firstVideo?.url || firstVideo?.video_url || firstVideo?.videoUrl || firstVideo?.src || (typeof firstVideo === 'string' ? firstVideo : null);
+                  const videoCount = videos.length;
+                  
+                  // Determine thumbnail and count based on content type
+                  let thumbnailUrl: string | null = null;
+                  let assetCount = 0;
+                  let assetType: 'image' | 'video' = 'image';
+                  
+                  if (isUgcOnly) {
+                    // UGC-only: use video
+                    thumbnailUrl = typeof videoUrl === 'string' ? videoUrl : null;
+                    assetCount = videoCount;
+                    assetType = 'video';
+                  } else if (isImageUgc) {
+                    // Image+UGC: prefer image, fallback to video
+                    if (imageUrl && typeof imageUrl === 'string') {
+                      thumbnailUrl = imageUrl;
+                      assetCount = imageCount;
+                      assetType = 'image';
+                    } else if (videoUrl && typeof videoUrl === 'string') {
+                      thumbnailUrl = videoUrl;
+                      assetCount = videoCount;
+                      assetType = 'video';
+                    }
+                  } else {
+                    // Image-only: use image
+                    thumbnailUrl = typeof imageUrl === 'string' ? imageUrl : null;
+                    assetCount = imageCount;
+                    assetType = 'image';
+                  }
                   
                   return (
                     <div
@@ -575,17 +704,41 @@ export default function CampaignHubPage() {
                       className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
                     >
                       {/* Thumbnail */}
-                      {typeof imageUrl === 'string' && imageUrl && (
+                      {thumbnailUrl && (
                         <div className="aspect-[4/3] bg-[#FAFAFA] relative group cursor-pointer" onClick={() => navigate('/dashboard/results', { state: { campaignId: campaign.id } })}>
-                          <img
-                            src={imageUrl}
-                            alt="Campaign thumbnail"
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                            }}
-                          />
+                          {assetType === 'video' ? (
+                            <video
+                              src={thumbnailUrl}
+                              className="w-full h-full object-cover"
+                              muted
+                              playsInline
+                              onMouseEnter={(e) => {
+                                const video = e.currentTarget;
+                                video.play().catch(() => {
+                                  // Autoplay failed, that's okay
+                                });
+                              }}
+                              onMouseLeave={(e) => {
+                                const video = e.currentTarget;
+                                video.pause();
+                                video.currentTime = 0;
+                              }}
+                              onError={(e) => {
+                                const target = e.currentTarget;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <img
+                              src={thumbnailUrl}
+                              alt="Campaign thumbnail"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          )}
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                             <div className="flex gap-2">
                               <button
@@ -607,12 +760,18 @@ export default function CampaignHubPage() {
                       <div className="p-6">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            <Image size={16} className="text-[#6B7280]" />
+                            {isUgcOnly ? (
+                              <Video size={16} className="text-[#6B7280]" />
+                            ) : (
+                              <Image size={16} className="text-[#6B7280]" />
+                            )}
                             <span className="text-sm font-semibold text-[#2D3142]">
                               {getContentTypeLabel(campaign.content_type)}
                             </span>
                           </div>
-                          <span className="text-xs text-[#6B7280]">{imageCount} image{imageCount !== 1 ? 's' : ''}</span>
+                          <span className="text-xs text-[#6B7280]">
+                            {assetCount} {assetType}{assetCount !== 1 ? 's' : ''}
+                          </span>
                         </div>
                         
                         <div className="flex items-center gap-2 text-xs text-[#6B7280] mb-4">
@@ -636,6 +795,32 @@ export default function CampaignHubPage() {
                             <Download size={16} />
                             Download
                           </button>
+                          {deleteConfirm === campaign.id ? (
+                            <>
+                              <button
+                                onClick={() => handleDeleteCampaign(campaign.id)}
+                                className="px-3 py-2 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-all flex items-center justify-center"
+                                title="Confirm delete"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm(null)}
+                                className="px-3 py-2 bg-[#E5E7EB] text-[#2D3142] text-xs font-semibold rounded-lg hover:bg-[#D1D5DB] transition-all"
+                                title="Cancel"
+                              >
+                                <X size={14} />
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => setDeleteConfirm(campaign.id)}
+                              className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all flex items-center justify-center"
+                              title="Delete campaign"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
