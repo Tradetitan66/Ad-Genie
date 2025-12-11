@@ -9,23 +9,23 @@ const contentTypes = [
   {
     id: 'image-only',
     title: 'Image Only',
-    subtitle: '6x Image Generations',
+    subtitle: '2x Image Generations',
     description: 'Product photos & lifestyle shots',
     icon: Image,
     color: 'from-blue-500 to-cyan-500'
   },
   {
     id: 'ugc-only',
-    title: 'UGC Only',
-    subtitle: '3x User-Generated Content Ads',
+    title: 'Video Only',
+    subtitle: '2x Product Videos Ads',
     description: 'Authentic video style ads',
     icon: Video,
     color: 'from-purple-500 to-pink-500'
   },
   {
     id: 'image-ugc',
-    title: 'Images + UGC',
-    subtitle: '6x Images + 3x UGC Ads',
+    title: 'Images + Video',
+    subtitle: '2x Images + 2x Videos',
     description: 'Complete campaign package',
     icon: Sparkles,
     color: 'from-amber-500 to-orange-600',
@@ -106,7 +106,6 @@ export default function ContentSelectionDashboard() {
         campaign_market: preferences?.campaign_market || undefined,
       });
 
-      success('Content type saved!');
       // Navigate to ReviewPage where user will verify and click "Generate Campaign Assets"
       // ReviewPage will trigger webhook when user clicks "Generate Campaign Assets"
       navigate('/onboarding/review');
@@ -473,20 +472,23 @@ export default function ContentSelectionDashboard() {
             <div className="grid md:grid-cols-3 gap-4 mb-6">
               {contentTypes.map((type) => {
                 const Icon = type.icon;
+                const isDisabled = type.id === 'image-ugc';
                 return (
                   <div
                     key={type.id}
-                    onClick={() => setSelectedType(type.id)}
-                    className={`relative cursor-pointer rounded-xl border-2 p-5 transition-all hover:shadow-lg ${
-                      selectedType === type.id
-                        ? 'border-orange-500 bg-orange-50 shadow-lg'
-                        : 'border-[#E5E7EB] hover:border-orange-300 bg-white shadow-md'
+                    onClick={() => !isDisabled && setSelectedType(type.id)}
+                    className={`relative rounded-xl border-2 p-5 transition-all ${
+                      isDisabled
+                        ? 'opacity-60 cursor-not-allowed border-[#E5E7EB] bg-gray-50'
+                        : selectedType === type.id
+                        ? 'border-orange-500 bg-orange-50 shadow-lg cursor-pointer'
+                        : 'border-[#E5E7EB] hover:border-orange-300 bg-white shadow-md cursor-pointer hover:shadow-lg'
                     }`}
                   >
                     {type.recommended && (
                       <div className="absolute -top-2 left-1/2 -translate-x-1/2">
-                        <span className="bg-gradient-to-r from-orange-400 to-orange-600 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-md">
-                          RECOMMENDED
+                        <span className="bg-gradient-to-r from-amber-400 to-orange-600 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-md">
+                          COMING SOON!
                         </span>
                       </div>
                     )}
@@ -505,7 +507,7 @@ export default function ContentSelectionDashboard() {
                       {type.description}
                     </p>
 
-                    {selectedType === type.id && (
+                    {selectedType === type.id && !isDisabled && (
                       <div className="absolute top-3 right-3">
                         <div className="w-6 h-6 bg-gradient-to-r from-orange-400 to-orange-600 rounded-full flex items-center justify-center shadow-md">
                           <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -545,7 +547,7 @@ export default function ContentSelectionDashboard() {
               {/* Generate Campaign Button - 60% width on desktop */}
               <button
                 onClick={handleGenerate}
-                disabled={!selectedType || generating}
+                disabled={!selectedType || generating || selectedType === 'image-ugc'}
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-bold rounded-lg shadow-lg hover:shadow-xl hover:from-orange-500 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-base flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 active:scale-[0.98] group"
               >
                 {generating ? (

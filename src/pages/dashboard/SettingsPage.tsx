@@ -190,7 +190,6 @@ export default function SettingsPage() {
       await userService.update(userId, {
         display_name: accountData.displayName,
       });
-      success('Account settings saved successfully');
     } catch (err) {
       console.error('Error saving account:', err);
       error('Failed to save account settings');
@@ -229,7 +228,6 @@ export default function SettingsPage() {
           product_images: [],
         });
       }
-      success('Brand profile saved successfully');
     } catch (err) {
       console.error('Error saving brand:', err);
       error('Failed to save brand profile');
@@ -257,7 +255,6 @@ export default function SettingsPage() {
         enable_auto_suggestions: preferencesData.enableAutoSuggestions,
         notifications: existingPreferences?.notifications, // Preserve existing notifications
       });
-      success('Preferences saved successfully');
     } catch (err) {
       console.error('Error saving preferences:', err);
       error('Failed to save preferences');
@@ -285,7 +282,6 @@ export default function SettingsPage() {
         enable_auto_suggestions: existingPreferences?.enable_auto_suggestions ?? true,
         notifications: notifications,
       });
-      success('Notification preferences saved successfully');
     } catch (err) {
       console.error('Error saving notifications:', err);
       error('Failed to save notification preferences');

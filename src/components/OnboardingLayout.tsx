@@ -26,7 +26,6 @@ export default function OnboardingLayout({
     try {
       await supabase.auth.signOut();
       localStorage.removeItem('currentUser');
-      success('Logged out successfully');
       navigate('/');
     } catch (error) {
       console.error('Logout error:', error);

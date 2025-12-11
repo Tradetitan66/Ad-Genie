@@ -237,8 +237,6 @@ export default function PreferencesPage() {
       // Webhook will be triggered from ReviewPage when user clicks "Generate Campaign Assets"
       // Do NOT trigger webhook here - only save preferences
 
-      success('Campaign preferences saved!');
-      
       // Navigate based on mode
       if (isEditMode) {
         navigate('/dashboard/campaign-hub');

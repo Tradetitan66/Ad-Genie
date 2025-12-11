@@ -595,7 +595,6 @@ export default function AdGenieWorkingPage() {
         return;
       }
       await downloadImage(imageUrl, image.title || `image-${Date.now()}.png`);
-      success('Image downloaded successfully');
     } catch (err: any) {
       console.error('Error downloading image:', err);
       showError(`Failed to download image: ${err.message}`);

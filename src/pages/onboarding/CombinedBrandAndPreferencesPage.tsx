@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Building2, Briefcase, Users, Globe, Upload, X, Target, Mic, RefreshCw, Plus, ChevronDown, ChevronUp, CheckCircle, Image as ImageIcon, Palette } from 'lucide-react';
+import { Loader2, Building2, Briefcase, Users, Globe, Upload, X, Target, Mic, RefreshCw, Plus, ChevronDown, ChevronUp, CheckCircle, Image as ImageIcon, Palette, Maximize2, Info } from 'lucide-react';
 import OnboardingLayout from '../../components/OnboardingLayout';
 import { userService, brandProfileService, preferencesService } from '../../services/database';
 import { imageService } from '../../services/imageService';
@@ -76,6 +76,8 @@ export default function CombinedBrandAndPreferencesPage() {
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [manualEventInput, setManualEventInput] = useState('');
   const hasLoadedSuggestionsRef = useRef(false);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   // Section collapse/expand state
   const [expandedSections, setExpandedSections] = useState({
@@ -309,6 +311,7 @@ export default function CombinedBrandAndPreferencesPage() {
 
       if (successfulUploads.length > 0) {
         setProductImages([...productImages, ...successfulUploads]);
+        setImageLoaded(false); // Reset image loaded state for new image
         success(`${successfulUploads.length} image(s) uploaded successfully!`);
       }
 
@@ -348,7 +351,6 @@ export default function CombinedBrandAndPreferencesPage() {
     try {
       await imageService.deleteFromStorage(imageUrl);
       setProductImages(productImages.filter((_, i) => i !== index));
-      success('Image removed');
     } catch (err) {
       console.error('Error removing image:', err);
       setProductImages(productImages.filter((_, i) => i !== index));
@@ -535,7 +537,6 @@ export default function CombinedBrandAndPreferencesPage() {
         content_type: contentType
       });
 
-      success('All information saved!');
       navigate('/onboarding/review');
     } catch (err) {
       console.error('Error saving data:', err);
@@ -779,21 +780,109 @@ export default function CombinedBrandAndPreferencesPage() {
                   )}
 
                   {productImages.length > 0 && (
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-4">
                       {productImages.map((img, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={img}
-                            alt={`Product ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg border border-slate-200"
-                          />
-                          <button
-                            onClick={() => handleRemoveProductImage(index)}
-                            disabled={uploading}
-                            className="absolute top-2 right-2 p-1 bg-[#EF4444] text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <X size={16} />
-                          </button>
+                        <div key={index} className="space-y-3">
+                          {/* Image Label */}
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-slate-700">
+                                Product Image for Campaign
+                              </p>
+                              <p className="text-xs text-slate-500 mt-1">
+                                This image will be used to generate your campaign assets
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 text-green-600">
+                              <CheckCircle size={18} />
+                              <span className="text-sm font-medium">1 image uploaded</span>
+                            </div>
+                          </div>
+
+                          {/* Image Preview Container */}
+                          <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-xl p-6 flex flex-col items-center">
+                            <div className="relative w-full max-w-md">
+                              {/* Loading State */}
+                              {!imageLoaded && (
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+                                </div>
+                              )}
+
+                              {/* Product Image */}
+                              <img
+                                src={img}
+                                alt="Your product"
+                                className={`w-full h-auto max-h-[500px] object-contain rounded-lg shadow-md transition-opacity duration-300 ${
+                                  imageLoaded ? 'opacity-100' : 'opacity-0'
+                                }`}
+                                onLoad={() => setImageLoaded(true)}
+                                onError={() => setImageLoaded(true)}
+                              />
+
+                              {/* Action Buttons Overlay */}
+                              <div className="absolute top-3 right-3 flex gap-2">
+                                {/* Expand Button */}
+                                <button
+                                  onClick={() => setExpandedImage(img)}
+                                  className="bg-white/95 hover:bg-white p-2.5 rounded-lg shadow-md transition-all group"
+                                  title="View full size"
+                                >
+                                  <Maximize2 size={18} className="text-gray-700 group-hover:text-blue-600 transition" />
+                                </button>
+
+                                {/* Remove Button */}
+                                <button
+                                  onClick={() => handleRemoveProductImage(index)}
+                                  disabled={uploading}
+                                  className="bg-white/95 hover:bg-white p-2.5 rounded-lg shadow-md transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                                  title="Remove image"
+                                >
+                                  <X size={18} className="text-gray-700 group-hover:text-red-600 transition" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Action Buttons Below Image */}
+                            <div className="mt-4 flex gap-3">
+                              <button
+                                onClick={() => setExpandedImage(img)}
+                                className="px-4 py-2 border-2 border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors font-medium text-gray-700 text-sm flex items-center gap-2"
+                              >
+                                <Maximize2 size={16} />
+                                View Full Image
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleRemoveProductImage(index);
+                                  document.getElementById('products-input')?.click();
+                                }}
+                                disabled={uploading}
+                                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <Upload size={16} />
+                                Replace Image
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Image Guidelines */}
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex gap-3">
+                              <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                              <div className="text-sm">
+                                <p className="font-medium text-blue-900 mb-1">
+                                  Image Guidelines
+                                </p>
+                                <ul className="text-blue-800 space-y-1">
+                                  <li>• Best results with high-resolution images (1200px+ width)</li>
+                                  <li>• Clear product shot with good lighting</li>
+                                  <li>• Avoid heavily cropped or partially visible products</li>
+                                  <li>• Supported formats: JPG, PNG, WebP</li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1083,6 +1172,63 @@ export default function CombinedBrandAndPreferencesPage() {
           </div>
         </div>
       </motion.div>
+
+      {/* Image Expand Modal */}
+      {expandedImage && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+          onClick={() => setExpandedImage(null)}
+        >
+          <div
+            className="relative max-w-5xl w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setExpandedImage(null)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
+            >
+              <X className="w-8 h-8" />
+            </button>
+
+            {/* Image Container */}
+            <div className="bg-white rounded-2xl p-6 max-h-[90vh] overflow-auto">
+              <img
+                src={expandedImage}
+                alt="Product full view"
+                className="w-full h-auto object-contain max-h-[80vh] rounded-lg"
+              />
+
+              {/* Actions */}
+              <div className="mt-6 flex justify-center gap-3">
+                <button
+                  onClick={() => {
+                    const imageIndex = productImages.findIndex(img => img === expandedImage);
+                    if (imageIndex !== -1) {
+                      handleRemoveProductImage(imageIndex);
+                      setExpandedImage(null);
+                      setTimeout(() => {
+                        document.getElementById('products-input')?.click();
+                      }, 100);
+                    }
+                  }}
+                  disabled={uploading}
+                  className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Upload size={18} />
+                  Replace Image
+                </button>
+                <button
+                  onClick={() => setExpandedImage(null)}
+                  className="px-6 py-3 border-2 border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors font-medium text-gray-700"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </OnboardingLayout>
   );
 }

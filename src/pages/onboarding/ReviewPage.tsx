@@ -256,12 +256,44 @@ export default function ReviewPage() {
       <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8">
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-[#2D3142] mb-2">
-            Review & Launch Your First Campaign
+            Review & Launch Your Campaign
           </h1>
           <p className="text-[#6B7280]">Almost done! Review your information below</p>
         </div>
 
           <div className="space-y-6 mb-8">
+            <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
+              <button
+                onClick={() => toggleSection('brand')}
+                className="w-full flex items-center justify-between p-4 md:p-6 bg-[#FAFAFA] hover:bg-orange-50 transition-colors border-b border-[#E5E7EB]"
+              >
+                <h3 className="text-lg font-bold text-[#2D3142]">Brand Details</h3>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate('/onboarding/brand-and-preferences');
+                    }}
+                    className="text-orange-500 hover:text-orange-600 flex items-center gap-1.5 text-sm font-medium transition-colors"
+                  >
+                    <Edit2 size={14} />
+                    Edit
+                  </button>
+                  {expandedSections.brand ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </div>
+              </button>
+              {expandedSections.brand && userData.brandProfile && (
+                <div className="p-6 space-y-3 text-sm">
+                  <div><span className="font-semibold text-[#2D3142]">Brand Name:</span> <span className="text-[#6B7280]">{userData.brandProfile.brandName}</span></div>
+                  <div><span className="font-semibold text-[#2D3142]">Industry:</span> <span className="text-[#6B7280]">{userData.brandProfile.industry}</span></div>
+                  {userData.brandProfile.audience && (
+                    <div><span className="font-semibold text-[#2D3142]">Target Audience:</span> <p className="text-[#6B7280] mt-1">{userData.brandProfile.audience}</p></div>
+                  )}
+                  <div><span className="font-semibold text-[#2D3142]">Website:</span> <a href={userData.brandProfile.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-600 ml-2 transition-colors">{userData.brandProfile.websiteUrl}</a></div>
+                </div>
+              )}
+            </div>
+
             <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
               <button
                 onClick={() => toggleSection('preferences')}
@@ -302,38 +334,6 @@ export default function ReviewPage() {
                       ))}
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-
-            <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
-              <button
-                onClick={() => toggleSection('brand')}
-                className="w-full flex items-center justify-between p-4 md:p-6 bg-[#FAFAFA] hover:bg-orange-50 transition-colors border-b border-[#E5E7EB]"
-              >
-                <h3 className="text-lg font-bold text-[#2D3142]">Brand Details</h3>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate('/onboarding/brand-and-preferences');
-                    }}
-                    className="text-orange-500 hover:text-orange-600 flex items-center gap-1.5 text-sm font-medium transition-colors"
-                  >
-                    <Edit2 size={14} />
-                    Edit
-                  </button>
-                  {expandedSections.brand ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                </div>
-              </button>
-              {expandedSections.brand && userData.brandProfile && (
-                <div className="p-6 space-y-3 text-sm">
-                  <div><span className="font-semibold text-[#2D3142]">Brand Name:</span> <span className="text-[#6B7280]">{userData.brandProfile.brandName}</span></div>
-                  <div><span className="font-semibold text-[#2D3142]">Industry:</span> <span className="text-[#6B7280]">{userData.brandProfile.industry}</span></div>
-                  {userData.brandProfile.audience && (
-                    <div><span className="font-semibold text-[#2D3142]">Target Audience:</span> <p className="text-[#6B7280] mt-1">{userData.brandProfile.audience}</p></div>
-                  )}
-                  <div><span className="font-semibold text-[#2D3142]">Website:</span> <a href={userData.brandProfile.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-600 ml-2 transition-colors">{userData.brandProfile.websiteUrl}</a></div>
                 </div>
               )}
             </div>

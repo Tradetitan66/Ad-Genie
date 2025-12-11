@@ -89,7 +89,6 @@ export default function VisualAssetsPage() {
     try {
       const url = await imageService.uploadToStorage(userId, file, 'logo', true);
       setLogo(url);
-      success('Logo uploaded with background removed!');
     } catch (err) {
       console.error('Error uploading logo:', err);
       error('Failed to upload logo. Please try again.');
@@ -194,7 +193,6 @@ export default function VisualAssetsPage() {
     try {
       await imageService.deleteFromStorage(logo);
       setLogo(null);
-      success('Logo removed');
     } catch (err) {
       console.error('Error removing logo:', err);
       setLogo(null);
@@ -207,7 +205,6 @@ export default function VisualAssetsPage() {
     try {
       await imageService.deleteFromStorage(imageUrl);
       setProductImages(productImages.filter((_, i) => i !== index));
-      success('Image removed');
     } catch (err) {
       console.error('Error removing image:', err);
       setProductImages(productImages.filter((_, i) => i !== index));
@@ -252,8 +249,6 @@ export default function VisualAssetsPage() {
       // Webhook will be triggered from ReviewPage when user clicks "Generate Campaign Assets"
       // Do NOT trigger webhook here - only save visual assets
 
-      success('Visual assets saved!');
-      
       // Navigate based on mode: edit mode goes to preferences (campaign selection), new onboarding continues to preferences
       navigate('/onboarding/preferences');
     } catch (err) {

@@ -44,10 +44,8 @@ export default function LoginPage() {
 
       if (!user) {
         user = await userService.create(email, name);
-        success('Welcome! Let\'s set up your account.');
         await tokenService.initializeWelcomeTokens(user.id);
       } else {
-        success('Welcome back!');
         await tokenService.initializeWelcomeTokens(user.id);
       }
 

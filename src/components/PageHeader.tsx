@@ -20,7 +20,6 @@ export default function PageHeader({ showLogout = true, className = '' }: PageHe
       await supabase.auth.signOut();
       localStorage.removeItem('currentUser');
       localStorage.removeItem('user');
-      success('Logged out successfully');
       navigate('/');
     } catch (error) {
       console.error('Logout error:', error);

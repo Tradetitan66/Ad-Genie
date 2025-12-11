@@ -113,8 +113,8 @@ export default function CampaignSidebar({ onFilterChange, onSearchChange }: Camp
             >
               <option value="all">All Types</option>
               <option value="image-only">Images Only</option>
-              <option value="ugc-only">UGC Only</option>
-              <option value="image-ugc">Images + UGC</option>
+              <option value="ugc-only">Videos Only</option>
+              <option value="image-ugc">Images + Videos</option>
             </select>
           </div>
 

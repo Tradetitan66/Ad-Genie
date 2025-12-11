@@ -10,23 +10,23 @@ const contentTypes = [
   {
     id: 'image-only',
     title: 'Image Only',
-    subtitle: '6x Image Generations',
+    subtitle: '2x Image Generations',
     description: 'Product photos & lifestyle shots',
     icon: Image,
     color: 'from-blue-500 to-cyan-500'
   },
   {
     id: 'ugc-only',
-    title: 'UGC Only',
-    subtitle: '3x User-Generated Content Ads',
+    title: 'Video Only',
+    subtitle: '2x Video Ads',
     description: 'Authentic video style ads',
     icon: Video,
     color: 'from-purple-500 to-pink-500'
   },
   {
     id: 'image-ugc',
-    title: 'Images + UGC',
-    subtitle: '6x Images + 3x UGC Ads',
+    title: 'Images + Videos',
+    subtitle: '2x Images + 2x Video Ads',
     description: 'Complete campaign package',
     icon: Sparkles,
     color: 'from-amber-500 to-orange-600',
@@ -111,7 +111,6 @@ export default function ContentSelectionPage() {
         campaign_market: selectedMarket, // Store in correct field
       });
 
-      success('Content type and market selected!');
       navigate('/onboarding/brand-and-preferences');
     } catch (err) {
       console.error('Error saving content type:', err);
@@ -145,7 +144,7 @@ export default function ContentSelectionPage() {
           <h1 className="text-3xl font-bold text-slate-900 mb-2">
             Choose Your Content Type
           </h1>
-          <p className="text-slate-600">Based on your preferences, we recommend Images + UGC</p>
+          <p className="text-slate-600">Select the campaign format for this project</p>
         </div>
 
           <div className="space-y-8">
@@ -159,19 +158,21 @@ export default function ContentSelectionPage() {
                   return (
                     <motion.div
                       key={type.id}
-                      whileHover={{ scale: 1.02, y: -5 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setSelectedType(type.id)}
-                      className={`relative cursor-pointer rounded-lg border-2 p-6 transition-all ${
-                        selectedType === type.id
-                          ? 'border-[#2563EB] bg-blue-50 shadow-lg'
-                          : 'border-slate-200 hover:border-slate-300 shadow'
+                      whileHover={type.id === 'image-ugc' ? {} : { scale: 1.02, y: -5 }}
+                      whileTap={type.id === 'image-ugc' ? {} : { scale: 0.98 }}
+                      onClick={() => type.id !== 'image-ugc' && setSelectedType(type.id)}
+                      className={`relative rounded-lg border-2 p-6 transition-all ${
+                        type.id === 'image-ugc'
+                          ? 'opacity-60 cursor-not-allowed border-slate-200 bg-gray-50'
+                          : selectedType === type.id
+                          ? 'border-[#2563EB] bg-blue-50 shadow-lg cursor-pointer'
+                          : 'border-slate-200 hover:border-slate-300 shadow cursor-pointer'
                       }`}
                     >
                       {type.recommended && (
                         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                           <span className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
-                            RECOMMENDED
+                            COMING SOON!
                           </span>
                         </div>
                       )}
@@ -190,7 +191,7 @@ export default function ContentSelectionPage() {
                         {type.description}
                       </p>
 
-                      {selectedType === type.id && (
+                      {selectedType === type.id && type.id !== 'image-ugc' && (
                         <div className="absolute top-4 right-4">
                           <div className="w-6 h-6 bg-[#2563EB] rounded-full flex items-center justify-center">
                             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -239,7 +240,7 @@ export default function ContentSelectionPage() {
               </button>
               <button
                 onClick={handleContinue}
-                disabled={!selectedType || !selectedMarket || saving}
+                disabled={!selectedType || !selectedMarket || saving || selectedType === 'image-ugc'}
                 className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {saving ? 'Saving...' : 'Continue →'}
