@@ -98,9 +98,7 @@ export default function FAQ() {
         >
           <p className="text-slate-600 mb-4">Still have questions?</p>
           <a
-            href="https://n8n.srv1004168.hstgr.cloud/form/b61ef1a4-2c13-473f-8508-37a60678189c"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/waitlist"
             className="inline-flex items-center gap-2 text-amber-600 font-semibold hover:text-amber-700 transition-colors"
           >
             Join the waitlist and we'll answer them personally

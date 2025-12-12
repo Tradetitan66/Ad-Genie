@@ -1,28 +1,152 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import Navigation from './components/Navigation';
-import Hero from './components/Hero';
-import HowItWorks from './components/HowItWorks';
-import Features from './components/Features';
-import Audience from './components/Audience';
-import FAQ from './components/FAQ';
-import FinalCTA from './components/FinalCTA';
-import Footer from './components/Footer';
-import CursorTrail from './components/CursorTrail';
+import { ToastProvider } from './contexts/ToastContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import WelcomePage from './pages/onboarding/WelcomePage';
+import PreferencesPage from './pages/onboarding/PreferencesPage';
+import BrandDetailsPage from './pages/onboarding/BrandDetailsPage';
+import VisualAssetsPage from './pages/onboarding/VisualAssetsPage';
+import ContentSelectionPage from './pages/onboarding/ContentSelectionPage';
+import CombinedBrandAndPreferencesPage from './pages/onboarding/CombinedBrandAndPreferencesPage';
+import ReviewPage from './pages/onboarding/ReviewPage';
+import CampaignHubPage from './pages/dashboard/CampaignHubPage';
+import ContentSelectionDashboard from './pages/dashboard/ContentSelectionDashboard';
+import GeneratingPage from './pages/dashboard/GeneratingPage';
+import AdGenieWorkingPage from './pages/dashboard/AdGenieWorkingPage';
+import ResultsPage from './pages/dashboard/ResultsPage';
+import SettingsPage from './pages/dashboard/SettingsPage';
+import CampaignsPage from './pages/dashboard/CampaignsPage';
+import WaitlistPage from './pages/WaitlistPage';
 
 function App() {
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-white">
-        <CursorTrail />
-        <Navigation />
-        <Hero />
-        <HowItWorks />
-        <Features />
-        <Audience />
-        <FAQ />
-        <FinalCTA />
-        <Footer />
-      </div>
+      <ToastProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/waitlist" element={<WaitlistPage />} />
+
+            <Route
+              path="/onboarding/welcome"
+              element={
+                <ProtectedRoute requireNoOnboarding>
+                  <WelcomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/onboarding/brand-and-preferences"
+              element={
+                <ProtectedRoute>
+                  <CombinedBrandAndPreferencesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/onboarding/content-selection"
+              element={
+                <ProtectedRoute>
+                  <ContentSelectionPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Old onboarding pages kept for backward compatibility but not used in main flow */}
+            <Route
+              path="/onboarding/preferences"
+              element={
+                <ProtectedRoute>
+                  <PreferencesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/onboarding/brand-details"
+              element={
+                <ProtectedRoute>
+                  <BrandDetailsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/onboarding/visual-assets"
+              element={
+                <ProtectedRoute>
+                  <VisualAssetsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/onboarding/review"
+              element={
+                <ProtectedRoute>
+                  <ReviewPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/dashboard/campaign-hub"
+              element={
+                <ProtectedRoute requireOnboarding>
+                  <CampaignHubPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/content-selection"
+              element={
+                <ProtectedRoute requireOnboarding>
+                  <ContentSelectionDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/generating"
+              element={
+                <ProtectedRoute requireOnboarding>
+                  <GeneratingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/ad-genie-working"
+              element={
+                <ProtectedRoute requireOnboarding>
+                  <AdGenieWorkingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/results"
+              element={
+                <ProtectedRoute requireOnboarding>
+                  <ResultsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/settings"
+              element={
+                <ProtectedRoute requireOnboarding>
+                  <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/campaigns"
+              element={
+                <ProtectedRoute requireOnboarding>
+                  <CampaignsPage />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Router>
+      </ToastProvider>
     </AuthProvider>
   );
 }

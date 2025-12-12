@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, LogIn, User, LogOut } from 'lucide-react';
+import { Sparkles, LogIn, User, LogOut, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Login from './Login';
 import Signup from './Signup';
 
-export default function Navigation() {
+interface NavigationProps {
+  onLoginSuccess?: () => void;
+  onLoginClick?: () => void;
+}
+
+export default function Navigation({ onLoginSuccess, onLoginClick }: NavigationProps) {
   const [scrolled, setScrolled] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
@@ -40,41 +45,20 @@ export default function Navigation() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-300"></div>
-
             <div className="relative flex items-center gap-3">
-              <motion.div
-                className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-amber-400 shadow-lg bg-white flex-shrink-0"
-                animate={{
-                  boxShadow: [
-                    '0 0 20px rgba(251, 191, 36, 0.3)',
-                    '0 0 40px rgba(251, 191, 36, 0.6)',
-                    '0 0 20px rgba(251, 191, 36, 0.3)',
-                  ],
-                }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
+              <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-teal-400 shadow-md bg-white flex-shrink-0">
                 <img
                   src="/enhanced_design_a_contemporary_professional_logo_combining_a_streamlined_genie_figure_with_modern_tech_symbo_g4d4ei5j85xa3vwd3mit_1 (1).png"
                   alt="Ad-Genie"
                   className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
                 />
-              </motion.div>
+              </div>
 
-              <motion.div
-                className="absolute -top-1 left-12"
-                animate={{
-                  rotate: [0, 360],
-                  scale: [1, 1.2, 1],
-                }}
-                transition={{ duration: 3, repeat: Infinity }}
-              >
-                <Sparkles className="text-amber-400" size={16} />
-              </motion.div>
-
-              <span className="text-2xl font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-transparent bg-clip-text">
+              <span className="text-2xl font-bold text-slate-900">
                 Ad-Genie
               </span>
+              
+              <Sparkles className="text-amber-400 w-4 h-4" />
             </div>
           </motion.div>
 
@@ -89,12 +73,10 @@ export default function Navigation() {
               FAQ
             </a>
             <motion.a
-              href="https://n8n.srv1004168.hstgr.cloud/form/b61ef1a4-2c13-473f-8508-37a60678189c"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/waitlist"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-full shadow-lg hover:shadow-amber-500/50 transition-shadow"
+              className="px-6 py-2 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-bold rounded-full shadow-lg hover:shadow-orange-500/50 transition-all"
             >
               Join Waitlist
             </motion.a>
@@ -137,12 +119,12 @@ export default function Navigation() {
               </div>
             ) : (
               <motion.button
-                onClick={() => setShowLogin(true)}
+                onClick={() => onLoginClick ? onLoginClick() : setShowLogin(true)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white hover:bg-white/20 transition-all"
+                className="flex items-center gap-2 px-6 py-2 bg-purple-700 text-white font-bold rounded-full shadow-lg hover:bg-purple-800 transition-all"
               >
-                <LogIn size={20} />
+                <ArrowRight size={18} />
                 <span className="font-medium">Login</span>
               </motion.button>
             )}

@@ -1,10 +1,18 @@
 import { Heart, Mail, Twitter, Linkedin, Instagram } from 'lucide-react';
 
 export default function Footer() {
+  const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
+    e.preventDefault();
+    const element = document.getElementById(targetId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
     <footer className="bg-slate-900 text-slate-300 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid md:grid-cols-4 gap-8 mb-8">
+        <div className="grid md:grid-cols-2 gap-8 mb-8">
           <div>
             <h3 className="text-white font-bold text-lg mb-4">Ad-Genie</h3>
             <p className="text-sm leading-relaxed">
@@ -15,29 +23,33 @@ export default function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4">Product</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-teal-400 transition-colors">Features</a></li>
-              <li><a href="#" className="hover:text-teal-400 transition-colors">Pricing</a></li>
-              <li><a href="#" className="hover:text-teal-400 transition-colors">How It Works</a></li>
-              <li><a href="#" className="hover:text-teal-400 transition-colors">Templates</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-white font-semibold mb-4">Company</h4>
-            <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-teal-400 transition-colors">About Us</a></li>
-              <li><a href="#" className="hover:text-teal-400 transition-colors">Blog</a></li>
-              <li><a href="#" className="hover:text-teal-400 transition-colors">Careers</a></li>
-              <li><a href="#" className="hover:text-teal-400 transition-colors">Contact</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-white font-semibold mb-4">Legal</h4>
-            <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-teal-400 transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-teal-400 transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="hover:text-teal-400 transition-colors">Cookie Policy</a></li>
+              <li>
+                <a 
+                  href="#features" 
+                  onClick={(e) => handleSmoothScroll(e, 'features')}
+                  className="hover:text-teal-400 transition-colors cursor-pointer"
+                >
+                  Features
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="#how-it-works" 
+                  onClick={(e) => handleSmoothScroll(e, 'how-it-works')}
+                  className="hover:text-teal-400 transition-colors cursor-pointer"
+                >
+                  How It Works
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="#faq" 
+                  onClick={(e) => handleSmoothScroll(e, 'faq')}
+                  className="hover:text-teal-400 transition-colors cursor-pointer"
+                >
+                  FAQ
+                </a>
+              </li>
             </ul>
           </div>
         </div>
@@ -64,7 +76,7 @@ export default function Footer() {
         </div>
 
         <div className="text-center mt-8 text-sm text-slate-500">
-          © 2024 Ad-Genie. All rights reserved.
+          © 2025 Ad-Genie. All rights reserved.
         </div>
       </div>
     </footer>

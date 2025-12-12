@@ -84,9 +84,7 @@ export default function Hero() {
             transition={{ delay: 0.6 }}
           >
             <motion.a
-              href="https://n8n.srv1004168.hstgr.cloud/form/b61ef1a4-2c13-473f-8508-37a60678189c"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/waitlist"
               className="group relative inline-flex px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-lg rounded-full shadow-2xl overflow-hidden"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

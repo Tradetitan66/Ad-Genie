@@ -36,9 +36,7 @@ export default function FinalCTA() {
         </p>
 
         <a
-          href="https://n8n.srv1004168.hstgr.cloud/form/b61ef1a4-2c13-473f-8508-37a60678189c"
-          target="_blank"
-          rel="noopener noreferrer"
+          href="/waitlist"
           className="group relative inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-xl rounded-full shadow-2xl hover:shadow-amber-500/50 transition-all duration-300 hover:scale-110"
         >
           <span className="relative z-10 flex items-center gap-3">

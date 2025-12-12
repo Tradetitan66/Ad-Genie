@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { X, Mail, Lock } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LoginProps {
   onClose: () => void;
@@ -9,6 +10,8 @@ interface LoginProps {
 }
 
 export default function Login({ onClose, onSwitchToSignup }: LoginProps) {
+  const navigate = useNavigate();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,13 +23,9 @@ export default function Login({ onClose, onSwitchToSignup }: LoginProps) {
     setError('');
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
+      await signIn(email, password);
       onClose();
+      navigate('/dashboard/campaign-hub');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
     } finally {
