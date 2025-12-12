@@ -261,25 +261,28 @@ export default function BrandDetailsPage() {
               Target Audience <span className="text-red-500">*</span>
             </label>
             <p className="text-xs text-slate-500 mb-3">Who is your target audience for this campaign?</p>
-            <div className="space-y-2 mb-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
               {targetAudienceOptions.map(audience => (
-                <label key={audience} className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-all">
-                  <input
-                    type="radio"
-                    name="audience"
-                    value={audience}
-                    checked={selectedAudience === audience}
-                    onChange={(e) => {
-                      setSelectedAudience(e.target.value);
-                      if (e.target.value !== 'Others') {
-                        setCustomAudience('');
-                        setFormData({ ...formData, audience: e.target.value });
-                      }
-                    }}
-                    className="w-4 h-4 text-[#2563EB] focus:ring-[#2563EB]"
-                  />
-                  <span className="text-slate-700 font-medium">{audience}</span>
-                </label>
+                <motion.button
+                  key={audience}
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    setSelectedAudience(audience);
+                    if (audience !== 'Others') {
+                      setCustomAudience('');
+                      setFormData({ ...formData, audience: audience });
+                    }
+                  }}
+                  className={`px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                    selectedAudience === audience
+                      ? 'border-[#2563EB] bg-blue-50 text-[#2563EB]'
+                      : 'border-slate-300 hover:border-slate-400 text-slate-700 bg-white'
+                  }`}
+                >
+                  {audience}
+                </motion.button>
               ))}
             </div>
             

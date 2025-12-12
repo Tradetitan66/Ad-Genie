@@ -104,6 +104,7 @@ export default function ContentSelectionPage() {
 
     setSaving(true);
     try {
+      console.log('🔄 ContentSelectionPage: Saving preferences...', { userId, selectedType, selectedMarket });
       // Update preferences with campaign_market (not campaign_goal)
       await preferencesService.upsert({
         user_id: userId,
@@ -111,9 +112,13 @@ export default function ContentSelectionPage() {
         campaign_market: selectedMarket, // Store in correct field
       });
 
+      console.log('✅ ContentSelectionPage: Preferences saved, navigating to brand-and-preferences');
+      // TEMPORARY: Test route first to verify routing works
+      // navigate('/onboarding/brand-and-preferences-test'); // Uncomment to test routing
       navigate('/onboarding/brand-and-preferences');
+      console.log('✅ ContentSelectionPage: Navigation called');
     } catch (err) {
-      console.error('Error saving content type:', err);
+      console.error('❌ Error saving content type:', err);
       error('Failed to save content type. Please try again.');
     } finally {
       setSaving(false);

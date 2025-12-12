@@ -177,3 +177,134 @@ Do not include any explanations, descriptions, or additional text. Only return t
   }
 }
 
+/**
+ * Generate campaign goal suggestions using OpenAI API
+ * @param industry - Industry from brand profile (e.g., "Fashion", "Food & Beverage")
+ * @param brandName - Brand name from brand profile
+ * @param targetAudience - Target audience description
+ * @returns Array of campaign goal suggestions as strings
+ */
+export async function generateCampaignGoalSuggestions(
+  industry: string,
+  brandName: string,
+  targetAudience: string
+): Promise<string[]> {
+  // Check if API key is configured
+  if (!OPENROUTER_API_KEY || 
+      OPENROUTER_API_KEY === 'your_openrouter_api_key_here' || 
+      OPENROUTER_API_KEY.trim() === '' ||
+      OPENROUTER_API_KEY.length < 20) {
+    console.error('OpenRouter API key check failed for campaign goals');
+    throw new Error('OpenRouter API key is not configured. Please add VITE_OPENROUTER_API_KEY to your .env file and restart the dev server.');
+  }
+
+  const prompt = `You are an expert marketing strategist specializing in campaign goal development.
+
+Given:
+- Industry: ${industry}
+- Brand Name: ${brandName || 'Not specified'}
+- Target Audience: ${targetAudience || 'Not specified'}
+
+Generate 5-8 specific, actionable campaign goal suggestions that would be relevant for this brand and industry. The goals should be:
+- Specific and measurable
+- Relevant to the ${industry} industry
+- Tailored to the target audience: ${targetAudience || 'general audience'}
+- Actionable marketing objectives
+
+Examples of good campaign goals:
+- "Increase online sales by 30% in Q4"
+- "Build brand awareness among millennials"
+- "Launch new product line and drive initial sales"
+- "Improve customer engagement and retention"
+- "Expand market presence in urban areas"
+- "Generate qualified leads for B2B services"
+
+Return ONLY a JSON array of campaign goal strings, like: ["Goal 1", "Goal 2", "Goal 3"]
+Do not include any explanations, descriptions, or additional text. Only return the JSON array.`;
+
+  try {
+    console.log('🤖 Calling OpenRouter API for campaign goal suggestions...', { industry, brandName, targetAudience });
+
+    const response = await fetch(OPENROUTER_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'Ad-Genie Campaign Goal Suggestions'
+      },
+      body: JSON.stringify({
+        model: 'openai/gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant that generates lists of campaign goals as JSON arrays. Always return only valid JSON arrays of strings.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 400
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+
+    if (!content) {
+      throw new Error('No content received from OpenRouter API');
+    }
+
+    // Parse the JSON array from the response
+    let cleanedContent = content.trim();
+    
+    // Remove markdown code blocks if present
+    if (cleanedContent.startsWith('```json')) {
+      cleanedContent = cleanedContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    } else if (cleanedContent.startsWith('```')) {
+      cleanedContent = cleanedContent.replace(/```\n?/g, '');
+    }
+
+    // Try to extract JSON array from the content
+    const jsonMatch = cleanedContent.match(/\[.*\]/s);
+    if (jsonMatch) {
+      cleanedContent = jsonMatch[0];
+    }
+
+    const goals = JSON.parse(cleanedContent);
+
+    if (!Array.isArray(goals)) {
+      throw new Error('OpenRouter API did not return a valid array');
+    }
+
+    // Filter out any non-string values and ensure all are strings
+    const goalNames = goals
+      .filter(goal => typeof goal === 'string' && goal.trim().length > 0)
+      .map(goal => goal.trim());
+
+    console.log('✅ Campaign goal suggestions received:', goalNames);
+    return goalNames;
+
+  } catch (error: any) {
+    console.error('❌ OpenRouter API error for campaign goals:', error);
+    
+    // Provide helpful error messages
+    if (error.message.includes('API key')) {
+      throw new Error('OpenRouter API key is not configured. Please add VITE_OPENROUTER_API_KEY to your .env file.');
+    } else if (error.message.includes('rate limit')) {
+      throw new Error('OpenRouter API rate limit exceeded. Please try again later.');
+    } else if (error.message.includes('network') || error.message.includes('fetch')) {
+      throw new Error('Network error. Please check your internet connection and try again.');
+    } else {
+      throw new Error(`Failed to generate campaign goal suggestions: ${error.message}`);
+    }
+  }
+}
+
