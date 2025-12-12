@@ -380,18 +380,35 @@ export default function ResultsPage() {
 
   const handleDownloadVideo = async (video: WebhookVideoItem) => {
     try {
-      const videoUrl = video.url || video.video_url || video.videoUrl || video.src || '';
+      const videoUrl = video.url || video.video_url || video.videoUrl || video.src || video.original_url || '';
       if (!videoUrl) {
         showError('Video URL not found');
         return;
       }
-      // Create a temporary anchor element to download the video
+
+      // Fetch the video as a blob to enable proper download (works with cross-origin URLs)
+      const response = await fetch(videoUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch video: ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      
+      // Create object URL from blob (bypasses CORS restrictions for download)
+      const objectUrl = URL.createObjectURL(blob);
+      
+      // Create download link
       const link = document.createElement('a');
-      link.href = videoUrl;
+      link.href = objectUrl;
       link.download = video.title || `video-${Date.now()}.mp4`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      
+      // Clean up object URL after a short delay to prevent memory leaks
+      setTimeout(() => {
+        URL.revokeObjectURL(objectUrl);
+      }, 100);
     } catch (err: any) {
       console.error('Error downloading video:', err);
       showError(`Failed to download video: ${err.message}`);
@@ -925,7 +942,7 @@ export default function ResultsPage() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] pt-20 pb-20 px-4 md:px-8">
-      <PageHeader />
+      <PageHeader showBackButton={true} />
       <div className="max-w-[1400px] mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -1138,7 +1155,7 @@ export default function ResultsPage() {
                   }`}>
                     <video
                         src={videoUrl}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                         controls
                         preload="metadata"
                         playsInline
@@ -1454,7 +1471,7 @@ export default function ResultsPage() {
                   }`}>
                     <video
                         src={videoUrl}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                         controls
                         preload="metadata"
                         playsInline
