@@ -14,12 +14,16 @@ export interface UserData {
 const isSupabaseConfigured = () => {
   const url = import.meta.env.VITE_SUPABASE_URL;
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  return url && 
+  // Check for empty strings, placeholders, and valid format
+  const hasValidUrl = url && 
+    url.trim() !== '' && // Not empty
     url !== 'your_supabase_project_url' && 
-    url.startsWith('http') &&
-    key && 
+    url.startsWith('http');
+  const hasValidKey = key && 
+    key.trim() !== '' && // Not empty
     key !== 'your_supabase_anon_key' && 
     key.length > 20;
+  return hasValidUrl && hasValidKey;
 };
 
 // LocalStorage fallback for when Supabase isn't configured
@@ -593,14 +597,103 @@ export const campaignService = {
   },
 
   async create(campaign: Omit<Campaign, 'id' | 'created_at' | 'completed_at'>): Promise<Campaign> {
-    const { data, error } = await supabase
-      .from('campaigns')
-      .insert(campaign)
-      .select()
-      .single();
+    // Check if Supabase is configured
+    if (!isSupabaseConfigured()) {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const urlIsEmpty = !supabaseUrl || supabaseUrl.trim() === '';
+      const keyIsEmpty = !supabaseKey || supabaseKey.trim() === '';
+      
+      console.error('❌ CampaignService: Supabase is not configured', {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseKey,
+        urlIsEmpty,
+        keyIsEmpty,
+        urlValue: supabaseUrl ? (supabaseUrl.length > 30 ? supabaseUrl.substring(0, 30) + '...' : supabaseUrl) : 'MISSING',
+        keyLength: supabaseKey?.length || 0
+      });
+      
+      if (urlIsEmpty || keyIsEmpty) {
+        throw new Error('Supabase credentials are empty in .env file. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY with actual values, then restart the dev server.');
+      }
+      throw new Error('Database not configured. Please check your Supabase settings in the .env file.');
+    }
 
-    if (error) throw error;
-    return data;
+    try {
+      console.log('📋 CampaignService: Creating campaign...', {
+        user_id: campaign.user_id,
+        content_type: campaign.content_type,
+        status: campaign.status,
+        hasGeneratedAssets: !!campaign.generated_assets,
+        supabaseUrl: import.meta.env.VITE_SUPABASE_URL?.substring(0, 30) + '...'
+      });
+
+      // Check if Supabase client is using placeholder URL
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (supabaseUrl?.includes('placeholder')) {
+        throw new Error('Supabase is using placeholder configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.');
+      }
+
+      const { data, error } = await supabase
+        .from('campaigns')
+        .insert(campaign)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ CampaignService: Supabase insert error:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+          campaign: {
+            user_id: campaign.user_id,
+            content_type: campaign.content_type
+          }
+        });
+        throw error;
+      }
+
+      console.log('✅ CampaignService: Campaign created successfully:', data.id);
+      return data;
+    } catch (error: any) {
+      console.error('❌ CampaignService: Error creating campaign:', {
+        error: error,
+        message: error?.message,
+        name: error?.name,
+        code: error?.code,
+        details: error?.details,
+        stack: error?.stack,
+        campaign: {
+          user_id: campaign.user_id,
+          content_type: campaign.content_type
+        },
+        supabaseConfigured: isSupabaseConfigured(),
+        supabaseUrl: import.meta.env.VITE_SUPABASE_URL?.substring(0, 50)
+      });
+
+      // Provide user-friendly error messages
+      if (error?.message?.includes('placeholder')) {
+        throw new Error('Supabase configuration error: Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file and restart the server.');
+      }
+      if (error?.message?.includes('Failed to fetch') || error?.name === 'TypeError') {
+        throw new Error('Network error: Unable to create campaign. Please check your internet connection and ensure Supabase is accessible.');
+      }
+      if (error?.code === 'PGRST116' || error?.message?.includes('JWT')) {
+        throw new Error('Authentication error: Please log in again.');
+      }
+      if (error?.code === '23503' || error?.message?.includes('foreign key')) {
+        throw new Error('Data error: Invalid user or brand profile reference.');
+      }
+      if (error?.code === '23505' || error?.message?.includes('unique constraint')) {
+        throw new Error('Duplicate campaign: A campaign with these details already exists.');
+      }
+      if (error?.code === '42501' || error?.message?.includes('permission denied') || error?.message?.includes('RLS')) {
+        throw new Error('Permission error: Row Level Security policy may be blocking this operation. Please check your Supabase RLS policies.');
+      }
+      
+      throw new Error(`Failed to create campaign: ${error?.message || 'Unknown error'}`);
+    }
   },
 
   async update(id: string, updates: Partial<Campaign>): Promise<Campaign> {
