@@ -1,8 +1,11 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { LogOut } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Sparkles, LogOut, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../contexts/ToastContext';
+import Logo from './Logo';
 
 interface PageHeaderProps {
   showLogout?: boolean;
@@ -42,6 +45,7 @@ export default function PageHeader({
 
   return (
     <header className={`bg-[#2D3142] shadow-sm h-16 flex items-center justify-between px-6 md:px-8 fixed top-0 left-0 right-0 z-50 ${className}`}>
+      <Logo to="/dashboard/campaign-hub" size="lg" />
       <div className="flex items-center gap-4">
         <Link
           to="/dashboard/campaign-hub"

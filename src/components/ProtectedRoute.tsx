@@ -21,6 +21,7 @@ export default function ProtectedRoute({
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
 
   useEffect(() => {
+    console.log('🔄 ProtectedRoute: Checking auth for path:', location.pathname);
     checkAuth();
   }, [location.pathname]); // Refresh auth check when route changes
 
@@ -40,12 +41,16 @@ export default function ProtectedRoute({
         // Check localStorage for currentUser (used by LoginPage)
         const currentUser = localStorage.getItem('currentUser');
         if (currentUser) {
+          console.log('🔍 ProtectedRoute: Found currentUser in localStorage:', currentUser);
           const user = await userService.getByEmail(currentUser);
           if (user) {
+            console.log('✅ ProtectedRoute: User authenticated:', user.id, 'has_completed_onboarding:', user.has_completed_onboarding);
             setIsAuthenticated(true);
             setHasCompletedOnboarding(user.has_completed_onboarding);
             setLoading(false);
             return;
+          } else {
+            console.log('❌ ProtectedRoute: User not found in database');
           }
         }
         // Also check for 'user' key (used by AuthContext)
@@ -82,6 +87,7 @@ export default function ProtectedRoute({
   };
 
   if (loading) {
+    console.log('⏳ ProtectedRoute: Still loading auth check...');
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB]">
         <div className="text-center">
@@ -93,8 +99,13 @@ export default function ProtectedRoute({
   }
 
   if (!isAuthenticated) {
+    console.log('❌ ProtectedRoute: Not authenticated, redirecting to login');
+    console.log('❌ ProtectedRoute: Auth state:', { isAuthenticated, loading, hasCompletedOnboarding });
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
+
+  console.log('✅ ProtectedRoute: Auth check passed, rendering children for:', location.pathname);
+  console.log('✅ ProtectedRoute: Auth state:', { isAuthenticated, loading, hasCompletedOnboarding });
 
   // Allow access to ad-genie-working and results pages during onboarding completion
   // These pages are part of the onboarding flow and should be accessible

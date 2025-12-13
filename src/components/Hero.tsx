@@ -19,109 +19,93 @@ export default function Hero() {
         }}
       ></motion.div>
 
-      {[...Array(50)].map((_, i) => (
+      <motion.div
+        style={{ opacity }}
+        className="relative z-10 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto"
+      >
         <motion.div
-          key={i}
-          className="absolute"
-          initial={{
-            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1200),
-            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 800),
-            scale: 0,
-            opacity: 0,
-          }}
-          animate={{
-            y: [null, Math.random() * -100 - 50],
-            scale: [0, Math.random() * 1 + 0.5, 0],
-            opacity: [0, 1, 0],
-          }}
-          transition={{
-            duration: Math.random() * 3 + 2,
-            repeat: Infinity,
-            delay: Math.random() * 5,
-          }}
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+          className="mb-8"
         >
-          <Sparkles className="text-amber-400" size={Math.random() * 15 + 5} />
+          <div className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 mb-8">
+            <Sparkles className="text-amber-400 w-5 h-5" />
+            <span className="text-white font-medium">AI-Powered Ad Creation</span>
+          </div>
         </motion.div>
-      ))}
 
-      <motion.div style={{ opacity }} className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+        <motion.h1
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-white mb-6 leading-tight"
         >
-          <motion.h1
-            className="text-5xl md:text-7xl font-bold text-white mb-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            Your Wish is Our{' '}
-            <motion.span
-              className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-600 text-transparent bg-clip-text"
-              animate={{
-                backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-              }}
-              transition={{ duration: 5, repeat: Infinity }}
-              style={{ backgroundSize: '200% auto' }}
-            >
-              Command
-            </motion.span>
-          </motion.h1>
+          Create Stunning Ads in
+          <span className="block bg-gradient-to-r from-amber-400 via-orange-500 to-pink-500 text-transparent bg-clip-text">
+            Minutes, Not Hours
+          </span>
+        </motion.h1>
 
-          <motion.p
-            className="text-xl md:text-2xl text-teal-100 mb-8 max-w-3xl mx-auto"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            AI-Powered Ad Creation for Indian Businesses - From Product Photo to Culturally Perfect Ads in Minutes
-          </motion.p>
+        <motion.p
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          className="text-xl sm:text-2xl text-slate-200 mb-12 max-w-3xl mx-auto"
+        >
+          Transform your marketing with AI-generated ads tailored for the Indian market. 
+          No design skills needed.
+        </motion.p>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+          className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+        >
+          <motion.a
+            href="/login"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-8 py-4 bg-gradient-to-r from-orange-500 to-pink-600 text-white font-bold rounded-full text-lg shadow-2xl hover:shadow-orange-500/50 transition-all"
           >
-            <motion.a
-              href="/waitlist"
-              className="group relative inline-flex px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-lg rounded-full shadow-2xl overflow-hidden"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-amber-500"
-                animate={{
-                  x: ['-100%', '100%'],
-                }}
-                transition={{ duration: 2, repeat: Infinity }}
-                style={{ opacity: 0.5 }}
-              ></motion.div>
-              <span className="relative z-10 flex items-center gap-2">
-                Join Waitlist - Ad-Genie Magic
-                <motion.div
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                >
-                  <Sparkles size={20} />
-                </motion.div>
-              </span>
-            </motion.a>
+            Start Creating Free
+          </motion.a>
+          
+          <motion.a
+            href="#how-it-works"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-8 py-4 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white font-bold rounded-full text-lg hover:bg-white/20 transition-all"
+          >
+            See How It Works
+          </motion.a>
+        </motion.div>
 
-            <p className="mt-4 text-teal-200 text-sm">
-              ✨ Be among the first to experience the magic
-            </p>
-          </motion.div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, delay: 1 }}
+          className="mt-16 text-center"
+        >
+          <div className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-400/20 to-orange-500/20 backdrop-blur-sm rounded-full border border-amber-400/30">
+            <Sparkles className="text-amber-400 w-6 h-6" />
+            <span className="text-2xl font-bold text-white">
+              Ad-Genie: Make Your Marketing Wishes Real
+            </span>
+            <Sparkles className="text-amber-400 w-6 h-6" />
+          </div>
         </motion.div>
       </motion.div>
 
       <motion.div
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 cursor-pointer"
         animate={{ y: [0, 10, 0] }}
         transition={{ duration: 2, repeat: Infinity }}
-        onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
+        className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
       >
-        <ArrowDown className="text-teal-300" size={32} />
+        <a href="#how-it-works" className="text-white/60 hover:text-white transition-colors">
+          <ArrowDown size={32} />
+        </a>
       </motion.div>
     </section>
   );

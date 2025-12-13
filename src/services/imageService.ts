@@ -224,12 +224,18 @@ export const imageService = {
     userId: string,
     file: File,
     type: 'logo' | 'product',
-    removeBackground = false
+    removeBackground = false,
+    retryCount = 0
   ): Promise<string> {
-    console.log('uploadToStorage called:', { userId, fileName: file.name, type, removeBackground, supabaseConfigured: isSupabaseConfigured() });
+    const startTime = performance.now();
+    console.log('uploadToStorage called:', { userId, fileName: file.name, type, removeBackground, supabaseConfigured: isSupabaseConfigured(), retryCount });
 
     let fileToUpload = file;
-    let fileName = `${type}-${Date.now()}-${file.name}`;
+    // Optimize filename: remove special characters and use simpler naming
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const timestamp = Date.now();
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    let fileName = `${type}-${timestamp}-${randomSuffix}-${sanitizedFileName}`;
 
     // Use Edge Function for background removal if requested and Supabase is configured
     if (removeBackground && isSupabaseConfigured()) {
@@ -277,6 +283,7 @@ export const imageService = {
     // Always attempt to upload to Supabase storage buckets
     const filePath = `${userId}/${fileName}`;
 
+    const beforeUploadTime = performance.now();
     console.log('📤 Uploading to Supabase storage bucket:', {
       bucket: 'brand-assets',
       path: filePath,
@@ -285,18 +292,46 @@ export const imageService = {
       fileType: fileToUpload.type,
       userId: userId,
       type: type,
+      timeToUploadStart: `${(beforeUploadTime - startTime).toFixed(2)}ms`,
     });
 
     try {
-      const { data, error } = await supabase.storage
+      // Add timeout handling (30 seconds)
+      let timeoutId: ReturnType<typeof setTimeout>;
+      let timedOut = false;
+      
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          timedOut = true;
+          reject(new Error('Upload timeout: Request took longer than 30 seconds'));
+        }, 30000);
+      });
+
+      const uploadPromise = supabase.storage
         .from('brand-assets')
         .upload(filePath, fileToUpload, {
           cacheControl: '3600',
-          upsert: false,
-          contentType: fileToUpload.type,
+          upsert: true, // Changed to true to avoid conflicts
+          contentType: fileToUpload.type || 'image/jpeg',
         });
 
+      let uploadResult: any;
+      try {
+        uploadResult = await Promise.race([uploadPromise, timeoutPromise]);
+        clearTimeout(timeoutId);
+      } catch (raceError: any) {
+        clearTimeout(timeoutId);
+        if (timedOut || (raceError.message && raceError.message.includes('timeout'))) {
+          throw raceError;
+        }
+        // Supabase returns {data, error} format, so if it's not a timeout, it's the response
+        uploadResult = raceError;
+      }
+
+      const { data, error } = uploadResult || {};
+
       if (error) {
+        const errorTime = performance.now();
         console.error('❌ Supabase storage upload error details:', {
           message: error.message,
           statusCode: error.statusCode,
@@ -306,7 +341,25 @@ export const imageService = {
           bucket: 'brand-assets',
           fileName: fileToUpload.name,
           fileSize: fileToUpload.size,
+          timeToError: `${(errorTime - beforeUploadTime).toFixed(2)}ms`,
         });
+        
+        // Retry logic for transient errors
+        const MAX_RETRIES = 2;
+        if (retryCount < MAX_RETRIES && (
+          error.message.includes('network') || 
+          error.message.includes('timeout') ||
+          error.message.includes('fetch') ||
+          error.statusCode === 408 ||
+          error.statusCode === 429 ||
+          error.statusCode === 503 ||
+          error.statusCode === 504
+        )) {
+          const retryDelay = 1000 * (retryCount + 1); // Exponential backoff: 1s, 2s
+          console.log(`🔄 Retrying upload (attempt ${retryCount + 2}/${MAX_RETRIES + 1}) after ${retryDelay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          return this.uploadToStorage(userId, file, type, removeBackground, retryCount + 1);
+        }
         
         // Check for specific error types
         if (error.message.includes('new row violates row-level security policy') || 
@@ -324,18 +377,27 @@ export const imageService = {
         throw error;
       }
 
+      const afterUploadTime = performance.now();
       console.log('✅ File uploaded successfully to Supabase:', {
         path: data.path,
         id: data.id,
         fullPath: data.fullPath,
+        uploadDuration: `${(afterUploadTime - beforeUploadTime).toFixed(2)}ms`,
       });
 
+      const beforeUrlTime = performance.now();
       const { data: urlData } = supabase.storage
         .from('brand-assets')
         .getPublicUrl(data.path);
 
       const publicUrl = urlData.publicUrl;
-      console.log('🔗 Public URL generated:', publicUrl);
+      const afterUrlTime = performance.now();
+      const totalTime = performance.now() - startTime;
+      console.log('🔗 Public URL generated:', {
+        url: publicUrl,
+        urlGenerationTime: `${(afterUrlTime - beforeUrlTime).toFixed(2)}ms`,
+        totalTime: `${totalTime.toFixed(2)}ms`,
+      });
       
       // Verify the URL is actually a Supabase URL
       if (!publicUrl.includes('supabase.co/storage')) {

@@ -104,6 +104,7 @@ export default function ContentSelectionPage() {
 
     setSaving(true);
     try {
+      console.log('🔄 ContentSelectionPage: Saving preferences...', { userId, selectedType, selectedMarket });
       // Update preferences with campaign_market (not campaign_goal)
       await preferencesService.upsert({
         user_id: userId,
@@ -111,9 +112,13 @@ export default function ContentSelectionPage() {
         campaign_market: selectedMarket, // Store in correct field
       });
 
+      console.log('✅ ContentSelectionPage: Preferences saved, navigating to brand-and-preferences');
+      // TEMPORARY: Test route first to verify routing works
+      // navigate('/onboarding/brand-and-preferences-test'); // Uncomment to test routing
       navigate('/onboarding/brand-and-preferences');
+      console.log('✅ ContentSelectionPage: Navigation called');
     } catch (err) {
-      console.error('Error saving content type:', err);
+      console.error('❌ Error saving content type:', err);
       error('Failed to save content type. Please try again.');
     } finally {
       setSaving(false);
@@ -170,8 +175,8 @@ export default function ContentSelectionPage() {
                       }`}
                     >
                       {type.recommended && (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                          <span className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                          <span className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md whitespace-nowrap">
                             COMING SOON!
                           </span>
                         </div>

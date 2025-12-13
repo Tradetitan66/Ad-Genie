@@ -87,7 +87,8 @@ export default function VisualAssetsPage() {
 
     setUploading(true);
     try {
-      const url = await imageService.uploadToStorage(userId, file, 'logo', true);
+      // Upload directly to Supabase
+      const url = await imageService.uploadToStorage(userId, file, 'logo', false);
       setLogo(url);
     } catch (err) {
       console.error('Error uploading logo:', err);
@@ -132,8 +133,8 @@ export default function VisualAssetsPage() {
     try {
       const uploadPromises = filesToProcess.map(async (file) => {
         try {
-          // Use Edge Function to remove background and upload to Supabase
-          const url = await imageService.uploadToStorage(userId, file, 'product', true);
+          // Upload directly to Supabase
+          const url = await imageService.uploadToStorage(userId, file, 'product', false);
           setProcessingCount(prev => prev - 1);
           return url;
         } catch (err) {
@@ -331,7 +332,7 @@ export default function VisualAssetsPage() {
                     <p className="text-sm font-semibold text-slate-900">
                       Uploading {processingCount} image{processingCount > 1 ? 's' : ''}...
                     </p>
-                    <p className="text-xs text-slate-600">Removing background & saving</p>
+                          <p className="text-xs text-slate-600">Uploading & saving</p>
                   </div>
                 </div>
               </div>
