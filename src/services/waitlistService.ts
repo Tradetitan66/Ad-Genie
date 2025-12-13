@@ -1,6 +1,6 @@
 // Waitlist service for submitting waitlist form data to n8n webhook
 // Previous webhook URLs (kept for reference):
-const WAITLIST_WEBHOOK_URL = 'https://n8n.srv1114357.hstgr.cloud/webhook/27850a35-32bc-438c-b194-a5b86e192820';
+const WAITLIST_WEBHOOK_URL = 'https://n8n.srv1004168.hstgr.cloud/webhook/7b3e5a0d-1466-4a6a-a60e-b4c2f98b3bd1';
 
 
 export interface WaitlistFormData {
