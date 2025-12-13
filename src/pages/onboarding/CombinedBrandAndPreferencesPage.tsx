@@ -6,7 +6,7 @@ import OnboardingLayout from '../../components/OnboardingLayout';
 import { userService, brandProfileService, preferencesService } from '../../services/database';
 import { imageService } from '../../services/imageService';
 import { useToast } from '../../contexts/ToastContext';
-import { generateEventSuggestions } from '../../services/openaiService';
+import { generateEventSuggestions, generateCampaignGoalSuggestions } from '../../services/openaiService';
 
 const industries = [
   'E-commerce', 'Fashion & Apparel', 'Technology & Software', 'Food & Beverage',
@@ -29,10 +29,25 @@ const targetAudienceOptions = [
 const brandVoices = ['Professional', 'Casual', 'Playful', 'Authoritative', 'Inspirational'];
 const visualStyles = ['Minimalist', 'Bold', 'Elegant', 'Vintage', 'Modern', 'Colorful'];
 
+const commonCampaignGoals = [
+  'Increase sales',
+  'Brand awareness',
+  'Product launch',
+  'Customer engagement',
+  'Market expansion',
+  'Lead generation'
+];
+
 export default function CombinedBrandAndPreferencesPage() {
+  console.log('🚀 CombinedBrandAndPreferencesPage: Component mounting...');
+  console.log('📍 Current URL:', window.location.href);
+  console.log('📍 Current pathname:', window.location.pathname);
+  console.trace('Stack trace for component mount');
+  
   const navigate = useNavigate();
   const { success, error } = useToast();
   const [loading, setLoading] = useState(true);
+  const [renderError, setRenderError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [processingCount, setProcessingCount] = useState(0);
@@ -64,17 +79,26 @@ export default function CombinedBrandAndPreferencesPage() {
   const [dragActive, setDragActive] = useState(false);
 
   // Campaign Preferences Section
-  const [preferencesData, setPreferencesData] = useState({
-    campaignGoal: '',
+  const [preferencesData, setPreferencesData] = useState<{
+    campaignGoal: string[];
+    brandVoice: string;
+    visualStyles: string[];
+    seasonalEvents: string[];
+    enableAutoSuggestions: boolean;
+  }>({
+    campaignGoal: [],
     brandVoice: '',
-    visualStyles: [] as string[],
-    seasonalEvents: [] as string[],
+    visualStyles: [],
+    seasonalEvents: [],
     enableAutoSuggestions: true
   });
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [manualEventInput, setManualEventInput] = useState('');
+  const [aiGoalSuggestions, setAiGoalSuggestions] = useState<string[]>([]);
+  const [loadingGoalSuggestions, setLoadingGoalSuggestions] = useState(false);
+  const [customGoal, setCustomGoal] = useState('');
   const hasLoadedSuggestionsRef = useRef(false);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -150,9 +174,96 @@ export default function CombinedBrandAndPreferencesPage() {
     }
   }, [userId, brandData.industry]);
 
+  // Fetch AI campaign goal suggestions
+  const fetchAIGoalSuggestions = useCallback(async () => {
+    if (!userId) {
+      console.log('⚠️ No userId, skipping AI goal suggestions');
+      return;
+    }
+
+    console.log('🚀 Starting AI goal suggestions fetch...');
+    setLoadingGoalSuggestions(true);
+
+    try {
+      // Get industry from brandData or brand profile
+      let industry = brandData.industry;
+      if (!industry) {
+        const brandProfile = await brandProfileService.getByUserId(userId);
+        if (!brandProfile || !brandProfile.industry) {
+          console.log('⚠️ No industry found, skipping AI goal suggestions');
+          setLoadingGoalSuggestions(false);
+          return;
+        }
+        industry = brandProfile.industry;
+      }
+
+      // Get brand name from brandData or brand profile
+      let brandName = brandData.brandName;
+      if (!brandName) {
+        const brandProfile = await brandProfileService.getByUserId(userId);
+        brandName = brandProfile?.brand_name || '';
+      }
+
+      // Get target audience from brandData or brand profile
+      let targetAudience = brandData.audience;
+      if (!targetAudience) {
+        const brandProfile = await brandProfileService.getByUserId(userId);
+        targetAudience = brandProfile?.audience || '';
+      }
+
+      console.log('📊 Fetching goal suggestions with:', { industry, brandName, targetAudience });
+
+      const suggestions = await generateCampaignGoalSuggestions(
+        industry,
+        brandName,
+        targetAudience
+      );
+
+      console.log('✅ AI goal suggestions received:', suggestions.length, 'goals');
+      setAiGoalSuggestions(suggestions);
+    } catch (err: any) {
+      console.error('❌ Error fetching AI goal suggestions:', err);
+      // Non-blocking error - just log it
+    } finally {
+      setLoadingGoalSuggestions(false);
+    }
+  }, [userId, brandData.industry, brandData.brandName, brandData.audience]);
+
   useEffect(() => {
+    // Add timeout safeguard to ensure page always renders
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.warn('⚠️ LoadData taking too long, forcing loading to false');
+        setLoading(false);
+      }
+    }, 10000); // 10 second timeout
+
     loadData();
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-load AI goal suggestions when brand data is available
+  useEffect(() => {
+    const shouldLoad = userId && 
+                       brandData.industry && 
+                       !loadingGoalSuggestions &&
+                       aiGoalSuggestions.length === 0;
+    
+    if (shouldLoad) {
+      console.log('🔄 Auto-loading AI goal suggestions:', { 
+        userId, 
+        industry: brandData.industry,
+        brandName: brandData.brandName,
+        audience: brandData.audience
+      });
+      fetchAIGoalSuggestions();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, brandData.industry, brandData.brandName, brandData.audience]);
 
   // Auto-load AI suggestions when preferences section is expanded and industry is available
   useEffect(() => {
@@ -175,18 +286,22 @@ export default function CombinedBrandAndPreferencesPage() {
 
   const loadData = async () => {
     try {
+      console.log('🔄 CombinedBrandAndPreferencesPage: Starting loadData...');
       const currentUserEmail = localStorage.getItem('currentUser');
       if (!currentUserEmail) {
+        console.log('❌ No currentUser email found, redirecting to login');
         navigate('/login');
         return;
       }
 
       const user = await userService.getByEmail(currentUserEmail);
       if (!user) {
+        console.log('❌ User not found, redirecting to login');
         navigate('/login');
         return;
       }
 
+      console.log('✅ User found:', user.id);
       setUserId(user.id);
 
       const [brandProfile, preferences] = await Promise.all([
@@ -227,8 +342,24 @@ export default function CombinedBrandAndPreferencesPage() {
         const marketOptions = ['Local (India)', 'International', 'Global'];
         const isMarketValue = preferences.campaign_goal && marketOptions.includes(preferences.campaign_goal);
         
+        // Parse campaignGoal from string to array
+        let campaignGoalArray: string[] = [];
+        if (!isMarketValue && preferences.campaign_goal) {
+          try {
+            if (typeof preferences.campaign_goal === 'string') {
+              // Split by comma and trim each item
+              campaignGoalArray = preferences.campaign_goal.split(',').map(g => g.trim()).filter(g => g.length > 0);
+            } else if (Array.isArray(preferences.campaign_goal)) {
+              campaignGoalArray = preferences.campaign_goal.filter(g => typeof g === 'string' && g.trim().length > 0);
+            }
+          } catch (parseError) {
+            console.error('Error parsing campaign_goal:', parseError);
+            campaignGoalArray = [];
+          }
+        }
+        
         setPreferencesData({
-          campaignGoal: isMarketValue ? '' : (preferences.campaign_goal || ''),
+          campaignGoal: campaignGoalArray,
           brandVoice: preferences.brand_voice || '',
           visualStyles: preferences.visual_styles || [],
           seasonalEvents: Array.isArray(preferences.seasonal_events)
@@ -242,10 +373,34 @@ export default function CombinedBrandAndPreferencesPage() {
           enableAutoSuggestions: preferences.enable_auto_suggestions ?? true
         });
       }
-    } catch (err) {
-      console.error('Error loading data:', err);
-      error('Failed to load data');
+      console.log('✅ CombinedBrandAndPreferencesPage: Data loaded successfully');
+    } catch (err: any) {
+      console.error('❌ Error loading data in CombinedBrandAndPreferencesPage:', err);
+      console.error('Error details:', {
+        message: err?.message,
+        stack: err?.stack,
+        name: err?.name
+      });
+      const errorMessage = err?.message || 'Unknown error occurred';
+      console.error('Full error object:', err);
+      error('Failed to load data. The page will still load with empty fields.');
+      setRenderError(`Failed to load: ${errorMessage}`);
+      // Don't prevent page from rendering - set empty defaults
+      setBrandData({
+        brandName: '',
+        industry: '',
+        audience: '',
+        websiteUrl: ''
+      });
+      setPreferencesData({
+        campaignGoal: [],
+        brandVoice: '',
+        visualStyles: [],
+        seasonalEvents: [],
+        enableAutoSuggestions: true
+      });
     } finally {
+      console.log('🔄 CombinedBrandAndPreferencesPage: Setting loading to false');
       setLoading(false);
     }
   };
@@ -296,7 +451,7 @@ export default function CombinedBrandAndPreferencesPage() {
     try {
       const uploadPromises = filesToProcess.map(async (file) => {
         try {
-          const url = await imageService.uploadToStorage(userId, file, 'product', true);
+          const url = await imageService.uploadToStorage(userId, file, 'product', false);
           setProcessingCount(prev => prev - 1);
           return url;
         } catch (err) {
@@ -420,7 +575,7 @@ export default function CombinedBrandAndPreferencesPage() {
       case 'visual':
         return productImages.length >= 1 && brandColors.primary !== '';
       case 'preferences':
-        return preferencesData.campaignGoal.trim() !== '' &&
+        return preferencesData.campaignGoal.length > 0 &&
                preferencesData.brandVoice !== '' &&
                preferencesData.visualStyles.length >= 1 &&
                preferencesData.visualStyles.length <= 3 &&
@@ -459,8 +614,8 @@ export default function CombinedBrandAndPreferencesPage() {
       error('Please upload at least 1 product image');
       return;
     }
-    if (!preferencesData.campaignGoal.trim()) {
-      error('Please enter a campaign goal');
+    if (preferencesData.campaignGoal.length === 0) {
+      error('Please select at least one campaign goal');
       return;
     }
     if (!preferencesData.brandVoice) {
@@ -524,7 +679,10 @@ export default function CombinedBrandAndPreferencesPage() {
       const currentMarket = existingPreferences?.campaign_goal && marketOptions.includes(existingPreferences.campaign_goal)
         ? existingPreferences.campaign_goal
         : null;
-      const finalCampaignGoal = preferencesData.campaignGoal.trim() || currentMarket || '';
+      // Join campaign goals array with comma-space separator
+      const finalCampaignGoal = preferencesData.campaignGoal.length > 0 
+        ? preferencesData.campaignGoal.join(', ') 
+        : (currentMarket || '');
 
       await preferencesService.upsert({
         user_id: userId,
@@ -546,14 +704,75 @@ export default function CombinedBrandAndPreferencesPage() {
     }
   };
 
+  // Force render after 3 seconds even if loading (safety net)
+  useEffect(() => {
+    const forceRenderTimeout = setTimeout(() => {
+      if (loading) {
+        console.warn('⚠️ Force rendering page after 3 seconds timeout');
+        setLoading(false);
+      }
+    }, 3000);
+    return () => clearTimeout(forceRenderTimeout);
+  }, [loading]);
+
   if (loading) {
+    console.log('⏳ CombinedBrandAndPreferencesPage: Still loading...');
     return (
       <OnboardingLayout currentStep={3} totalSteps={3} stepLabel="Loading...">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <Loader2 className="w-12 h-12 text-[#2563EB] animate-spin mx-auto mb-4" />
             <p className="text-slate-600">Loading...</p>
+            <p className="text-xs text-slate-400 mt-2">This should not take more than a few seconds...</p>
           </div>
+        </div>
+      </OnboardingLayout>
+    );
+  }
+
+  console.log('✅ CombinedBrandAndPreferencesPage: Rendering page content', {
+    userId,
+    hasBrandData: !!brandData.industry,
+    loading,
+    brandData,
+    preferencesData,
+    campaignGoalType: typeof preferencesData.campaignGoal,
+    campaignGoalIsArray: Array.isArray(preferencesData.campaignGoal)
+  });
+
+  // Safety check - ensure campaignGoal is always an array
+  if (!Array.isArray(preferencesData.campaignGoal)) {
+    console.error('❌ CRITICAL: campaignGoal is not an array!', preferencesData.campaignGoal);
+    setPreferencesData({
+      ...preferencesData,
+      campaignGoal: []
+    });
+    return (
+      <OnboardingLayout currentStep={3} totalSteps={3} stepLabel="Loading...">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-12 h-12 text-[#2563EB] animate-spin mx-auto mb-4" />
+          <p className="text-slate-600">Fixing data structure...</p>
+        </div>
+      </OnboardingLayout>
+    );
+  }
+
+  // Show error if any
+  if (renderError) {
+    return (
+      <OnboardingLayout currentStep={3} totalSteps={3} stepLabel="Error">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <h2 className="text-red-800 font-bold mb-2">Error Loading Page</h2>
+          <p className="text-red-600">{renderError}</p>
+          <button
+            onClick={() => {
+              setRenderError(null);
+              window.location.reload();
+            }}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Retry
+          </button>
         </div>
       </OnboardingLayout>
     );
@@ -642,25 +861,28 @@ export default function CombinedBrandAndPreferencesPage() {
                     Target Audience <span className="text-red-500">*</span>
                   </label>
                   <p className="text-xs text-slate-500 mb-3">Who is your target audience for this campaign?</p>
-                  <div className="space-y-2 mb-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
                     {targetAudienceOptions.map(audience => (
-                      <label key={audience} className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-all">
-                        <input
-                          type="radio"
-                          name="audience"
-                          value={audience}
-                          checked={selectedAudience === audience}
-                          onChange={(e) => {
-                            setSelectedAudience(e.target.value);
-                            if (e.target.value !== 'Others') {
-                              setCustomAudience('');
-                              setBrandData({ ...brandData, audience: e.target.value });
-                            }
-                          }}
-                          className="w-4 h-4 text-[#2563EB] focus:ring-[#2563EB]"
-                        />
-                        <span className="text-slate-700 font-medium">{audience}</span>
-                      </label>
+                      <motion.button
+                        key={audience}
+                        type="button"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          setSelectedAudience(audience);
+                          if (audience !== 'Others') {
+                            setCustomAudience('');
+                            setBrandData({ ...brandData, audience: audience });
+                          }
+                        }}
+                        className={`px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                          selectedAudience === audience
+                            ? 'border-[#2563EB] bg-blue-50 text-[#2563EB]'
+                            : 'border-slate-300 hover:border-slate-400 text-slate-700 bg-white'
+                        }`}
+                      >
+                        {audience}
+                      </motion.button>
                     ))}
                   </div>
                   
@@ -773,7 +995,7 @@ export default function CombinedBrandAndPreferencesPage() {
                           <p className="text-sm font-semibold text-slate-900">
                             Uploading {processingCount} image{processingCount > 1 ? 's' : ''}...
                           </p>
-                          <p className="text-xs text-slate-600">Removing background & saving</p>
+                          <p className="text-xs text-slate-600">Uploading & saving</p>
                         </div>
                       </div>
                     </div>
@@ -949,19 +1171,169 @@ export default function CombinedBrandAndPreferencesPage() {
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Campaign Goal <span className="text-red-500">*</span>
                   </label>
-                  <p className="text-xs text-slate-500 mb-2">What's your main campaign goal?</p>
+                  <p className="text-xs text-slate-500 mb-3">Select one or more campaign goals (you can select multiple)</p>
+                  
+                  {/* Pre-filled Common Goals */}
+                  <div className="mb-4">
+                    <p className="text-xs font-medium text-slate-600 mb-2">Common Goals</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {commonCampaignGoals.map(goal => (
+                        <motion.button
+                          key={goal}
+                          type="button"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => {
+                            const isSelected = preferencesData.campaignGoal.includes(goal);
+                            if (isSelected) {
+                              setPreferencesData({
+                                ...preferencesData,
+                                campaignGoal: preferencesData.campaignGoal.filter(g => g !== goal)
+                              });
+                            } else {
+                              setPreferencesData({
+                                ...preferencesData,
+                                campaignGoal: [...preferencesData.campaignGoal, goal]
+                              });
+                            }
+                          }}
+                          className={`px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                            preferencesData.campaignGoal.includes(goal)
+                              ? 'border-[#2563EB] bg-blue-50 text-[#2563EB]'
+                              : 'border-slate-300 hover:border-slate-400 text-slate-700 bg-white'
+                          }`}
+                        >
+                          {goal}
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* AI-Generated Suggestions */}
+                  {loadingGoalSuggestions && (
+                    <div className="mb-4 flex items-center gap-2 text-sm text-slate-500">
+                      <Loader2 className="animate-spin" size={16} />
+                      <span>Loading AI suggestions...</span>
+                    </div>
+                  )}
+                  {aiGoalSuggestions.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-xs font-medium text-slate-600 mb-2">AI Suggestions</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {aiGoalSuggestions.map(goal => (
+                          <motion.button
+                            key={goal}
+                            type="button"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => {
+                              const isSelected = preferencesData.campaignGoal.includes(goal);
+                              if (isSelected) {
+                                setPreferencesData({
+                                  ...preferencesData,
+                                  campaignGoal: preferencesData.campaignGoal.filter(g => g !== goal)
+                                });
+                              } else {
+                                setPreferencesData({
+                                  ...preferencesData,
+                                  campaignGoal: [...preferencesData.campaignGoal, goal]
+                                });
+                              }
+                            }}
+                            className={`px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                              preferencesData.campaignGoal.includes(goal)
+                                ? 'border-[#2563EB] bg-blue-50 text-[#2563EB]'
+                                : 'border-slate-300 hover:border-slate-400 text-slate-700 bg-white'
+                            }`}
+                          >
+                            {goal}
+                          </motion.button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Other/Custom Goal */}
+                  <div className="mb-3">
+                    <motion.button
+                      type="button"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        const isSelected = preferencesData.campaignGoal.includes(customGoal.trim());
+                        if (!isSelected && customGoal.trim()) {
+                          setPreferencesData({
+                            ...preferencesData,
+                            campaignGoal: [...preferencesData.campaignGoal, customGoal.trim()]
+                          });
+                        }
+                      }}
+                      className={`px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                        customGoal.trim() && preferencesData.campaignGoal.includes(customGoal.trim())
+                          ? 'border-[#2563EB] bg-blue-50 text-[#2563EB]'
+                          : 'border-slate-300 hover:border-slate-400 text-slate-700 bg-white'
+                      }`}
+                    >
+                      Other
+                    </motion.button>
+                  </div>
+
+                  {/* Custom Goal Textarea */}
                   <div className="relative">
                     <Target className="absolute left-3 top-4 text-slate-400" size={20} />
                     <textarea
-                      value={preferencesData.campaignGoal}
-                      onChange={(e) => setPreferencesData({ ...preferencesData, campaignGoal: e.target.value })}
-                      maxLength={300}
-                      rows={3}
+                      value={customGoal}
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        setCustomGoal(newValue);
+                        // Remove old custom goal if it was selected
+                        const oldCustomGoal = preferencesData.campaignGoal.find(g => g === customGoal.trim());
+                        if (oldCustomGoal && customGoal.trim() !== newValue.trim()) {
+                          setPreferencesData({
+                            ...preferencesData,
+                            campaignGoal: preferencesData.campaignGoal.filter(g => g !== oldCustomGoal)
+                          });
+                        }
+                      }}
+                      maxLength={200}
+                      rows={2}
                       className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
-                      placeholder="e.g., Increase brand awareness, drive sales, promote new products"
+                      placeholder="Enter your custom campaign goal"
                     />
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">{preferencesData.campaignGoal.length}/300</p>
+                  <p className="text-xs text-slate-500 mt-1">{customGoal.length}/200</p>
+                  
+                  {/* Selected Goals Summary */}
+                  {preferencesData.campaignGoal.length > 0 && (
+                    <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                      <p className="text-xs font-medium text-slate-700 mb-1">Selected Goals ({preferencesData.campaignGoal.length}):</p>
+                      <div className="flex flex-wrap gap-2">
+                        {preferencesData.campaignGoal.map((goal, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-blue-200 rounded text-xs text-slate-700"
+                          >
+                            {goal}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPreferencesData({
+                                  ...preferencesData,
+                                  campaignGoal: preferencesData.campaignGoal.filter((_, i) => i !== index)
+                                });
+                                if (goal === customGoal.trim()) {
+                                  setCustomGoal('');
+                                }
+                              }}
+                              className="text-slate-400 hover:text-red-500"
+                            >
+                              <X size={12} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>

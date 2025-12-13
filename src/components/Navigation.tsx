@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, LogIn, User, LogOut, ArrowRight } from 'lucide-react';
+import { LogIn, User, LogOut, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Login from './Login';
 import Signup from './Signup';
+import Logo from './Logo';
 
 interface NavigationProps {
   onLoginSuccess?: () => void;
@@ -40,27 +41,7 @@ export default function Navigation({ onLoginSuccess, onLoginClick }: NavigationP
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          <motion.div
-            className="relative group cursor-pointer flex items-center gap-3"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <div className="relative flex items-center gap-3">
-              <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-teal-400 shadow-md bg-white flex-shrink-0">
-                <img
-                  src="/enhanced_design_a_contemporary_professional_logo_combining_a_streamlined_genie_figure_with_modern_tech_symbo_g4d4ei5j85xa3vwd3mit_1 (1).png"
-                  alt="Ad-Genie"
-                  className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
-                />
-              </div>
-
-              <span className="text-2xl font-bold text-slate-900">
-                Ad-Genie
-              </span>
-              
-              <Sparkles className="text-amber-400 w-4 h-4" />
-            </div>
-          </motion.div>
+          <Logo size="lg" to="/" className="cursor-pointer" />
 
           <div className="hidden md:flex items-center gap-8">
             <a href="#how-it-works" className="text-white hover:text-amber-400 transition-colors font-medium">

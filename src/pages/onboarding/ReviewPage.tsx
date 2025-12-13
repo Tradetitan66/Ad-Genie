@@ -96,20 +96,72 @@ export default function ReviewPage() {
 
     setGenerating(true);
     try {
-      // Fetch latest data
+      // Fetch latest data with individual error handling
       const currentUserEmail = localStorage.getItem('currentUser');
       if (!currentUserEmail) {
         throw new Error('User email not found');
       }
       
-      const [user, preferences, brandProfile] = await Promise.all([
-        userService.getByEmail(currentUserEmail),
-        preferencesService.getByUserId(userId),
-        brandProfileService.getByUserId(userId)
-      ]);
-
-      if (!user || !brandProfile) {
-        throw new Error('User or brand profile not found');
+      let user, preferences, brandProfile;
+      
+      // Fetch user with error handling
+      try {
+        console.log('📋 Fetching user data...');
+        user = await userService.getByEmail(currentUserEmail);
+        if (!user) {
+          throw new Error('User not found in database');
+        }
+        console.log('✅ User data fetched successfully');
+      } catch (err: any) {
+        console.error('❌ Error fetching user:', {
+          error: err,
+          message: err.message,
+          name: err.name,
+          email: currentUserEmail
+        });
+        if (err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
+          throw new Error('Network error: Unable to fetch user data. Please check your internet connection.');
+        }
+        throw new Error(`Failed to fetch user data: ${err.message}`);
+      }
+      
+      // Fetch preferences with error handling
+      try {
+        console.log('📋 Fetching preferences data...');
+        preferences = await preferencesService.getByUserId(userId);
+        console.log('✅ Preferences data fetched successfully');
+      } catch (err: any) {
+        console.error('❌ Error fetching preferences:', {
+          error: err,
+          message: err.message,
+          name: err.name,
+          userId
+        });
+        if (err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
+          throw new Error('Network error: Unable to fetch preferences. Please check your internet connection.');
+        }
+        throw new Error(`Failed to fetch preferences: ${err.message}`);
+      }
+      
+      // Fetch brand profile with error handling
+      try {
+        console.log('📋 Fetching brand profile data...');
+        brandProfile = await brandProfileService.getByUserId(userId);
+        if (!brandProfile) {
+          throw new Error('Brand profile not found in database');
+        }
+        console.log('✅ Brand profile data fetched successfully');
+      } catch (err: any) {
+        console.error('❌ Error fetching brand profile:', {
+          error: err,
+          message: err.message,
+          name: err.name,
+          userId
+        });
+        if (err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
+          throw new Error('Network error: Unable to fetch brand profile. Please check your internet connection.');
+        }
+        throw new Error(`Failed to fetch brand profile: ${err.message}`);
       }
 
       // Format brand colors
@@ -182,18 +234,35 @@ export default function ReviewPage() {
       // Store webhook payload for later use
       setWebhookPayload(webhookData);
 
-      // Create campaign record with status 'generating'
-      const campaign = await campaignService.create({
-        user_id: user.id,
-        brand_profile_id: brandProfile.id,
-        content_type: contentType,
-        status: 'generating',
-        generated_assets: {
-          webhook_payload: webhookData,
-          images: [],
-          videos: contentType === 'ugc-only' || contentType === 'image-ugc' ? [] : undefined,
-        },
-      });
+      // Create campaign record with status 'generating' - with error handling
+      let campaign;
+      try {
+        console.log('📋 Creating campaign record...');
+        campaign = await campaignService.create({
+          user_id: user.id,
+          brand_profile_id: brandProfile.id,
+          content_type: contentType,
+          status: 'generating',
+          generated_assets: {
+            webhook_payload: webhookData,
+            images: [],
+            videos: contentType === 'ugc-only' || contentType === 'image-ugc' ? [] : undefined,
+          },
+        });
+        console.log('✅ Campaign record created successfully:', campaign.id);
+      } catch (err: any) {
+        console.error('❌ Error creating campaign:', {
+          error: err,
+          message: err.message,
+          name: err.name,
+          userId: user.id,
+          brandProfileId: brandProfile.id
+        });
+        if (err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
+          throw new Error('Network error: Unable to create campaign. Please check your internet connection.');
+        }
+        throw new Error(`Failed to create campaign: ${err.message}`);
+      }
 
       // Trigger stats refresh event
       window.dispatchEvent(new Event('campaignUpdated'));
@@ -201,11 +270,24 @@ export default function ReviewPage() {
       // Only update onboarding status if user hasn't completed onboarding yet
       // IMPORTANT: Update onboarding status BEFORE navigation to ensure ProtectedRoute allows access
       if (!user.has_completed_onboarding) {
-      await userService.update(userId, {
-        has_completed_onboarding: true
-      });
-        // Small delay to ensure database update is propagated before navigation
-        await new Promise(resolve => setTimeout(resolve, 100));
+        try {
+          console.log('📋 Updating onboarding status...');
+          await userService.update(userId, {
+            has_completed_onboarding: true
+          });
+          console.log('✅ Onboarding status updated successfully');
+          // Small delay to ensure database update is propagated before navigation
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (err: any) {
+          console.error('❌ Error updating onboarding status:', {
+            error: err,
+            message: err.message,
+            name: err.name,
+            userId
+          });
+          // Don't throw - navigation can still proceed even if this update fails
+          console.warn('⚠️ Continuing despite onboarding status update failure');
+        }
       }
 
       success('Launching campaign generation!');
@@ -230,8 +312,27 @@ export default function ReviewPage() {
       
       console.log('✅ ReviewPage: Navigation called');
     } catch (err: any) {
-      console.error('Error updating onboarding status:', err);
-      error(`Failed to start generation: ${err.message}`);
+      console.error('❌ Error in handleGenerate:', {
+        error: err,
+        message: err.message,
+        name: err.name,
+        stack: err.stack,
+        userId
+      });
+      
+      // Provide user-friendly error messages
+      let errorMessage = 'Failed to start generation';
+      if (err.message?.includes('Network error')) {
+        errorMessage = err.message;
+      } else if (err.message?.includes('Failed to fetch')) {
+        errorMessage = 'Network error: Unable to connect to server. Please check your internet connection and try again.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      } else {
+        errorMessage = `Failed to start generation: ${err.message || 'Unknown error'}`;
+      }
+      
+      error(errorMessage);
       setGenerating(false);
     }
   };

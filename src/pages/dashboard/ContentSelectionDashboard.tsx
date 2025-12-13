@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Image, Video, Sparkles, Loader2, LogOut, ArrowRight, MapPin, Palette, MessageSquare, Calendar, ChevronDown, ChevronUp, Pencil, Target } from 'lucide-react';
 import { userService, preferencesService, brandProfileService, campaignService, Campaign } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
 import { supabase } from '../../lib/supabase';
+import Logo from '../../components/Logo';
 
 const contentTypes = [
   {
@@ -275,22 +276,7 @@ export default function ContentSelectionDashboard() {
       {/* Header Navigation Bar */}
       <header className="bg-[#2D3142] shadow-sm h-16 flex items-center justify-between px-6 md:px-8 fixed top-0 left-0 right-0 z-50">
         {/* Logo - Left Side */}
-        <Link
-          to="/dashboard/campaign-hub"
-          className="flex items-center gap-3"
-        >
-          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-orange-500 shadow-md bg-white flex-shrink-0">
-            <img
-              src="/enhanced_design_a_contemporary_professional_logo_combining_a_streamlined_genie_figure_with_modern_tech_symbo_g4d4ei5j85xa3vwd3mit_1 (1).png"
-              alt="Ad-Genie Logo"
-              className="w-full h-full object-contain"
-            />
-          </div>
-          <span className="text-xl font-bold text-orange-500">
-            Ad-Genie
-          </span>
-          <Sparkles className="text-amber-400 w-4 h-4" />
-        </Link>
+        <Logo to="/dashboard/campaign-hub" size="lg" />
 
         {/* Logout Button - Right Side */}
         <button
@@ -486,8 +472,8 @@ export default function ContentSelectionDashboard() {
                     }`}
                   >
                     {type.recommended && (
-                      <div className="absolute -top-2 left-1/2 -translate-x-1/2">
-                        <span className="bg-gradient-to-r from-amber-400 to-orange-600 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-md">
+                      <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-10">
+                        <span className="bg-gradient-to-r from-amber-400 to-orange-600 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-md whitespace-nowrap">
                           COMING SOON!
                         </span>
                       </div>

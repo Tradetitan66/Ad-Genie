@@ -5,10 +5,19 @@ import { Loader2, Target, Mic, RefreshCw, Plus, X } from 'lucide-react';
 import OnboardingLayout from '../../components/OnboardingLayout';
 import { userService, preferencesService, brandProfileService } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
-import { generateEventSuggestions } from '../../services/openaiService';
+import { generateEventSuggestions, generateCampaignGoalSuggestions } from '../../services/openaiService';
 
 const brandVoices = ['Professional', 'Casual', 'Playful', 'Authoritative', 'Inspirational'];
 const visualStyles = ['Minimalist', 'Bold', 'Elegant', 'Vintage', 'Modern', 'Colorful'];
+
+const commonCampaignGoals = [
+  'Increase sales',
+  'Brand awareness',
+  'Product launch',
+  'Customer engagement',
+  'Market expansion',
+  'Lead generation'
+];
 
 export default function PreferencesPage() {
   const navigate = useNavigate();
@@ -18,7 +27,7 @@ export default function PreferencesPage() {
   const [userId, setUserId] = useState('');
   const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState({
-    campaignGoal: '',
+    campaignGoal: [] as string[],
     brandVoice: '',
     visualStyles: [] as string[],
     seasonalEvents: [] as string[],
@@ -28,10 +37,21 @@ export default function PreferencesPage() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [manualEventInput, setManualEventInput] = useState('');
+  const [aiGoalSuggestions, setAiGoalSuggestions] = useState<string[]>([]);
+  const [loadingGoalSuggestions, setLoadingGoalSuggestions] = useState(false);
+  const [customGoal, setCustomGoal] = useState('');
 
   useEffect(() => {
     loadData();
   }, []);
+
+  // Auto-load AI goal suggestions when user data is available
+  useEffect(() => {
+    if (userId && !loadingGoalSuggestions && aiGoalSuggestions.length === 0) {
+      fetchAIGoalSuggestions();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const loadData = async () => {
     try {
@@ -59,8 +79,19 @@ export default function PreferencesPage() {
         const marketOptions = ['Local (India)', 'International', 'Global'];
         const isMarketValue = existingPreferences.campaign_goal && marketOptions.includes(existingPreferences.campaign_goal);
         
+        // Parse campaignGoal from string to array
+        let campaignGoalArray: string[] = [];
+        if (!isMarketValue && existingPreferences.campaign_goal) {
+          if (typeof existingPreferences.campaign_goal === 'string') {
+            // Split by comma and trim each item
+            campaignGoalArray = existingPreferences.campaign_goal.split(',').map(g => g.trim()).filter(g => g.length > 0);
+          } else if (Array.isArray(existingPreferences.campaign_goal)) {
+            campaignGoalArray = existingPreferences.campaign_goal;
+          }
+        }
+        
         setFormData({
-          campaignGoal: isMarketValue ? '' : (existingPreferences.campaign_goal || ''),
+          campaignGoal: campaignGoalArray,
           brandVoice: existingPreferences.brand_voice || '',
           visualStyles: existingPreferences.visual_styles || [],
           seasonalEvents: Array.isArray(existingPreferences.seasonal_events)
@@ -93,6 +124,43 @@ export default function PreferencesPage() {
         ...formData,
         visualStyles: [...formData.visualStyles, style]
       });
+    }
+  };
+
+  const fetchAIGoalSuggestions = async () => {
+    if (!userId) return;
+
+    console.log('🚀 Starting AI goal suggestions fetch...');
+    setLoadingGoalSuggestions(true);
+
+    try {
+      // Get industry and brand info from brand profile
+      const brandProfile = await brandProfileService.getByUserId(userId);
+      if (!brandProfile || !brandProfile.industry) {
+        console.log('⚠️ No industry found, skipping AI goal suggestions');
+        setLoadingGoalSuggestions(false);
+        return;
+      }
+
+      const industry = brandProfile.industry;
+      const brandName = brandProfile.brand_name || '';
+      const targetAudience = brandProfile.audience || '';
+
+      console.log('📊 Fetching goal suggestions with:', { industry, brandName, targetAudience });
+
+      const suggestions = await generateCampaignGoalSuggestions(
+        industry,
+        brandName,
+        targetAudience
+      );
+
+      console.log('✅ AI goal suggestions received:', suggestions.length, 'goals');
+      setAiGoalSuggestions(suggestions);
+    } catch (err: any) {
+      console.error('❌ Error fetching AI goal suggestions:', err);
+      // Non-blocking error - just log it
+    } finally {
+      setLoadingGoalSuggestions(false);
     }
   };
 
@@ -219,9 +287,11 @@ export default function PreferencesPage() {
         ? existingPreferences.campaign_goal
         : null;
       
-      // Use campaign goal if provided, otherwise keep the market value
-      // If user entered a goal, use it; otherwise preserve market for webhook
-      const finalCampaignGoal = formData.campaignGoal.trim() || currentMarket || '';
+      // Join campaign goals array with comma-space separator
+      // If user entered goals, use them; otherwise preserve market for webhook
+      const finalCampaignGoal = formData.campaignGoal.length > 0 
+        ? formData.campaignGoal.join(', ') 
+        : (currentMarket || '');
 
       await preferencesService.upsert({
         user_id: userId,
@@ -253,7 +323,7 @@ export default function PreferencesPage() {
 
   const isFormValid = () => {
     return (
-      formData.campaignGoal.trim() !== '' &&
+      formData.campaignGoal.length > 0 &&
       formData.brandVoice !== '' &&
       formData.visualStyles.length >= 1 &&
       formData.visualStyles.length <= 3 &&
@@ -293,19 +363,169 @@ export default function PreferencesPage() {
             <label className="block text-sm font-semibold text-slate-700 mb-2">
               Campaign Goal <span className="text-red-500">*</span>
             </label>
-            <p className="text-xs text-slate-500 mb-2">What's your main campaign goal?</p>
+            <p className="text-xs text-slate-500 mb-3">Select one or more campaign goals (you can select multiple)</p>
+            
+            {/* Pre-filled Common Goals */}
+            <div className="mb-4">
+              <p className="text-xs font-medium text-slate-600 mb-2">Common Goals</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {commonCampaignGoals.map(goal => (
+                  <motion.button
+                    key={goal}
+                    type="button"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      const isSelected = formData.campaignGoal.includes(goal);
+                      if (isSelected) {
+                        setFormData({
+                          ...formData,
+                          campaignGoal: formData.campaignGoal.filter(g => g !== goal)
+                        });
+                      } else {
+                        setFormData({
+                          ...formData,
+                          campaignGoal: [...formData.campaignGoal, goal]
+                        });
+                      }
+                    }}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                      formData.campaignGoal.includes(goal)
+                        ? 'border-[#2563EB] bg-blue-50 text-[#2563EB]'
+                        : 'border-slate-300 hover:border-slate-400 text-slate-700 bg-white'
+                    }`}
+                  >
+                    {goal}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
+            {/* AI-Generated Suggestions */}
+            {loadingGoalSuggestions && (
+              <div className="mb-4 flex items-center gap-2 text-sm text-slate-500">
+                <Loader2 className="animate-spin" size={16} />
+                <span>Loading AI suggestions...</span>
+              </div>
+            )}
+            {aiGoalSuggestions.length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs font-medium text-slate-600 mb-2">AI Suggestions</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {aiGoalSuggestions.map(goal => (
+                    <motion.button
+                      key={goal}
+                      type="button"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        const isSelected = formData.campaignGoal.includes(goal);
+                        if (isSelected) {
+                          setFormData({
+                            ...formData,
+                            campaignGoal: formData.campaignGoal.filter(g => g !== goal)
+                          });
+                        } else {
+                          setFormData({
+                            ...formData,
+                            campaignGoal: [...formData.campaignGoal, goal]
+                          });
+                        }
+                      }}
+                      className={`px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                        formData.campaignGoal.includes(goal)
+                          ? 'border-[#2563EB] bg-blue-50 text-[#2563EB]'
+                          : 'border-slate-300 hover:border-slate-400 text-slate-700 bg-white'
+                      }`}
+                    >
+                      {goal}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Other/Custom Goal */}
+            <div className="mb-3">
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  const isSelected = formData.campaignGoal.includes(customGoal.trim());
+                  if (!isSelected && customGoal.trim()) {
+                    setFormData({
+                      ...formData,
+                      campaignGoal: [...formData.campaignGoal, customGoal.trim()]
+                    });
+                  }
+                }}
+                className={`px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                  customGoal.trim() && formData.campaignGoal.includes(customGoal.trim())
+                    ? 'border-[#2563EB] bg-blue-50 text-[#2563EB]'
+                    : 'border-slate-300 hover:border-slate-400 text-slate-700 bg-white'
+                }`}
+              >
+                Other
+              </motion.button>
+            </div>
+
+            {/* Custom Goal Textarea */}
             <div className="relative">
               <Target className="absolute left-3 top-4 text-slate-400" size={20} />
               <textarea
-                value={formData.campaignGoal}
-                onChange={(e) => setFormData({ ...formData, campaignGoal: e.target.value })}
-                maxLength={300}
-                rows={3}
+                value={customGoal}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  setCustomGoal(newValue);
+                  // Remove old custom goal if it was selected
+                  const oldCustomGoal = formData.campaignGoal.find(g => g === customGoal.trim());
+                  if (oldCustomGoal && customGoal.trim() !== newValue.trim()) {
+                    setFormData({
+                      ...formData,
+                      campaignGoal: formData.campaignGoal.filter(g => g !== oldCustomGoal)
+                    });
+                  }
+                }}
+                maxLength={200}
+                rows={2}
                 className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
-                placeholder="e.g., Increase brand awareness, drive sales, promote new products"
+                placeholder="Enter your custom campaign goal"
               />
             </div>
-            <p className="text-xs text-slate-500 mt-1">{formData.campaignGoal.length}/300</p>
+            <p className="text-xs text-slate-500 mt-1">{customGoal.length}/200</p>
+            
+            {/* Selected Goals Summary */}
+            {formData.campaignGoal.length > 0 && (
+              <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                <p className="text-xs font-medium text-slate-700 mb-1">Selected Goals ({formData.campaignGoal.length}):</p>
+                <div className="flex flex-wrap gap-2">
+                  {formData.campaignGoal.map((goal, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-blue-200 rounded text-xs text-slate-700"
+                    >
+                      {goal}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({
+                            ...formData,
+                            campaignGoal: formData.campaignGoal.filter((_, i) => i !== index)
+                          });
+                          if (goal === customGoal.trim()) {
+                            setCustomGoal('');
+                          }
+                        }}
+                        className="text-slate-400 hover:text-red-500"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

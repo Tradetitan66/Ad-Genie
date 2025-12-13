@@ -10,6 +10,7 @@ import BrandDetailsPage from './pages/onboarding/BrandDetailsPage';
 import VisualAssetsPage from './pages/onboarding/VisualAssetsPage';
 import ContentSelectionPage from './pages/onboarding/ContentSelectionPage';
 import CombinedBrandAndPreferencesPage from './pages/onboarding/CombinedBrandAndPreferencesPage';
+import CombinedBrandAndPreferencesPageTest from './pages/onboarding/CombinedBrandAndPreferencesPage.test';
 import ReviewPage from './pages/onboarding/ReviewPage';
 import CampaignHubPage from './pages/dashboard/CampaignHubPage';
 import ContentSelectionDashboard from './pages/dashboard/ContentSelectionDashboard';
@@ -44,6 +45,19 @@ function App() {
                 <ProtectedRoute>
                   <CombinedBrandAndPreferencesPage />
                 </ProtectedRoute>
+              }
+            />
+            {/* TEST ROUTE - Remove after debugging */}
+            <Route
+              path="/onboarding/brand-and-preferences-test"
+              element={
+                <div className="min-h-screen flex items-center justify-center bg-green-100">
+                  <div className="bg-white p-8 rounded-lg shadow-lg">
+                    <h1 className="text-2xl font-bold text-green-800 mb-4">✅ Test Route Works!</h1>
+                    <p className="text-gray-700">If you see this, routing is working. The issue is in CombinedBrandAndPreferencesPage component.</p>
+                    <a href="/onboarding/brand-and-preferences" className="text-blue-600 underline mt-4 block">Try actual route</a>
+                  </div>
+                </div>
               }
             />
             <Route
