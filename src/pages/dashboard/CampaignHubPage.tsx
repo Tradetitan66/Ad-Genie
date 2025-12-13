@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Building2, Plus, LogOut, Loader2, Download, Eye, Image, Video, Calendar, Sparkles, ArrowRight, X, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Building2, Plus, LogOut, Loader2, Download, Eye, Image, Video, Calendar, ArrowRight, X, Trash2 } from 'lucide-react';
 import { userService, brandProfileService, preferencesService, campaignService, Campaign } from '../../services/database';
 import { sendBrandDataToWebhook } from '../../services/webhookService';
 import { useToast } from '../../contexts/ToastContext';
@@ -10,6 +10,7 @@ import { tokenService } from '../../services/tokenService';
 import { supabase } from '../../lib/supabase';
 import CampaignSidebar from '../../components/CampaignSidebar';
 import CampaignStatsBar from '../../components/CampaignStatsBar';
+import Logo from '../../components/Logo';
 
 export default function CampaignHubPage() {
   const navigate = useNavigate();
@@ -479,22 +480,7 @@ export default function CampaignHubPage() {
       {/* Header Navigation Bar */}
       <header className="bg-[#2D3142] shadow-sm h-16 flex items-center justify-between px-6 md:px-8 fixed top-0 left-0 right-0 z-50">
         {/* Logo - Left Side */}
-        <Link
-          to="/dashboard/campaign-hub"
-          className="flex items-center gap-3"
-        >
-          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-orange-500 shadow-md bg-white flex-shrink-0">
-            <img
-              src="/enhanced_design_a_contemporary_professional_logo_combining_a_streamlined_genie_figure_with_modern_tech_symbo_g4d4ei5j85xa3vwd3mit_1 (1).png"
-              alt="Ad-Genie Logo"
-              className="w-full h-full object-contain"
-            />
-          </div>
-          <span className="text-xl font-bold text-orange-500">
-            Ad-Genie
-          </span>
-          <Sparkles className="text-amber-400 w-4 h-4" />
-        </Link>
+        <Logo to="/dashboard/campaign-hub" size="lg" />
 
         {/* Logout Button - Right Side */}
         <button
