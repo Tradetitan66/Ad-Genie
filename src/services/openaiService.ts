@@ -12,7 +12,7 @@ export interface EventSuggestion {
 /**
  * Generate event suggestions using OpenAI API
  * @param industry - Industry from brand profile (e.g., "Fashion", "Food & Beverage")
- * @param market - Market type from content selection (e.g., "Local (India)", "International", "Global")
+ * @param market - Market type from content selection (e.g., "Local (India)", "International"). Note: "Global" is handled as "International"
  * @param eventType - Type of events to generate ("local", "international", or "global")
  * @returns Array of event names as strings
  */
@@ -41,13 +41,16 @@ export async function generateEventSuggestions(
   });
 
   // Determine market context for prompt
+  // Note: "Global" functionality has been merged into "International"
   let marketContext = '';
   if (market === 'Local (India)') {
     marketContext = 'Local India - Focus on Indian festivals, regional celebrations, and local events';
-  } else if (market === 'International') {
-    marketContext = 'International - Focus on country-wise events and festivals from different countries';
+  } else if (market === 'International' || market === 'Global') {
+    // Global functionality merged into International
+    marketContext = 'International - Focus on country-wise events and festivals from different countries, including major global celebrations';
   } else {
-    marketContext = 'Global - Focus on major global festivals and events that are celebrated worldwide';
+    // Fallback to International for any unrecognized market values
+    marketContext = 'International - Focus on country-wise events and festivals from different countries, including major global celebrations';
   }
 
   // Create distinct event type context based on eventType

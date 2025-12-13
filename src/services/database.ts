@@ -700,12 +700,12 @@ export const campaignService = {
         : {};
 
       // Extract campaign market from campaign_market field (preferred) or fallback to campaign_goal
-      const marketOptions = ['Local (India)', 'International', 'Global'];
+      const marketOptions = ['Local (India)', 'International']; // Global option temporarily disabled - may be needed in future
       const campaignMarket = preferences?.campaign_market || 
-        (preferences?.campaign_goal && marketOptions.includes(preferences.campaign_goal) 
+        (preferences?.campaign_goal && (marketOptions.includes(preferences.campaign_goal) || preferences.campaign_goal === 'Global')
           ? preferences.campaign_goal 
           : undefined);
-      const actualCampaignGoal = preferences?.campaign_goal && !marketOptions.includes(preferences.campaign_goal)
+      const actualCampaignGoal = preferences?.campaign_goal && !marketOptions.includes(preferences.campaign_goal) && preferences.campaign_goal !== 'Global'
         ? preferences.campaign_goal
         : undefined;
 

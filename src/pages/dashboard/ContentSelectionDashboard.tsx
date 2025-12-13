@@ -166,9 +166,10 @@ export default function ContentSelectionDashboard() {
   const hasCampaignHistory = previousCampaigns.length > 0;
 
   // Check if campaign goal is set and non-generic
+  const marketOptions = ['Local (India)', 'International']; // Global option temporarily disabled - may be needed in future
   const hasCampaignGoal = preferences?.campaign_goal && 
     preferences.campaign_goal.trim() !== '' &&
-    !['Local (India)', 'International', 'Global'].includes(preferences.campaign_goal);
+    !marketOptions.includes(preferences.campaign_goal) && preferences.campaign_goal !== 'Global';
 
   // Get active/upcoming seasonal events (within 30 days)
   const getActiveSeasonalEvents = () => {

@@ -195,12 +195,16 @@ export default function ReviewPage() {
         : {};
 
       // Extract campaign market from campaign_market field (preferred) or fallback to campaign_goal
-      const marketOptions = ['Local (India)', 'International', 'Global'];
-      const campaignMarket = preferences?.campaign_market || 
-        (preferences?.campaign_goal && marketOptions.includes(preferences.campaign_goal) 
+      const marketOptions = ['Local (India)', 'International']; // Global option temporarily disabled - may be needed in future
+      let campaignMarket = preferences?.campaign_market || 
+        (preferences?.campaign_goal && (marketOptions.includes(preferences.campaign_goal) || preferences.campaign_goal === 'Global')
           ? preferences.campaign_goal 
           : undefined);
-      const actualCampaignGoal = preferences?.campaign_goal && !marketOptions.includes(preferences.campaign_goal)
+      // Map "Global" to "International" for backward compatibility
+      if (campaignMarket === 'Global') {
+        campaignMarket = 'International';
+      }
+      const actualCampaignGoal = preferences?.campaign_goal && !marketOptions.includes(preferences.campaign_goal) && preferences.campaign_goal !== 'Global'
         ? preferences.campaign_goal
         : undefined;
 

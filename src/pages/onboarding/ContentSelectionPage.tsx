@@ -35,9 +35,10 @@ const contentTypes = [
 ];
 
 const campaignMarkets = [
-  'Local (India)',
-  'International',
-  'Global'
+  { label: 'India', value: 'Local (India)' },
+  { label: 'International', value: 'International' },
+  // Global option temporarily disabled - may be needed in future
+  // { label: 'Global', value: 'Global' }
 ];
 
 export default function ContentSelectionPage() {
@@ -77,10 +78,14 @@ export default function ContentSelectionPage() {
         }
         // Load campaign market from campaign_market field
         if (preferences.campaign_market) {
-          setSelectedMarket(preferences.campaign_market);
+          // Map "Global" to "International" for backward compatibility
+          const marketValue = preferences.campaign_market === 'Global' ? 'International' : preferences.campaign_market;
+          setSelectedMarket(marketValue);
         } else if (preferences.campaign_goal && ['Local (India)', 'International', 'Global'].includes(preferences.campaign_goal)) {
           // Fallback: migrate from old campaign_goal field
-          setSelectedMarket(preferences.campaign_goal);
+          // Map "Global" to "International" for backward compatibility
+          const marketValue = preferences.campaign_goal === 'Global' ? 'International' : preferences.campaign_goal;
+          setSelectedMarket(marketValue);
         }
       }
     } catch (err) {
@@ -269,16 +274,16 @@ export default function ContentSelectionPage() {
               <p className="text-xs text-slate-500 mb-3">Which market is this marketing campaign focusing on?</p>
               <div className="space-y-2">
                 {campaignMarkets.map(market => (
-                  <label key={market} className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-all">
+                  <label key={market.value} className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-all">
                     <input
                       type="radio"
                       name="market"
-                      value={market}
-                      checked={selectedMarket === market}
+                      value={market.value}
+                      checked={selectedMarket === market.value}
                       onChange={(e) => setSelectedMarket(e.target.value)}
                       className="w-4 h-4 text-[#2563EB] focus:ring-[#2563EB]"
                     />
-                    <span className="text-slate-700 font-medium">{market}</span>
+                    <span className="text-slate-700 font-medium">{market.label}</span>
                   </label>
                 ))}
               </div>

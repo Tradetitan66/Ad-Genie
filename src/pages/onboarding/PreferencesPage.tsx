@@ -76,8 +76,8 @@ export default function PreferencesPage() {
       if (existingPreferences) {
         // If campaign_goal is a market value (from ContentSelectionPage), preserve it but don't show as goal
         // Otherwise, use it as the campaign goal
-        const marketOptions = ['Local (India)', 'International', 'Global'];
-        const isMarketValue = existingPreferences.campaign_goal && marketOptions.includes(existingPreferences.campaign_goal);
+        const marketOptions = ['Local (India)', 'International']; // Global option temporarily disabled - may be needed in future
+        const isMarketValue = existingPreferences.campaign_goal && (marketOptions.includes(existingPreferences.campaign_goal) || existingPreferences.campaign_goal === 'Global');
         
         // Parse campaignGoal from string to array
         let campaignGoalArray: string[] = [];
@@ -181,20 +181,25 @@ export default function PreferencesPage() {
 
       // Get market from preferences (campaign_market field)
       const preferences = await preferencesService.getByUserId(userId);
-      const marketOptions = ['Local (India)', 'International', 'Global'];
+      const marketOptions = ['Local (India)', 'International']; // Global option temporarily disabled - may be needed in future
       
       // Get market from campaign_market field (preferred) or fallback to campaign_goal
-      const market = preferences?.campaign_market || 
-        (preferences?.campaign_goal && marketOptions.includes(preferences.campaign_goal)
+      // Map "Global" to "International" for backward compatibility
+      let market = preferences?.campaign_market || 
+        (preferences?.campaign_goal && (marketOptions.includes(preferences.campaign_goal) || preferences.campaign_goal === 'Global')
         ? preferences.campaign_goal
           : 'Local (India)'); // Default to Local if not set
+      
+      // Convert "Global" to "International" for processing
+      if (market === 'Global') {
+        market = 'International';
+      }
 
       console.log('🤖 Fetching AI suggestions...', { industry: brandProfile.industry, market });
 
       // Fetch suggestions based on selected market:
       // - If "Local (India)" → local events (Indian festivals)
-      // - If "International" → international events (country-wise events)
-      // - If "Global" → global events (worldwide celebrations)
+      // - If "International" → international events (country-wise events, including major global celebrations)
       let suggestions: string[] = [];
       
       if (market === 'Local (India)') {
@@ -202,13 +207,9 @@ export default function PreferencesPage() {
         suggestions = await generateEventSuggestions(brandProfile.industry, market, 'local');
         console.log('✅ Local (India) events loaded:', suggestions);
       } else if (market === 'International') {
-        // Fetch international events (country-wise)
-        suggestions = await generateEventSuggestions(brandProfile.industry, market, 'international');
+        // Fetch international events (country-wise) - Global functionality merged into International
+        suggestions = await generateEventSuggestions(brandProfile.industry, 'International', 'international');
         console.log('✅ International events loaded:', suggestions);
-      } else if (market === 'Global') {
-        // Fetch global events (worldwide celebrations)
-        suggestions = await generateEventSuggestions(brandProfile.industry, market, 'global');
-        console.log('✅ Global events loaded:', suggestions);
       } else {
         // Fallback to local if market is not recognized
         suggestions = await generateEventSuggestions(brandProfile.industry, 'Local (India)', 'local');
@@ -282,8 +283,8 @@ export default function PreferencesPage() {
 
       // Preserve market value if it was set from ContentSelectionPage
       // Market is stored in campaign_goal initially, then user enters actual goal
-      const marketOptions = ['Local (India)', 'Regional (Specific States/Regions)', 'International', 'Global'];
-      const currentMarket = existingPreferences?.campaign_goal && marketOptions.includes(existingPreferences.campaign_goal)
+      const marketOptions = ['Local (India)', 'Regional (Specific States/Regions)', 'International']; // Global option temporarily disabled - may be needed in future
+      const currentMarket = existingPreferences?.campaign_goal && (marketOptions.includes(existingPreferences.campaign_goal) || existingPreferences.campaign_goal === 'Global')
         ? existingPreferences.campaign_goal
         : null;
       

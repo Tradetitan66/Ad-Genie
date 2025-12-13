@@ -138,11 +138,17 @@ export default function CombinedBrandAndPreferencesPage() {
       console.log('📊 Using industry:', industry);
 
       const preferences = await preferencesService.getByUserId(userId);
-      const marketOptions = ['Local (India)', 'International', 'Global'];
-      const market = preferences?.campaign_market || 
-        (preferences?.campaign_goal && marketOptions.includes(preferences.campaign_goal)
+      const marketOptions = ['Local (India)', 'International']; // Global option temporarily disabled - may be needed in future
+      // Map "Global" to "International" for backward compatibility
+      let market = preferences?.campaign_market || 
+        (preferences?.campaign_goal && (marketOptions.includes(preferences.campaign_goal) || preferences.campaign_goal === 'Global')
           ? preferences.campaign_goal
           : 'Local (India)');
+      
+      // Convert "Global" to "International" for processing
+      if (market === 'Global') {
+        market = 'International';
+      }
 
       console.log('🌍 Using market:', market);
 
@@ -152,11 +158,9 @@ export default function CombinedBrandAndPreferencesPage() {
         console.log('🇮🇳 Fetching local (India) events...');
         suggestions = await generateEventSuggestions(industry, market, 'local');
       } else if (market === 'International') {
+        // Global functionality merged into International
         console.log('🌐 Fetching international events...');
-        suggestions = await generateEventSuggestions(industry, market, 'international');
-      } else if (market === 'Global') {
-        console.log('🌍 Fetching global events...');
-        suggestions = await generateEventSuggestions(industry, market, 'global');
+        suggestions = await generateEventSuggestions(industry, 'International', 'international');
       } else {
         console.log('🔄 Using fallback: Local (India)');
         suggestions = await generateEventSuggestions(industry, 'Local (India)', 'local');
@@ -339,8 +343,8 @@ export default function CombinedBrandAndPreferencesPage() {
       }
 
       if (preferences) {
-        const marketOptions = ['Local (India)', 'International', 'Global'];
-        const isMarketValue = preferences.campaign_goal && marketOptions.includes(preferences.campaign_goal);
+        const marketOptions = ['Local (India)', 'International']; // Global option temporarily disabled - may be needed in future
+        const isMarketValue = preferences.campaign_goal && (marketOptions.includes(preferences.campaign_goal) || preferences.campaign_goal === 'Global');
         
         // Parse campaignGoal from string to array
         let campaignGoalArray: string[] = [];
@@ -695,8 +699,8 @@ export default function CombinedBrandAndPreferencesPage() {
       
       // CRITICAL: Always include content_type in upsert to prevent Supabase from overwriting it
       // Supabase upsert may not preserve fields that are omitted from the payload
-      const marketOptions = ['Local (India)', 'International', 'Global'];
-      const currentMarket = existingPreferences?.campaign_goal && marketOptions.includes(existingPreferences.campaign_goal)
+      const marketOptions = ['Local (India)', 'International']; // Global option temporarily disabled - may be needed in future
+      const currentMarket = existingPreferences?.campaign_goal && (marketOptions.includes(existingPreferences.campaign_goal) || existingPreferences.campaign_goal === 'Global')
         ? existingPreferences.campaign_goal
         : null;
       // Join campaign goals array with comma-space separator
