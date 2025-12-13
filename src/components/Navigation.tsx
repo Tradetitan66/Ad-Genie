@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogIn, User, LogOut, ArrowRight } from 'lucide-react';
+import { LogIn, User, LogOut, ArrowRight, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Login from './Login';
 import Signup from './Signup';
-import Logo from './Logo';
+import { Link } from 'react-router-dom';
 
 interface NavigationProps {
   onLoginSuccess?: () => void;
@@ -41,7 +41,23 @@ export default function Navigation({ onLoginSuccess, onLoginClick }: NavigationP
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          <Logo size="lg" to="/" className="cursor-pointer" />
+          <Link
+            to="/"
+            className="flex items-center gap-3 cursor-pointer"
+            aria-label="Ad-Genie"
+          >
+            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-orange-500 shadow-md bg-white flex-shrink-0">
+              <img
+                src="/enhanced_design_a_contemporary_professional_logo_combining_a_streamlined_genie_figure_with_modern_tech_symbo_g4d4ei5j85xa3vwd3mit_1 (1).png"
+                alt="Ad-Genie Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <span className="text-xl font-bold text-orange-500">
+              Ad-Genie
+            </span>
+            <Sparkles className="text-amber-400 w-4 h-4" />
+          </Link>
 
           <div className="hidden md:flex items-center gap-8">
             <a href="#how-it-works" className="text-white hover:text-amber-400 transition-colors font-medium">

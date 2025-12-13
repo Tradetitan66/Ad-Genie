@@ -534,6 +534,16 @@ export const preferencesService = {
     }
 
     try {
+      // CRITICAL: If content_type is not in the payload, fetch existing preferences to preserve it
+      // Supabase upsert may overwrite fields that are omitted from the payload
+      if (!preferences.content_type) {
+        const existing = await this.getByUserId(preferences.user_id);
+        if (existing?.content_type) {
+          console.log('🔄 preferencesService.upsert: Preserving existing content_type:', existing.content_type);
+          preferences.content_type = existing.content_type;
+        }
+      }
+
       const { data, error } = await supabase
         .from('preferences')
         .upsert({
@@ -546,6 +556,16 @@ export const preferencesService = {
         .single();
 
       if (error) throw error;
+      
+      // Log for debugging
+      if (preferences.content_type) {
+        console.log('✅ preferencesService.upsert: Saved with content_type:', {
+          saved: data?.content_type,
+          expected: preferences.content_type,
+          match: data?.content_type === preferences.content_type
+        });
+      }
+      
       return data;
     } catch (error) {
       console.warn('Supabase upsert failed, falling back to localStorage:', error);

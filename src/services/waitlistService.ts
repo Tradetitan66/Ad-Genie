@@ -1,5 +1,6 @@
 // Waitlist service for submitting waitlist form data to n8n webhook
-const WAITLIST_WEBHOOK_URL = 'https://n8n.srv1004168.hstgr.cloud/webhook/7b3e5a0d-1466-4a6a-a60e-b4c2f98b3bd1';
+// Previous webhook URLs (kept for reference):
+//const WAITLIST_WEBHOOK_URL = 'https://n8n.srv1004168.hstgr.cloud/webhook/7b3e5a0d-1466-4a6a-a60e-b4c2f98b3bd1';
 //const WAITLIST_WEBHOOK_URL = 'https://n8n.srv1004168.hstgr.cloud/webhook-test/7b3e5a0d-1466-4a6a-a60e-b4c2f98b3bd1';
 //const WAITLIST_WEBHOOK_URL = 'https://n8n.srv1114357.hstgr.cloud/webhook/da5b80b8-dbc3-4b2a-8df6-ca86340a106c';
 const WAITLIST_WEBHOOK_URL = 'https://n8n.srv1114357.hstgr.cloud/webhook/27850a35-32bc-438c-b194-a5b86e192820';

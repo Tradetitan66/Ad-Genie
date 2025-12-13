@@ -11,7 +11,7 @@ import { tokenService } from '../../services/tokenService';
 const steps = [
   'Analyzing preferences',
   'Creating images',
-  'Generating Videos',
+  'Generating Video',
   'Finalizing campaign'
 ];
 

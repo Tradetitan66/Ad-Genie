@@ -3,13 +3,13 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Image, Video, Sparkles, Loader2 } from 'lucide-react';
 import OnboardingLayout from '../../components/OnboardingLayout';
-import { userService, preferencesService, brandProfileService } from '../../services/database';
+import { userService, preferencesService } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
 
 const contentTypes = [
   {
     id: 'image-only',
-    title: 'Image Only',
+    title: 'Static Ad',
     subtitle: '2x Image Generations',
     description: 'Product photos & lifestyle shots',
     icon: Image,
@@ -17,16 +17,16 @@ const contentTypes = [
   },
   {
     id: 'ugc-only',
-    title: 'Video Only',
-    subtitle: '2x Video Ads',
+    title: 'Video Ad',
+    subtitle: '1x Video Ad',
     description: 'Authentic video style ads',
     icon: Video,
     color: 'from-purple-500 to-pink-500'
   },
   {
     id: 'image-ugc',
-    title: 'Images + Videos',
-    subtitle: '2x Images + 2x Video Ads',
+    title: 'UGC Ad',
+    subtitle: '1x AI Avatar based Ad',
     description: 'Complete campaign package',
     icon: Sparkles,
     color: 'from-amber-500 to-orange-600',
@@ -42,7 +42,7 @@ const campaignMarkets = [
 
 export default function ContentSelectionPage() {
   const navigate = useNavigate();
-  const { success, error } = useToast();
+  const { error } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState('');
@@ -105,16 +105,67 @@ export default function ContentSelectionPage() {
     setSaving(true);
     try {
       console.log('🔄 ContentSelectionPage: Saving preferences...', { userId, selectedType, selectedMarket });
-      // Update preferences with campaign_market (not campaign_goal)
-      await preferencesService.upsert({
+      
+      // Fetch existing preferences to preserve other fields
+      const existingPreferences = await preferencesService.getByUserId(userId);
+      
+      // Update preferences with campaign_market (not campaign_goal) while preserving other fields
+      const savedPreferences = await preferencesService.upsert({
         user_id: userId,
-        content_type: selectedType,
+        content_type: selectedType, // CRITICAL: Save the selected content type
         campaign_market: selectedMarket, // Store in correct field
+        // Preserve existing fields to avoid overwriting them
+        campaign_goal: existingPreferences?.campaign_goal ?? null,
+        brand_voice: existingPreferences?.brand_voice ?? null,
+        visual_styles: existingPreferences?.visual_styles ?? [],
+        campaign_timing: existingPreferences?.campaign_timing ?? null,
+        seasonal_events: existingPreferences?.seasonal_events ?? [],
+        enable_auto_suggestions: existingPreferences?.enable_auto_suggestions ?? true,
       });
 
-      console.log('✅ ContentSelectionPage: Preferences saved, navigating to brand-and-preferences');
-      // TEMPORARY: Test route first to verify routing works
-      // navigate('/onboarding/brand-and-preferences-test'); // Uncomment to test routing
+      // Verify the save was successful
+      console.log('✅ ContentSelectionPage: Preferences saved successfully:', {
+        savedContentType: savedPreferences?.content_type,
+        expectedContentType: selectedType,
+        match: savedPreferences?.content_type === selectedType,
+        savedCampaignMarket: savedPreferences?.campaign_market,
+        expectedCampaignMarket: selectedMarket
+      });
+
+      if (savedPreferences?.content_type !== selectedType) {
+        console.error('❌ ContentSelectionPage: Content type mismatch after save!', {
+          expected: selectedType,
+          actual: savedPreferences?.content_type
+        });
+        error('Failed to save content type correctly. Please try again.');
+        setSaving(false);
+        return;
+      }
+
+      // CRITICAL: Verify the save one more time by fetching fresh data
+      console.log('🔄 ContentSelectionPage: Verifying save by fetching fresh preferences...');
+      const verificationPreferences = await preferencesService.getByUserId(userId);
+      console.log('✅ ContentSelectionPage: Verification fetch:', {
+        verifiedContentType: verificationPreferences?.content_type,
+        expected: selectedType,
+        match: verificationPreferences?.content_type === selectedType
+      });
+
+      if (verificationPreferences?.content_type !== selectedType) {
+        console.error('❌ ContentSelectionPage: Verification failed! Content type not persisted:', {
+          expected: selectedType,
+          verified: verificationPreferences?.content_type
+        });
+        error('Content type was not saved correctly. Please try again.');
+        setSaving(false);
+        return;
+      }
+
+      console.log('✅ ContentSelectionPage: Preferences saved and verified, navigating to brand-and-preferences');
+      
+      // Small delay to ensure database write is fully committed before navigation
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
       navigate('/onboarding/brand-and-preferences');
       console.log('✅ ContentSelectionPage: Navigation called');
     } catch (err) {

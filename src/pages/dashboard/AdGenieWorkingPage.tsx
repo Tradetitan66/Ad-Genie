@@ -221,7 +221,7 @@ export default function AdGenieWorkingPage() {
           completed_at: new Date().toISOString(),
           generated_assets: {
             webhook_payload: payload,
-            videos: uploadedVideos,
+            video: uploadedVideos,
             webhook_response: webhookResponse,
           },
         });

@@ -1,16 +1,15 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Building2, Plus, LogOut, Loader2, Download, Eye, Image, Video, Calendar, ArrowRight, X, Trash2 } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Building2, Plus, Loader2, Download, Eye, Image, Video, Calendar, ArrowRight, X, Trash2 } from 'lucide-react';
 import { userService, brandProfileService, preferencesService, campaignService, Campaign } from '../../services/database';
 import { sendBrandDataToWebhook } from '../../services/webhookService';
 import { useToast } from '../../contexts/ToastContext';
 import { downloadMultipleImages, ImageData } from '../../utils/imageDownload';
 import TokenDisplay from '../../components/TokenDisplay';
 import { tokenService } from '../../services/tokenService';
-import { supabase } from '../../lib/supabase';
 import CampaignSidebar from '../../components/CampaignSidebar';
 import CampaignStatsBar from '../../components/CampaignStatsBar';
-import Logo from '../../components/Logo';
+import PageHeader from '../../components/PageHeader';
 
 export default function CampaignHubPage() {
   const navigate = useNavigate();
@@ -146,7 +145,7 @@ export default function CampaignHubPage() {
 
       // Send existing data to webhook with preferences
       // Extract campaign market if campaign_goal is a market value
-      const marketOptions = ['Local (India)', 'International', 'Global'];
+      const marketOptions = ['Local India', 'International', 'Global'];
       const campaignGoalValue = preferences?.campaign_goal || '';
       const isMarketValue = campaignGoalValue && marketOptions.includes(campaignGoalValue);
       const campaignMarket = isMarketValue ? campaignGoalValue : undefined;
@@ -189,19 +188,6 @@ export default function CampaignHubPage() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      localStorage.removeItem('currentUser');
-      localStorage.removeItem('user');
-      navigate('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-      localStorage.removeItem('currentUser');
-      localStorage.removeItem('user');
-      navigate('/');
-    }
-  };
 
   // Clear campaign cache function
   const clearCampaignCache = () => {
@@ -477,20 +463,7 @@ export default function CampaignHubPage() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      {/* Header Navigation Bar */}
-      <header className="bg-[#2D3142] shadow-sm h-16 flex items-center justify-between px-6 md:px-8 fixed top-0 left-0 right-0 z-50">
-        {/* Logo - Left Side */}
-        <Logo to="/dashboard/campaign-hub" size="lg" />
-
-        {/* Logout Button - Right Side */}
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 px-4 py-2 text-white border border-white/30 rounded-lg hover:bg-white/10 hover:border-white/50 transition-all"
-        >
-          <LogOut size={18} />
-          <span className="font-medium">Logout</span>
-        </button>
-      </header>
+      <PageHeader />
 
       {/* Sidebar */}
       <CampaignSidebar

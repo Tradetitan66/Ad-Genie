@@ -672,9 +672,29 @@ export default function CombinedBrandAndPreferencesPage() {
         setBrandProfileId(newProfile.id);
       }
 
-      // Save preferences
+      // Save preferences - CRITICAL: Fetch fresh preferences to ensure we have the latest content_type
       const existingPreferences = await preferencesService.getByUserId(userId);
-      const contentType = existingPreferences?.content_type || localStorage.getItem('selectedContentType') || null;
+      // Preserve content_type from existing preferences - do NOT use localStorage fallback as it may have stale data
+      const contentType = existingPreferences?.content_type || null;
+      
+      // Log for debugging
+      console.log('📋 CombinedBrandAndPreferencesPage: Preserving content_type:', {
+        hasExistingPreferences: !!existingPreferences,
+        contentTypeFromDB: existingPreferences?.content_type,
+        contentTypeToSave: contentType,
+        localStorageValue: localStorage.getItem('selectedContentType'),
+        fullExistingPreferences: existingPreferences
+      });
+      
+      // Validate that we have content_type - if not, user needs to go back and select it
+      if (!contentType) {
+        console.error('❌ CombinedBrandAndPreferencesPage: No content_type found in existing preferences!');
+        error('Content type not found. Please go back and select a content type first.');
+        return;
+      }
+      
+      // CRITICAL: Always include content_type in upsert to prevent Supabase from overwriting it
+      // Supabase upsert may not preserve fields that are omitted from the payload
       const marketOptions = ['Local (India)', 'International', 'Global'];
       const currentMarket = existingPreferences?.campaign_goal && marketOptions.includes(existingPreferences.campaign_goal)
         ? existingPreferences.campaign_goal
@@ -684,7 +704,8 @@ export default function CombinedBrandAndPreferencesPage() {
         ? preferencesData.campaignGoal.join(', ') 
         : (currentMarket || '');
 
-      await preferencesService.upsert({
+      // Build upsert payload - only include content_type if it exists to avoid overwriting with null
+      const upsertPayload: any = {
         user_id: userId,
         campaign_goal: finalCampaignGoal,
         brand_voice: preferencesData.brandVoice,
@@ -692,7 +713,26 @@ export default function CombinedBrandAndPreferencesPage() {
         campaign_timing: null,
         seasonal_events: preferencesData.seasonalEvents,
         enable_auto_suggestions: preferencesData.enableAutoSuggestions,
-        content_type: contentType
+      };
+      
+      // Only include content_type if it exists - this preserves the value from ContentSelectionPage
+      if (contentType) {
+        upsertPayload.content_type = contentType;
+      }
+      
+      console.log('💾 CombinedBrandAndPreferencesPage: Saving preferences with content_type:', {
+        contentType,
+        willPreserve: !!contentType,
+        upsertPayloadKeys: Object.keys(upsertPayload)
+      });
+      
+      const savedPreferences = await preferencesService.upsert(upsertPayload);
+      
+      // Verify content_type was preserved
+      console.log('✅ CombinedBrandAndPreferencesPage: Preferences saved:', {
+        savedContentType: savedPreferences?.content_type,
+        expectedContentType: contentType,
+        preserved: savedPreferences?.content_type === contentType
       });
 
       navigate('/onboarding/review');

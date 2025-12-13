@@ -43,6 +43,7 @@ export default function ReviewPage() {
 
       setUserId(user.id);
 
+      // Fetch preferences and brand profile
       const [preferences, brandProfile] = await Promise.all([
         preferencesService.getByUserId(user.id),
         brandProfileService.getByUserId(user.id)
@@ -52,7 +53,27 @@ export default function ReviewPage() {
         setBrandProfileId(brandProfile.id);
       }
 
-      const contentType = preferences?.content_type || localStorage.getItem('selectedContentType');
+      // Get content type from preferences - do NOT use localStorage fallback as it may have stale data
+      const contentType = preferences?.content_type || null;
+      
+      // Log for debugging - CRITICAL for diagnosing the issue
+      console.log('📋 ReviewPage: Loaded preferences:', {
+        hasPreferences: !!preferences,
+        contentType: preferences?.content_type,
+        contentTypeFromDB: contentType,
+        localStorageValue: localStorage.getItem('selectedContentType'),
+        fullPreferences: preferences,
+        userId: user.id,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Validate that content_type exists
+      if (!contentType) {
+        console.warn('⚠️ ReviewPage: No content_type found in preferences. User may need to select content type again.');
+        console.warn('⚠️ ReviewPage: Full preferences object:', JSON.stringify(preferences, null, 2));
+      } else {
+        console.log('✅ ReviewPage: Content type found:', contentType);
+      }
 
       setUserData({
         email: user.email,

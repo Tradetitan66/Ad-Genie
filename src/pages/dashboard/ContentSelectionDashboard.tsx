@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Image, Video, Sparkles, Loader2, LogOut, ArrowRight, MapPin, Palette, MessageSquare, Calendar, ChevronDown, ChevronUp, Pencil, Target } from 'lucide-react';
+import { Image, Video, Sparkles, Loader2, ArrowRight, MapPin, Palette, MessageSquare, Calendar, ChevronDown, ChevronUp, Pencil, Target } from 'lucide-react';
 import { userService, preferencesService, brandProfileService, campaignService, Campaign } from '../../services/database';
 import { useToast } from '../../contexts/ToastContext';
-import { supabase } from '../../lib/supabase';
-import Logo from '../../components/Logo';
+import PageHeader from '../../components/PageHeader';
 
 const contentTypes = [
   {
     id: 'image-only',
-    title: 'Image Only',
+    title: 'Static Ad',
     subtitle: '2x Image Generations',
     description: 'Product photos & lifestyle shots',
     icon: Image,
@@ -17,16 +16,16 @@ const contentTypes = [
   },
   {
     id: 'ugc-only',
-    title: 'Video Only',
-    subtitle: '2x Product Videos Ads',
+    title: 'Video Ad',
+    subtitle: '1x Product Video Ad',
     description: 'Authentic video style ads',
     icon: Video,
     color: 'from-purple-500 to-pink-500'
   },
   {
     id: 'image-ugc',
-    title: 'Images + Video',
-    subtitle: '2x Images + 2x Videos',
+    title: 'UGC Ad',
+    subtitle: '1x AI Avatar based Ad',
     description: 'Complete campaign package',
     icon: Sparkles,
     color: 'from-amber-500 to-orange-600',
@@ -117,19 +116,6 @@ export default function ContentSelectionDashboard() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      localStorage.removeItem('currentUser');
-      localStorage.removeItem('user');
-      navigate('/');
-    } catch (err) {
-      console.error('Logout error:', err);
-      localStorage.removeItem('currentUser');
-      localStorage.removeItem('user');
-      navigate('/');
-    }
-  };
 
   // Calculate campaign statistics
   const campaignStats = {
@@ -226,32 +212,7 @@ export default function ContentSelectionDashboard() {
   if (!brandProfile) {
     return (
       <div className="min-h-screen bg-[#FAFAFA]">
-        {/* Header Navigation Bar */}
-        <header className="bg-[#2D3142] shadow-sm h-16 flex items-center justify-between px-6 md:px-8 fixed top-0 left-0 right-0 z-50">
-          <Link
-            to="/dashboard/campaign-hub"
-            className="flex items-center gap-3"
-          >
-            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-orange-500 shadow-md bg-white flex-shrink-0">
-              <img
-                src="/enhanced_design_a_contemporary_professional_logo_combining_a_streamlined_genie_figure_with_modern_tech_symbo_g4d4ei5j85xa3vwd3mit_1 (1).png"
-                alt="Ad-Genie Logo"
-                className="w-full h-full object-contain"
-              />
-            </div>
-            <span className="text-xl font-bold text-orange-500">
-              Ad-Genie
-            </span>
-            <Sparkles className="text-amber-400 w-4 h-4" />
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 text-white border border-white/30 rounded-lg hover:bg-white/10 hover:border-white/50 transition-all"
-          >
-            <LogOut size={18} />
-            <span className="font-medium">Logout</span>
-          </button>
-        </header>
+        <PageHeader />
 
         <div className="pt-24 pb-12 px-4">
           <div className="max-w-[1400px] mx-auto">
@@ -273,20 +234,7 @@ export default function ContentSelectionDashboard() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      {/* Header Navigation Bar */}
-      <header className="bg-[#2D3142] shadow-sm h-16 flex items-center justify-between px-6 md:px-8 fixed top-0 left-0 right-0 z-50">
-        {/* Logo - Left Side */}
-        <Logo to="/dashboard/campaign-hub" size="lg" />
-
-        {/* Logout Button - Right Side */}
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 px-4 py-2 text-white border border-white/30 rounded-lg hover:bg-white/10 hover:border-white/50 transition-all"
-        >
-          <LogOut size={18} />
-          <span className="font-medium">Logout</span>
-        </button>
-      </header>
+      <PageHeader />
 
       {/* Page Content */}
       <div className="pt-20 pb-6 px-4 md:px-8">
