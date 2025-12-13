@@ -451,7 +451,7 @@ export default function CombinedBrandAndPreferencesPage() {
     try {
       const uploadPromises = filesToProcess.map(async (file) => {
         try {
-          const url = await imageService.uploadToStorage(userId, file, 'product', true);
+          const url = await imageService.uploadToStorage(userId, file, 'product', false);
           setProcessingCount(prev => prev - 1);
           return url;
         } catch (err) {
@@ -995,7 +995,7 @@ export default function CombinedBrandAndPreferencesPage() {
                           <p className="text-sm font-semibold text-slate-900">
                             Uploading {processingCount} image{processingCount > 1 ? 's' : ''}...
                           </p>
-                          <p className="text-xs text-slate-600">Removing background & saving</p>
+                          <p className="text-xs text-slate-600">Uploading & saving</p>
                         </div>
                       </div>
                     </div>

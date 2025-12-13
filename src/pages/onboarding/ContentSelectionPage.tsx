@@ -175,8 +175,8 @@ export default function ContentSelectionPage() {
                       }`}
                     >
                       {type.recommended && (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                          <span className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                          <span className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md whitespace-nowrap">
                             COMING SOON!
                           </span>
                         </div>

@@ -1,7 +1,7 @@
 // Webhook service for sending brand data to n8n
-// Production URL - n8n workflow is complete with "Respond to Webhook" connected
-//const WEBHOOK_URL = 'https://n8n.srv1004168.hstgr.cloud/webhook/07be41b0-cf9a-4cc3-8ba8-1fcc9652be51';
-const WEBHOOK_URL = 'https://n8n.srv1114357.hstgr.cloud/webhook/da5b80b8-dbc3-4b2a-8df6-ca86340a106c';
+// Production URLs - different webhooks for different content types
+const IMAGE_ONLY_WEBHOOK_URL = 'https://n8n.srv1004168.hstgr.cloud/webhook/07be41b0-cf9a-4cc3-8ba8-1fcc9652be51';
+const DEFAULT_WEBHOOK_URL = 'https://n8n.srv1114357.hstgr.cloud/webhook/da5b80b8-dbc3-4b2a-8df6-ca86340a106c';
 
 export interface BrandWebhookData {
   user_id: string;
@@ -204,47 +204,178 @@ export function parseWebhookVideoResponse(response: any): WebhookVideoItem[] {
   return [];
 }
 
-export async function sendBrandDataToWebhook(data: BrandWebhookData): Promise<WebhookResponse> {
+export async function sendBrandDataToWebhook(data: BrandWebhookData, retryCount = 0): Promise<WebhookResponse> {
+  const MAX_RETRIES = 2;
+  
   try {
-    console.log('📤 Sending brand data to webhook:', WEBHOOK_URL);
-    console.log('📋 Data:', JSON.stringify(data, null, 2));
+    // Select webhook URL based on content type
+    const webhookUrl = data.content_type === 'image-only' 
+      ? IMAGE_ONLY_WEBHOOK_URL 
+      : DEFAULT_WEBHOOK_URL;
+    
+    console.log('📤 Sending brand data to webhook:', webhookUrl);
+    console.log('📋 Content type:', data.content_type);
+    console.log('📋 Attempt:', retryCount + 1, '/', MAX_RETRIES + 1);
+    
+    // Validate payload before sending
+    const payloadSize = JSON.stringify(data).length;
+    console.log('📊 Payload size:', payloadSize, 'bytes');
+    if (payloadSize > 10 * 1024 * 1024) { // 10MB limit
+      throw new Error('Payload too large: Webhook payload exceeds 10MB limit');
+    }
+    
+    // Validate required fields
+    if (!data.user_id || !data.user_email || !data.brand_name || !data.industry) {
+      throw new Error('Missing required fields: user_id, user_email, brand_name, and industry are required');
+    }
+    
+    console.log('📋 Data keys:', Object.keys(data));
     console.log('⏳ Waiting for webhook response (this may take a while)...');
 
-    // Fetch with no timeout - will wait until respond node is connected
-    // Browser default timeout is typically 5-10 minutes, which should be sufficient
-    const response = await fetch(WEBHOOK_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
+    // Fetch with timeout handling, CORS support, and retry logic
+    let response: Response;
+    try {
+      // Create AbortController for timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.error('⏱️ Request timeout after 10 minutes');
+        controller.abort();
+      }, 600000); // 10 minute timeout
+
+      // Try with CORS mode first (default)
+      try {
+        response = await fetch(webhookUrl, {
+          method: 'POST',
+          mode: 'cors', // Explicitly set CORS mode
+          credentials: 'omit', // Don't send cookies to avoid CORS issues
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify(data),
+          signal: controller.signal,
+        });
+      } catch (corsError: any) {
+        // If CORS fails, log it but don't retry with no-cors (we need to read the response)
+        console.warn('⚠️ CORS error detected:', corsError.message);
+        throw corsError;
+      }
+
+      clearTimeout(timeoutId);
+    } catch (fetchError: any) {
+      console.error('❌ Fetch error details:', {
+        name: fetchError.name,
+        message: fetchError.message,
+        stack: fetchError.stack,
+        webhookUrl: webhookUrl,
+        contentType: data.content_type,
+        retryCount,
+      });
+      
+      // Retry logic for transient network errors
+      const isRetryableError = 
+        (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) ||
+        fetchError.name === 'AbortError' ||
+        fetchError.message.includes('timeout') ||
+        fetchError.message.includes('network') ||
+        fetchError.message.includes('NetworkError');
+      
+      if (isRetryableError && retryCount < MAX_RETRIES) {
+        const backoffDelay = 1000 * Math.pow(2, retryCount); // Exponential backoff: 1s, 2s
+        console.log(`🔄 Retrying webhook request in ${backoffDelay}ms (attempt ${retryCount + 2}/${MAX_RETRIES + 1})...`);
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+        return sendBrandDataToWebhook(data, retryCount + 1);
+      }
+      
+      // Provide more specific error messages
+      if (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) {
+        // Check if it's likely a CORS issue
+        if (fetchError.message.includes('CORS') || fetchError.message.includes('cross-origin')) {
+          throw new Error('CORS error: The webhook server may not allow requests from this origin. Please contact support.');
+        }
+        throw new Error('Network error: Unable to reach webhook server. Please check your internet connection and ensure the webhook URL is accessible.');
+      }
+      if (fetchError.name === 'AbortError' || fetchError.message.includes('timeout')) {
+        throw new Error('Request timeout: The webhook request took too long. Please try again.');
+      }
+      throw new Error(`Network request failed: ${fetchError.message}`);
+    }
 
     // Read the response body ONCE as text
     const responseText = await response.text();
+    console.log('📥 Webhook response status:', response.status, response.statusText);
+    console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
+    console.log('📥 Response body length:', responseText.length, 'characters');
 
     if (!response.ok) {
-      throw new Error(`Webhook failed: ${response.status} ${response.statusText} - ${responseText}`);
+      // Check for specific HTTP status codes
+      let errorMessage = `Webhook failed: ${response.status} ${response.statusText}`;
+      if (response.status === 404) {
+        errorMessage = 'Webhook endpoint not found (404). Please verify the webhook URL is correct.';
+      } else if (response.status === 403) {
+        errorMessage = 'Access forbidden (403). The webhook server rejected the request.';
+      } else if (response.status === 401) {
+        errorMessage = 'Unauthorized (401). Authentication may be required.';
+      } else if (response.status >= 500) {
+        errorMessage = `Server error (${response.status}). The webhook server encountered an error. Please try again later.`;
+      } else if (response.status === 413) {
+        errorMessage = 'Payload too large (413). The request data is too big.';
+      }
+      
+      console.error('❌ Webhook HTTP error:', {
+        status: response.status,
+        statusText: response.statusText,
+        responsePreview: responseText.substring(0, 500),
+        webhookUrl: webhookUrl
+      });
+      
+      throw new Error(errorMessage);
     }
 
     // Now parse the text as JSON
     let responseData: WebhookResponse;
     try {
       responseData = JSON.parse(responseText);
-    } catch {
+      console.log('✅ Webhook response parsed successfully');
+    } catch (parseError) {
+      console.warn('⚠️ Webhook response is not valid JSON, returning as raw text');
       // If it's not valid JSON, return it as raw text
       responseData = { raw: responseText };
     }
 
-    console.log('✅ Webhook response received:', responseData);
+    console.log('✅ Webhook response received:', {
+      hasImages: !!(responseData.images || responseData.image_urls || responseData.imageUrls),
+      hasVideos: !!(responseData.videos || responseData.video_urls || responseData.videoUrls),
+      keys: Object.keys(responseData)
+    });
     return responseData;
   } catch (error: any) {
-    console.error('❌ Webhook error:', error);
+    console.error('❌ Webhook error:', {
+      error: error,
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+      retryCount,
+      contentType: data.content_type
+    });
+    
     // Check if it's a timeout or network error
     if (error.name === 'AbortError' || error.message.includes('timeout')) {
       throw new Error(`Webhook request timed out. Please ensure the respond node is connected in n8n.`);
     }
-    throw new Error(`Failed to send data to webhook: ${error.message}`);
+    
+    // If error message already contains user-friendly text, use it
+    if (error.message && (
+      error.message.includes('Network error') ||
+      error.message.includes('CORS error') ||
+      error.message.includes('Webhook failed') ||
+      error.message.includes('Payload too large') ||
+      error.message.includes('Missing required fields')
+    )) {
+      throw error;
+    }
+    
+    throw new Error(`Failed to send data to webhook: ${error.message || 'Unknown error'}`);
   }
 }
 

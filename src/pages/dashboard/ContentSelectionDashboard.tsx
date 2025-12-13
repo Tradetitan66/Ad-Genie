@@ -472,8 +472,8 @@ export default function ContentSelectionDashboard() {
                     }`}
                   >
                     {type.recommended && (
-                      <div className="absolute -top-2 left-1/2 -translate-x-1/2">
-                        <span className="bg-gradient-to-r from-amber-400 to-orange-600 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-md">
+                      <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-10">
+                        <span className="bg-gradient-to-r from-amber-400 to-orange-600 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-md whitespace-nowrap">
                           COMING SOON!
                         </span>
                       </div>

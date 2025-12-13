@@ -567,10 +567,35 @@ export default function AdGenieWorkingPage() {
         }
       });
     } catch (err: any) {
-      console.error('❌ Webhook error:', err);
+      console.error('❌ Webhook error in AdGenieWorkingPage:', {
+        error: err,
+        message: err.message,
+        name: err.name,
+        stack: err.stack,
+        campaignId: campId,
+        contentType: payload.content_type
+      });
+      
       setProgress(0);
       setProgressMessage('Error occurred');
-      showError(`Failed to generate campaign: ${err.message}`);
+      
+      // Provide user-friendly error message
+      let errorMessage = 'Failed to generate campaign';
+      if (err.message) {
+        if (err.message.includes('Network error')) {
+          errorMessage = 'Network error: Unable to connect to the generation service. Please check your internet connection and try again.';
+        } else if (err.message.includes('CORS error')) {
+          errorMessage = 'Connection error: The generation service may be temporarily unavailable. Please try again later.';
+        } else if (err.message.includes('timeout')) {
+          errorMessage = 'Request timeout: The generation is taking longer than expected. Please try again.';
+        } else if (err.message.includes('Webhook failed')) {
+          errorMessage = `Server error: ${err.message}`;
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      showError(errorMessage);
       
       // Update campaign status to failed
       try {
