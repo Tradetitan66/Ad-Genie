@@ -1,4 +1,5 @@
 import { Sparkles, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function FinalCTA() {
   return (
@@ -35,8 +36,8 @@ export default function FinalCTA() {
           Be among the first to experience Ad-Genie magic
         </p>
 
-        <a
-          href="/waitlist"
+        <Link
+          to="/waitlist"
           className="group relative inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-xl rounded-full shadow-2xl hover:shadow-amber-500/50 transition-all duration-300 hover:scale-110"
         >
           <span className="relative z-10 flex items-center gap-3">
@@ -44,7 +45,7 @@ export default function FinalCTA() {
             <ArrowRight className="group-hover:translate-x-2 transition-transform" size={24} />
           </span>
           <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 opacity-0 group-hover:opacity-100 blur-2xl transition-opacity duration-300"></div>
-        </a>
+        </Link>
 
         <div className="mt-12">
           <p className="text-teal-200 text-sm">

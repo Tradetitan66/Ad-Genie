@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Plus, Minus } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const faqs = [
   {
@@ -97,12 +98,12 @@ export default function FAQ() {
           transition={{ duration: 0.6, delay: 0.5 }}
         >
           <p className="text-slate-600 mb-4">Still have questions?</p>
-          <a
-            href="/waitlist"
+          <Link
+            to="/waitlist"
             className="inline-flex items-center gap-2 text-amber-600 font-semibold hover:text-amber-700 transition-colors"
           >
             Join the waitlist and we'll answer them personally
-          </a>
+          </Link>
         </motion.div>
       </div>
     </section>

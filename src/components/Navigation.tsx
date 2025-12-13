@@ -69,14 +69,17 @@ export default function Navigation({ onLoginSuccess, onLoginClick }: NavigationP
             <a href="#faq" className="text-white hover:text-amber-400 transition-colors font-medium">
               FAQ
             </a>
-            <motion.a
-              href="/waitlist"
+            <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-6 py-2 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-bold rounded-full shadow-lg hover:shadow-orange-500/50 transition-all"
             >
-              Join Waitlist
-            </motion.a>
+              <Link
+                to="/waitlist"
+                className="px-6 py-2 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-bold rounded-full shadow-lg hover:shadow-orange-500/50 transition-all inline-block"
+              >
+                Join Waitlist
+              </Link>
+            </motion.div>
 
             {user ? (
               <div className="relative">
