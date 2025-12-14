@@ -132,10 +132,33 @@ export default function ResultsPage() {
             setImages([]); // Clear images for UGC-only campaigns
             
             // Always load videos from database if explicit ID provided, otherwise prefer DB over state
-            if (campaign.generated_assets?.videos && Array.isArray(campaign.generated_assets.videos) && campaign.generated_assets.videos.length > 0) {
-              setVideos(campaign.generated_assets.videos);
-            } else if (!shouldLoadFromDB && state?.videos && state.videos.length > 0) {
+            // Handle both 'video' (singular) and 'videos' (plural) for backward compatibility
+            const videosData = campaign.generated_assets?.videos || campaign.generated_assets?.video;
+            
+            if (videosData && Array.isArray(videosData) && videosData.length > 0) {
+              // Filter out invalid video entries (empty URLs)
+              const validVideos = videosData.filter((v: any) => {
+                const url = typeof v === 'string' ? v : (v?.url || v?.video_url || v?.videoUrl || v?.src);
+                return url && url.trim() !== '';
+              });
+              
+              if (validVideos.length > 0) {
+                console.log('✅ Loaded videos from database:', validVideos.length);
+                setVideos(validVideos);
+              } else {
+                console.warn('⚠️ Videos array exists but contains no valid URLs');
+              }
+            } else if (!shouldLoadFromDB && state?.videos && Array.isArray(state.videos) && state.videos.length > 0) {
+              console.log('✅ Loaded videos from state:', state.videos.length);
               setVideos(state.videos);
+            } else {
+              console.warn('⚠️ No videos found in campaign.generated_assets:', {
+                hasVideos: !!campaign.generated_assets?.videos,
+                hasVideo: !!campaign.generated_assets?.video,
+                videosType: typeof campaign.generated_assets?.videos,
+                videoType: typeof campaign.generated_assets?.video,
+                generatedAssets: campaign.generated_assets
+              });
             }
             
             // Load webhook payload from database if explicit ID, otherwise prefer DB
@@ -168,9 +191,17 @@ export default function ResultsPage() {
                   setImages(state.images);
                 }
                 
-                if (assets.videos && Array.isArray(assets.videos)) {
-                  setVideos(assets.videos);
-                } else if (state?.videos && state.videos.length > 0) {
+                // Handle both 'video' (singular) and 'videos' (plural) for backward compatibility
+                const videosData = assets.videos || assets.video;
+                if (videosData && Array.isArray(videosData)) {
+                  const validVideos = videosData.filter((v: any) => {
+                    const url = typeof v === 'string' ? v : (v?.url || v?.video_url || v?.videoUrl || v?.src);
+                    return url && url.trim() !== '';
+                  });
+                  if (validVideos.length > 0) {
+                    setVideos(validVideos);
+                  }
+                } else if (state?.videos && Array.isArray(state.videos) && state.videos.length > 0) {
                   setVideos(state.videos);
                 }
                 
@@ -225,8 +256,22 @@ export default function ResultsPage() {
               // For UGC-only campaigns, prioritize videos
               if (latestCampaign.content_type === 'ugc-only') {
                 setImages([]); // Clear images for UGC-only
-                if (latestCampaign.generated_assets?.videos && Array.isArray(latestCampaign.generated_assets.videos)) {
-                  setVideos(latestCampaign.generated_assets.videos);
+                // Handle both 'video' (singular) and 'videos' (plural) for backward compatibility
+                const videosData = latestCampaign.generated_assets?.videos || latestCampaign.generated_assets?.video;
+                
+                if (videosData && Array.isArray(videosData)) {
+                  // Filter out invalid video entries
+                  const validVideos = videosData.filter((v: any) => {
+                    const url = typeof v === 'string' ? v : (v?.url || v?.video_url || v?.videoUrl || v?.src);
+                    return url && url.trim() !== '';
+                  });
+                  
+                  if (validVideos.length > 0) {
+                    console.log('✅ Loaded videos from latest campaign:', validVideos.length);
+                    setVideos(validVideos);
+                  } else {
+                    console.warn('⚠️ Videos array exists but contains no valid URLs');
+                  }
                 }
                 if (latestCampaign.generated_assets?.webhook_payload) {
                   setWebhookPayload(latestCampaign.generated_assets.webhook_payload);
@@ -274,8 +319,22 @@ export default function ResultsPage() {
           // Load assets based on content type
           if (campaign.content_type === 'ugc-only') {
             setImages([]);
-            if (campaign.generated_assets?.videos && Array.isArray(campaign.generated_assets.videos)) {
-              setVideos(campaign.generated_assets.videos);
+            // Handle both 'video' (singular) and 'videos' (plural) for backward compatibility
+            const videosData = campaign.generated_assets?.videos || campaign.generated_assets?.video;
+            
+            if (videosData && Array.isArray(videosData)) {
+              // Filter out invalid video entries
+              const validVideos = videosData.filter((v: any) => {
+                const url = typeof v === 'string' ? v : (v?.url || v?.video_url || v?.videoUrl || v?.src);
+                return url && url.trim() !== '';
+              });
+              
+              if (validVideos.length > 0) {
+                console.log('✅ Loaded videos from campaign (explicit ID):', validVideos.length);
+                setVideos(validVideos);
+              } else {
+                console.warn('⚠️ Videos array exists but contains no valid URLs');
+              }
             }
             if (campaign.generated_assets?.webhook_payload) {
               setWebhookPayload(campaign.generated_assets.webhook_payload);
@@ -618,7 +677,7 @@ export default function ResultsPage() {
         );
         
         // Process video results
-        const uploadedVideos = uploadResults.map((result) => {
+        let uploadedVideos = uploadResults.map((result) => {
           if (result.status === 'fulfilled') {
             return result.value.video;
           } else {
@@ -639,17 +698,54 @@ export default function ResultsPage() {
           console.warn(`⚠️ ${failedUploads} regenerated video(s) failed to upload and are using webhook URLs`);
         }
         
+        // Generate thumbnails for regenerated videos
+        setRegenerationProgress(82);
+        setRegenerationStep('Generating video thumbnails...');
+        console.log('🖼️ Generating thumbnails for regenerated videos...');
+        
+        uploadedVideos = await Promise.all(
+          uploadedVideos.map(async (video) => {
+            const videoUrl = video.url || video.original_url || '';
+            if (!videoUrl || videoUrl.trim() === '') {
+              return video; // Skip thumbnail generation for invalid videos
+            }
+            
+            try {
+              const thumbnailUrl = await ugcService.generateAndStoreVideoThumbnail(
+                payload.user_id,
+                videoUrl,
+                newCampaign.id
+              );
+              
+              if (thumbnailUrl) {
+                console.log('✅ Thumbnail generated for regenerated video:', videoUrl.substring(0, 50) + '...');
+                return {
+                  ...video,
+                  thumbnail_url: thumbnailUrl,
+                };
+              } else {
+                console.warn('⚠️ Thumbnail generation failed for regenerated video, continuing without thumbnail');
+                return video;
+              }
+            } catch (error: any) {
+              console.error('❌ Error generating thumbnail for regenerated video:', error);
+              // Continue without thumbnail if generation fails
+              return video;
+            }
+          })
+        );
+        
         // Step 5: Finalize campaign
         setRegenerationProgress(85);
         setRegenerationStep('Finalizing campaign...');
         
-        // Update campaign with generated assets
+        // Update campaign with generated assets (including thumbnails)
         await campaignService.update(newCampaign.id, {
           status: 'completed',
           completed_at: new Date().toISOString(),
           generated_assets: {
             webhook_payload: payload,
-            videos: uploadedVideos,
+            videos: uploadedVideos, // Include thumbnail_url in video objects
             webhook_response: webhookResponse,
           },
         });

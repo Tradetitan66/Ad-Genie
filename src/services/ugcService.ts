@@ -203,5 +203,194 @@ export const ugcService = {
       return this.uploadGeneratedVideoToStorage(userId, videoUrl, campaignId, retryCount + 1);
     }
   },
+
+  /**
+   * Generate and store a video thumbnail
+   * Extracts a frame from video at 1 second mark, converts to image, uploads to Supabase
+   * Returns thumbnail URL or null if generation fails
+   */
+  async generateAndStoreVideoThumbnail(
+    userId: string,
+    videoUrl: string,
+    campaignId: string,
+    retryCount = 0
+  ): Promise<string | null> {
+    const MAX_RETRIES = 2;
+    
+    // If Supabase isn't configured, return null (can't store thumbnail)
+    if (!isSupabaseConfigured()) {
+      console.warn('⚠️ Supabase not configured, cannot generate thumbnail');
+      return null;
+    }
+
+    // If video URL is invalid, return null
+    if (!videoUrl || (!videoUrl.startsWith('http://') && !videoUrl.startsWith('https://'))) {
+      console.warn('⚠️ Invalid video URL for thumbnail generation:', videoUrl);
+      return null;
+    }
+
+    try {
+      console.log(`🖼️ [Attempt ${retryCount + 1}/${MAX_RETRIES + 1}] Generating thumbnail for video:`, videoUrl.substring(0, 100) + '...');
+      
+      // Create a video element to extract frame
+      const video = document.createElement('video');
+      video.crossOrigin = 'anonymous';
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = 'metadata';
+      
+      // Create a promise to handle video loading and frame extraction
+      const thumbnailPromise = new Promise<string>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Thumbnail generation timeout after 30 seconds'));
+        }, 30000);
+
+        const handleLoadedMetadata = () => {
+          try {
+            // Seek to 1 second (or 10% of duration if video is very short)
+            const seekTime = Math.min(1, video.duration * 0.1);
+            video.currentTime = seekTime;
+          } catch (error) {
+            clearTimeout(timeout);
+            video.removeEventListener('seeked', handleSeeked);
+            video.removeEventListener('error', handleError);
+            reject(new Error(`Failed to seek video: ${error}`));
+          }
+        };
+
+        const handleSeeked = () => {
+          try {
+            // Create canvas to capture frame
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 360;
+            
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              clearTimeout(timeout);
+              video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+              video.removeEventListener('seeked', handleSeeked);
+              video.removeEventListener('error', handleError);
+              reject(new Error('Failed to get canvas context'));
+              return;
+            }
+
+            // Draw video frame to canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert canvas to blob
+            canvas.toBlob(async (blob) => {
+              if (!blob) {
+                clearTimeout(timeout);
+                video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+                video.removeEventListener('seeked', handleSeeked);
+                video.removeEventListener('error', handleError);
+                reject(new Error('Failed to convert canvas to blob'));
+                return;
+              }
+
+              try {
+                // Upload thumbnail to Supabase storage
+                const thumbnailFilename = `thumbnail-${Date.now()}.jpg`;
+                const filePath = `${userId}/${campaignId}/${thumbnailFilename}`;
+                
+                console.log('📤 Uploading thumbnail to Supabase storage:', {
+                  bucket: 'output-images',
+                  path: filePath,
+                  size: blob.size,
+                  userId: userId,
+                  campaignId: campaignId,
+                });
+
+                const { data, error } = await supabase.storage
+                  .from('output-images')
+                  .upload(filePath, blob, {
+                    cacheControl: '3600',
+                    upsert: true,
+                    contentType: 'image/jpeg',
+                  });
+
+                if (error) {
+                  clearTimeout(timeout);
+                  video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+                  video.removeEventListener('seeked', handleSeeked);
+                  video.removeEventListener('error', handleError);
+                  reject(new Error(`Thumbnail upload failed: ${error.message}`));
+                  return;
+                }
+
+                // Get public URL
+                const { data: urlData } = supabase.storage
+                  .from('output-images')
+                  .getPublicUrl(data.path);
+
+                const thumbnailUrl = urlData.publicUrl;
+                console.log('✅ Thumbnail generated and uploaded:', thumbnailUrl);
+                
+                clearTimeout(timeout);
+                video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+                video.removeEventListener('seeked', handleSeeked);
+                video.removeEventListener('error', handleError);
+                resolve(thumbnailUrl);
+              } catch (uploadError: any) {
+                clearTimeout(timeout);
+                video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+                video.removeEventListener('seeked', handleSeeked);
+                video.removeEventListener('error', handleError);
+                reject(new Error(`Thumbnail upload error: ${uploadError.message}`));
+              }
+            }, 'image/jpeg', 0.8); // JPEG quality 80%
+          } catch (error: any) {
+            clearTimeout(timeout);
+            video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+            video.removeEventListener('seeked', handleSeeked);
+            video.removeEventListener('error', handleError);
+            reject(new Error(`Failed to capture frame: ${error.message}`));
+          }
+        };
+
+        const handleError = (event: Event) => {
+          clearTimeout(timeout);
+          video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+          video.removeEventListener('seeked', handleSeeked);
+          video.removeEventListener('error', handleError);
+          reject(new Error('Video failed to load for thumbnail generation'));
+        };
+
+        video.addEventListener('loadedmetadata', handleLoadedMetadata);
+        video.addEventListener('seeked', handleSeeked);
+        video.addEventListener('error', handleError);
+        
+        // Start loading video
+        video.src = videoUrl;
+        video.load();
+      });
+
+      const thumbnailUrl = await thumbnailPromise;
+      return thumbnailUrl;
+    } catch (error: any) {
+      console.error('❌ Failed to generate video thumbnail:', {
+        error: error,
+        message: error?.message,
+        videoUrl: videoUrl.substring(0, 100),
+        retryCount: retryCount,
+      });
+      
+      // Retry on certain errors
+      if (retryCount < MAX_RETRIES && (
+        error.message.includes('timeout') ||
+        error.message.includes('network') ||
+        error.message.includes('Failed to fetch')
+      )) {
+        console.log(`🔄 Retrying thumbnail generation (attempt ${retryCount + 2}/${MAX_RETRIES + 1})...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+        return this.generateAndStoreVideoThumbnail(userId, videoUrl, campaignId, retryCount + 1);
+      }
+      
+      // Return null if all retries exhausted or non-retryable error
+      console.warn('⚠️ Thumbnail generation failed, returning null');
+      return null;
+    }
+  },
 };
 

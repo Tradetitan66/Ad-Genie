@@ -210,6 +210,8 @@ export default function CampaignHubPage() {
   const loadPreviousCampaignsForUser = async (userId: string) => {
     try {
       const allCampaigns = await campaignService.getByUserId(userId);
+      console.log('📋 Loaded all campaigns:', allCampaigns.length);
+      
       // Filter to show completed campaigns with images OR videos
       const completedCampaigns = allCampaigns.filter(
         (campaign) => {
@@ -217,20 +219,42 @@ export default function CampaignHubPage() {
             return false;
           }
           
-          // Check if campaign has images
-          const hasImages = campaign.generated_assets.images &&
-            Array.isArray(campaign.generated_assets.images) &&
-            campaign.generated_assets.images.length > 0;
+          // Check if campaign has valid images (with URLs)
+          const images = campaign.generated_assets.images || [];
+          const hasImages = Array.isArray(images) && images.length > 0 && images.some((img: any) => {
+            const url = typeof img === 'string' ? img : (img?.url || img?.image_url || img?.imageUrl || img?.src);
+            return url && url.trim() !== '';
+          });
           
-          // Check if campaign has videos
-          const hasVideos = campaign.generated_assets.videos &&
-            Array.isArray(campaign.generated_assets.videos) &&
-            campaign.generated_assets.videos.length > 0;
+          // Check if campaign has valid videos (with URLs)
+          // Handle both 'videos' (plural) and 'video' (singular) for backward compatibility
+          const videosData = campaign.generated_assets.videos || campaign.generated_assets.video || [];
+          const hasVideos = Array.isArray(videosData) && videosData.length > 0 && videosData.some((video: any) => {
+            const url = typeof video === 'string' ? video : (video?.url || video?.video_url || video?.videoUrl || video?.src);
+            return url && url.trim() !== '';
+          });
+          
+          const hasAssets = hasImages || hasVideos;
+          
+          if (!hasAssets) {
+            console.warn('⚠️ Campaign filtered out (no valid assets):', {
+              campaignId: campaign.id,
+              contentType: campaign.content_type,
+              hasImages,
+              hasVideos,
+              imagesCount: images.length,
+              videosCount: videosData.length,
+              generatedAssets: campaign.generated_assets
+            });
+          }
           
           // Show if campaign has either images or videos
-          return hasImages || hasVideos;
+          return hasAssets;
         }
       );
+      
+      console.log('✅ Filtered completed campaigns with assets:', completedCampaigns.length);
+      
       // Sort by most recent first
       completedCampaigns.sort((a, b) => {
         const dateA = new Date(a.completed_at || a.created_at).getTime();
@@ -240,6 +264,7 @@ export default function CampaignHubPage() {
       setPreviousCampaigns(completedCampaigns);
     } catch (error) {
       console.error('Error loading previous campaigns:', error);
+      showError('Failed to load campaigns');
     }
   };
 
@@ -624,31 +649,45 @@ export default function CampaignHubPage() {
                   const imageCount = images.length;
                   
                   // Get videos
-                  const videos = campaign.generated_assets?.videos || [];
+                  const videos = campaign.generated_assets?.videos || campaign.generated_assets?.video || [];
                   const firstVideo = videos[0];
                   const videoUrl = firstVideo?.url || firstVideo?.video_url || firstVideo?.videoUrl || firstVideo?.src || (typeof firstVideo === 'string' ? firstVideo : null);
+                  const videoThumbnailUrl = firstVideo?.thumbnail_url || null; // Check for thumbnail_url first
                   const videoCount = videos.length;
                   
                   // Determine thumbnail and count based on content type
                   let thumbnailUrl: string | null = null;
                   let assetCount = 0;
                   let assetType: 'image' | 'video' = 'image';
+                  let useVideoElement = false; // Whether to use <video> element (fallback) or <img> (preferred)
                   
                   if (isUgcOnly) {
-                    // UGC-only: use video
-                    thumbnailUrl = typeof videoUrl === 'string' ? videoUrl : null;
+                    // UGC-only: use video thumbnail if available, otherwise fallback to video URL
+                    if (videoThumbnailUrl && typeof videoThumbnailUrl === 'string') {
+                      thumbnailUrl = videoThumbnailUrl;
+                      useVideoElement = false; // Use <img> for thumbnail
+                    } else if (videoUrl && typeof videoUrl === 'string') {
+                      thumbnailUrl = videoUrl;
+                      useVideoElement = true; // Use <video> as fallback
+                    }
                     assetCount = videoCount;
                     assetType = 'video';
                   } else if (isImageUgc) {
-                    // Image+UGC: prefer image, fallback to video
+                    // Image+UGC: prefer image, fallback to video thumbnail, then video URL
                     if (imageUrl && typeof imageUrl === 'string') {
                       thumbnailUrl = imageUrl;
                       assetCount = imageCount;
                       assetType = 'image';
+                    } else if (videoThumbnailUrl && typeof videoThumbnailUrl === 'string') {
+                      thumbnailUrl = videoThumbnailUrl;
+                      assetCount = videoCount;
+                      assetType = 'video';
+                      useVideoElement = false;
                     } else if (videoUrl && typeof videoUrl === 'string') {
                       thumbnailUrl = videoUrl;
                       assetCount = videoCount;
                       assetType = 'video';
+                      useVideoElement = true;
                     }
                   } else {
                     // Image-only: use image
@@ -665,7 +704,8 @@ export default function CampaignHubPage() {
                       {/* Thumbnail */}
                       {thumbnailUrl && (
                         <div className="aspect-[4/3] bg-[#FAFAFA] relative group cursor-pointer" onClick={() => navigate('/dashboard/results', { state: { campaignId: campaign.id } })}>
-                          {assetType === 'video' ? (
+                          {useVideoElement && assetType === 'video' ? (
+                            // Fallback: use <video> element when thumbnail_url is not available
                             <video
                               src={thumbnailUrl}
                               className="w-full h-full object-cover"
@@ -688,6 +728,7 @@ export default function CampaignHubPage() {
                               }}
                             />
                           ) : (
+                            // Preferred: use <img> element for thumbnails (works for both images and video thumbnails)
                             <img
                               src={thumbnailUrl}
                               alt="Campaign thumbnail"

@@ -257,31 +257,45 @@ export default function CampaignsPage() {
                     const imageCount = images.length;
                     
                     // Get videos
-                    const videos = campaign.generated_assets.videos || [];
+                    const videos = campaign.generated_assets.videos || campaign.generated_assets.video || [];
                     const firstVideo = videos[0];
                     const videoUrl = firstVideo?.url || firstVideo?.video_url || firstVideo?.videoUrl || firstVideo?.src || (typeof firstVideo === 'string' ? firstVideo : null);
+                    const videoThumbnailUrl = firstVideo?.thumbnail_url || null; // Check for thumbnail_url first
                     const videoCount = videos.length;
                     
                     // Determine thumbnail and count based on content type
                     let thumbnailUrl: string | null = null;
                     let assetCount = 0;
                     let assetType: 'image' | 'video' = 'image';
+                    let useVideoElement = false; // Whether to use <video> element (fallback) or <img> (preferred)
                     
                     if (isUgcOnly) {
-                      // UGC-only: use video
-                      thumbnailUrl = typeof videoUrl === 'string' ? videoUrl : null;
+                      // UGC-only: use video thumbnail if available, otherwise fallback to video URL
+                      if (videoThumbnailUrl && typeof videoThumbnailUrl === 'string') {
+                        thumbnailUrl = videoThumbnailUrl;
+                        useVideoElement = false; // Use <img> for thumbnail
+                      } else if (videoUrl && typeof videoUrl === 'string') {
+                        thumbnailUrl = videoUrl;
+                        useVideoElement = true; // Use <video> as fallback
+                      }
                       assetCount = videoCount;
                       assetType = 'video';
                     } else if (isImageUgc) {
-                      // Image+UGC: prefer image, fallback to video
+                      // Image+UGC: prefer image, fallback to video thumbnail, then video URL
                       if (imageUrl && typeof imageUrl === 'string') {
                         thumbnailUrl = imageUrl;
                         assetCount = imageCount;
                         assetType = 'image';
+                      } else if (videoThumbnailUrl && typeof videoThumbnailUrl === 'string') {
+                        thumbnailUrl = videoThumbnailUrl;
+                        assetCount = videoCount;
+                        assetType = 'video';
+                        useVideoElement = false;
                       } else if (videoUrl && typeof videoUrl === 'string') {
                         thumbnailUrl = videoUrl;
                         assetCount = videoCount;
                         assetType = 'video';
+                        useVideoElement = true;
                       }
                     } else {
                       // Image-only: use image
@@ -295,7 +309,8 @@ export default function CampaignsPage() {
                     return (
                       <div className="mb-3">
                         <div className="aspect-[4/3] bg-[#FAFAFA] rounded-lg overflow-hidden">
-                          {assetType === 'video' ? (
+                          {useVideoElement && assetType === 'video' ? (
+                            // Fallback: use <video> element when thumbnail_url is not available
                             <video
                               src={thumbnailUrl}
                               className="w-full h-full object-cover"
@@ -318,6 +333,7 @@ export default function CampaignsPage() {
                               }}
                             />
                           ) : (
+                            // Preferred: use <img> element for thumbnails (works for both images and video thumbnails)
                             <img
                               src={thumbnailUrl}
                               alt="Campaign thumbnail"

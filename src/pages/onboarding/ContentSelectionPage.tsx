@@ -73,10 +73,10 @@ export default function ContentSelectionPage() {
       const preferences = await preferencesService.getByUserId(user.id);
 
       if (preferences) {
-        if (preferences.content_type) {
-          setSelectedType(preferences.content_type);
-        }
-        // Load campaign market from campaign_market field
+        // CRITICAL FIX: Don't pre-load content_type when starting a new campaign
+        // This prevents stale content_type from previous failed campaigns from interfering
+        // User must explicitly select a content type for each new campaign
+        // Only load campaign market (which is user preference, not campaign-specific)
         if (preferences.campaign_market) {
           // Map "Global" to "International" for backward compatibility
           const marketValue = preferences.campaign_market === 'Global' ? 'International' : preferences.campaign_market;
@@ -87,6 +87,9 @@ export default function ContentSelectionPage() {
           const marketValue = preferences.campaign_goal === 'Global' ? 'International' : preferences.campaign_goal;
           setSelectedMarket(marketValue);
         }
+        
+        // Note: We intentionally do NOT load content_type here to ensure fresh selection for each campaign
+        console.log('📋 ContentSelectionPage: Loaded preferences (content_type intentionally not pre-loaded for new campaign)');
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -114,10 +117,11 @@ export default function ContentSelectionPage() {
       // Fetch existing preferences to preserve other fields
       const existingPreferences = await preferencesService.getByUserId(userId);
       
-      // Update preferences with campaign_market (not campaign_goal) while preserving other fields
-      const savedPreferences = await preferencesService.upsert({
+      // CRITICAL: Explicitly set content_type to the selected value
+      // This ensures we're saving the NEW selection, not preserving any stale value
+      const preferencesToSave = {
         user_id: userId,
-        content_type: selectedType, // CRITICAL: Save the selected content type
+        content_type: selectedType, // CRITICAL: Explicitly set the selected content type
         campaign_market: selectedMarket, // Store in correct field
         // Preserve existing fields to avoid overwriting them
         campaign_goal: existingPreferences?.campaign_goal ?? null,
@@ -126,7 +130,15 @@ export default function ContentSelectionPage() {
         campaign_timing: existingPreferences?.campaign_timing ?? null,
         seasonal_events: existingPreferences?.seasonal_events ?? [],
         enable_auto_suggestions: existingPreferences?.enable_auto_suggestions ?? true,
+      };
+      
+      console.log('💾 ContentSelectionPage: Saving with explicit content_type:', {
+        content_type: preferencesToSave.content_type,
+        willOverwrite: existingPreferences?.content_type !== selectedType
       });
+      
+      // Update preferences with campaign_market (not campaign_goal) while preserving other fields
+      const savedPreferences = await preferencesService.upsert(preferencesToSave);
 
       // Verify the save was successful
       console.log('✅ ContentSelectionPage: Preferences saved successfully:', {
@@ -148,25 +160,63 @@ export default function ContentSelectionPage() {
       }
 
       // CRITICAL: Verify the save one more time by fetching fresh data
+      // Use retry logic to handle potential database replication delays
       console.log('🔄 ContentSelectionPage: Verifying save by fetching fresh preferences...');
-      const verificationPreferences = await preferencesService.getByUserId(userId);
-      console.log('✅ ContentSelectionPage: Verification fetch:', {
-        verifiedContentType: verificationPreferences?.content_type,
-        expected: selectedType,
-        match: verificationPreferences?.content_type === selectedType
-      });
+      
+      let verificationPreferences: any = null;
+      let verificationAttempts = 0;
+      const maxVerificationAttempts = 5; // Increased attempts
+      const baseVerificationDelay = 500; // Increased base delay to 500ms
+      
+      while (verificationAttempts < maxVerificationAttempts) {
+        // Exponential backoff: 500ms, 1000ms, 1500ms, 2000ms, 2500ms
+        const delay = baseVerificationDelay * (verificationAttempts + 1);
+        if (verificationAttempts > 0) {
+          console.log(`⏳ ContentSelectionPage: Waiting ${delay}ms before verification attempt ${verificationAttempts + 1}...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        
+        verificationPreferences = await preferencesService.getByUserId(userId);
+        console.log(`✅ ContentSelectionPage: Verification attempt ${verificationAttempts + 1}:`, {
+          verifiedContentType: verificationPreferences?.content_type,
+          expected: selectedType,
+          match: verificationPreferences?.content_type === selectedType,
+          allPreferences: verificationPreferences
+        });
+        
+        if (verificationPreferences?.content_type === selectedType) {
+          console.log('✅ ContentSelectionPage: Verification successful!');
+          break;
+        }
+        
+        verificationAttempts++;
+        
+        if (verificationAttempts < maxVerificationAttempts) {
+          console.log(`⚠️ ContentSelectionPage: Verification attempt ${verificationAttempts} failed, retrying...`);
+        }
+      }
 
       if (verificationPreferences?.content_type !== selectedType) {
-        console.error('❌ ContentSelectionPage: Verification failed! Content type not persisted:', {
+        console.error('❌ ContentSelectionPage: Verification failed after all attempts! Content type not persisted:', {
           expected: selectedType,
-          verified: verificationPreferences?.content_type
+          verified: verificationPreferences?.content_type,
+          attempts: verificationAttempts
         });
-        error('Content type was not saved correctly. Please try again.');
+        
+        // Check if the saved value is different (not just missing)
+        if (verificationPreferences?.content_type && verificationPreferences.content_type !== selectedType) {
+          error(`Content type was not saved correctly. Expected "${selectedType}" but got "${verificationPreferences.content_type}". Please try again.`);
+        } else {
+          error('Content type was not saved correctly. Please try again.');
+        }
         setSaving(false);
         return;
       }
 
       console.log('✅ ContentSelectionPage: Preferences saved and verified, navigating to brand-and-preferences');
+      
+      // Clear any cached content type from localStorage to ensure fresh state
+      localStorage.removeItem('selectedContentType');
       
       // Small delay to ensure database write is fully committed before navigation
       await new Promise(resolve => setTimeout(resolve, 200));

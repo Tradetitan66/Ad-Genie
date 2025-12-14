@@ -183,7 +183,7 @@ export default function AdGenieWorkingPage() {
         );
         
         // Process results
-        const uploadedVideos = uploadResults.map((result) => {
+        let uploadedVideos = uploadResults.map((result) => {
           if (result.status === 'fulfilled') {
             return result.value.video;
           } else {
@@ -213,15 +213,52 @@ export default function AdGenieWorkingPage() {
           });
         }
         
+        // Generate thumbnails for uploaded videos
+        setProgress(82);
+        setProgressMessage('Generating video thumbnails...');
+        console.log('🖼️ Generating thumbnails for uploaded videos...');
+        
+        const videosWithThumbnails = await Promise.all(
+          uploadedVideos.map(async (video) => {
+            const videoUrl = video.url || video.original_url || '';
+            if (!videoUrl || videoUrl.trim() === '') {
+              return video; // Skip thumbnail generation for invalid videos
+            }
+            
+            try {
+              const thumbnailUrl = await ugcService.generateAndStoreVideoThumbnail(
+                payload.user_id,
+                videoUrl,
+                campId
+              );
+              
+              if (thumbnailUrl) {
+                console.log('✅ Thumbnail generated for video:', videoUrl.substring(0, 50) + '...');
+                return {
+                  ...video,
+                  thumbnail_url: thumbnailUrl,
+                };
+              } else {
+                console.warn('⚠️ Thumbnail generation failed for video, continuing without thumbnail');
+                return video;
+              }
+            } catch (error: any) {
+              console.error('❌ Error generating thumbnail:', error);
+              // Continue without thumbnail if generation fails
+              return video;
+            }
+          })
+        );
+        
         setProgress(85);
         setProgressMessage('Finalizing campaign...');
-        // Update campaign with generated assets (including videos)
+        // Update campaign with generated assets (including videos with thumbnails)
         await campaignService.update(campId, {
           status: 'completed',
           completed_at: new Date().toISOString(),
           generated_assets: {
             webhook_payload: payload,
-            video: uploadedVideos,
+            videos: videosWithThumbnails, // Include thumbnail_url in video objects
             webhook_response: webhookResponse,
           },
         });
@@ -482,11 +519,50 @@ export default function AdGenieWorkingPage() {
             return { url: '', original_url: '' };
           }
         });
+        
+        // Generate thumbnails for uploaded videos (image-ugc case)
+        if (uploadedVideos.length > 0) {
+          setProgress(82);
+          setProgressMessage('Generating video thumbnails...');
+          console.log('🖼️ Generating thumbnails for uploaded videos (image-ugc)...');
+          
+          uploadedVideos = await Promise.all(
+            uploadedVideos.map(async (video) => {
+              const videoUrl = video.url || video.original_url || '';
+              if (!videoUrl || videoUrl.trim() === '') {
+                return video; // Skip thumbnail generation for invalid videos
+              }
+              
+              try {
+                const thumbnailUrl = await ugcService.generateAndStoreVideoThumbnail(
+                  payload.user_id,
+                  videoUrl,
+                  campId
+                );
+                
+                if (thumbnailUrl) {
+                  console.log('✅ Thumbnail generated for video:', videoUrl.substring(0, 50) + '...');
+                  return {
+                    ...video,
+                    thumbnail_url: thumbnailUrl,
+                  };
+                } else {
+                  console.warn('⚠️ Thumbnail generation failed for video, continuing without thumbnail');
+                  return video;
+                }
+              } catch (error: any) {
+                console.error('❌ Error generating thumbnail:', error);
+                // Continue without thumbnail if generation fails
+                return video;
+              }
+            })
+          );
+        }
       }
       
       setProgress(85);
       setProgressMessage('Finalizing campaign...');
-      // Update campaign with generated assets (including both URLs)
+      // Update campaign with generated assets (including both URLs and thumbnails)
       await campaignService.update(campId, {
         status: 'completed',
         completed_at: new Date().toISOString(),

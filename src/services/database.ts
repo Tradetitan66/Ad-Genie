@@ -544,29 +544,86 @@ export const preferencesService = {
         }
       }
 
-      const { data, error } = await supabase
-        .from('preferences')
-        .upsert({
+      // Check if preferences already exist for this user
+      const existing = await this.getByUserId(preferences.user_id);
+      
+      if (existing) {
+        // CRITICAL FIX: Use explicit UPDATE instead of UPSERT to ensure content_type is overwritten
+        // This ensures that when content_type is explicitly provided, it will be updated
+        console.log('🔄 preferencesService.upsert: Updating existing preferences with explicit UPDATE:', {
+          existingContentType: existing.content_type,
+          newContentType: preferences.content_type,
+          willOverwrite: existing.content_type !== preferences.content_type,
+          updatePayload: { ...preferences, updated_at: new Date().toISOString() }
+        });
+        
+        const updatePayload = {
           ...preferences,
           updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'user_id'
-        })
-        .select()
-        .single();
+        };
+        
+        // CRITICAL: Explicitly set content_type to null if it's being cleared, or to the new value
+        // This ensures Supabase actually updates the field
+        if (preferences.content_type !== undefined) {
+          updatePayload.content_type = preferences.content_type;
+        }
+        
+        const { data, error } = await supabase
+          .from('preferences')
+          .update(updatePayload)
+          .eq('user_id', preferences.user_id)
+          .select()
+          .single();
 
-      if (error) throw error;
-      
-      // Log for debugging
-      if (preferences.content_type) {
-        console.log('✅ preferencesService.upsert: Saved with content_type:', {
-          saved: data?.content_type,
-          expected: preferences.content_type,
-          match: data?.content_type === preferences.content_type
-        });
+        if (error) {
+          console.error('❌ preferencesService.upsert: Update error:', error);
+          throw error;
+        }
+        
+        // Force a fresh read to ensure we get the latest data
+        // Sometimes Supabase returns cached data in the select response
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const freshData = await this.getByUserId(preferences.user_id);
+        
+        // Log for debugging
+        if (preferences.content_type) {
+          console.log('✅ preferencesService.upsert: Updated with content_type:', {
+            savedInResponse: data?.content_type,
+            savedInFreshRead: freshData?.content_type,
+            expected: preferences.content_type,
+            matchInResponse: data?.content_type === preferences.content_type,
+            matchInFreshRead: freshData?.content_type === preferences.content_type
+          });
+        }
+        
+        // Return fresh data if available, otherwise return response data
+        return freshData || data;
+      } else {
+        // Create new preferences record
+        console.log('🔄 preferencesService.upsert: Creating new preferences record');
+        
+        const { data, error } = await supabase
+          .from('preferences')
+          .insert({
+            ...preferences,
+            updated_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        
+        // Log for debugging
+        if (preferences.content_type) {
+          console.log('✅ preferencesService.upsert: Created with content_type:', {
+            saved: data?.content_type,
+            expected: preferences.content_type,
+            match: data?.content_type === preferences.content_type
+          });
+        }
+        
+        return data;
       }
-      
-      return data;
     } catch (error) {
       console.warn('Supabase upsert failed, falling back to localStorage:', error);
       return localStoragePreferencesService.upsert(preferences);
