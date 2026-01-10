@@ -137,7 +137,7 @@ export default function PageHeader({
             >
               <div className="flex flex-col h-full">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-white/10">
+                <div className="flex items-center justify-between p-4 border-b border-white/10">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-500 shadow-md bg-white flex-shrink-0">
                       <img
@@ -158,48 +158,48 @@ export default function PageHeader({
                 </div>
 
                 {/* Menu Items */}
-                <nav className="flex-1 py-6">
+                <nav className="flex-1 py-3">
                   <div className="flex flex-col">
                     <a
                       href="#how-it-works"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="px-6 py-4 text-white hover:bg-white/10 hover:text-amber-400 transition-colors font-medium min-h-[44px] flex items-center"
+                      className="px-4 py-3 text-white hover:bg-white/10 hover:text-amber-400 transition-colors font-medium min-h-[44px] flex items-center"
                     >
                       How It Works
                     </a>
                     <a
                       href="#features"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="px-6 py-4 text-white hover:bg-white/10 hover:text-amber-400 transition-colors font-medium min-h-[44px] flex items-center"
+                      className="px-4 py-3 text-white hover:bg-white/10 hover:text-amber-400 transition-colors font-medium min-h-[44px] flex items-center"
                     >
                       Features
                     </a>
                     <a
                       href="#faq"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="px-6 py-4 text-white hover:bg-white/10 hover:text-amber-400 transition-colors font-medium min-h-[44px] flex items-center"
+                      className="px-4 py-3 text-white hover:bg-white/10 hover:text-amber-400 transition-colors font-medium min-h-[44px] flex items-center"
                     >
                       FAQ
                     </a>
-                    <div className="px-6 py-4">
+                    <div className="px-4 py-2">
                       <Link
                         to="/waitlist"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="w-full px-6 py-3 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-bold rounded-full shadow-lg hover:shadow-orange-500/50 transition-all inline-block text-center min-h-[44px] flex items-center justify-center"
+                        className="w-full px-4 py-2 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-bold rounded-full shadow-lg hover:shadow-orange-500/50 transition-all inline-block text-center min-h-[44px] flex items-center justify-center"
                       >
                         Join Waitlist
                       </Link>
                     </div>
 
                     {showLogout && (
-                      <div className="px-6 py-4 border-t border-white/10 mt-4">
+                      <div className="px-4 py-3 border-t border-white/10 mt-2">
                         <button
                           onClick={() => {
                             handleLogout();
                             setMobileMenuOpen(false);
                           }}
                           disabled={isLoggingOut}
-                          className="w-full px-6 py-3 flex items-center justify-center gap-2 text-white hover:bg-white/10 transition-colors rounded-lg min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full px-4 py-2 flex items-center justify-center gap-2 text-white hover:bg-white/10 transition-colors rounded-lg min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <LogOut size={18} />
                           <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
