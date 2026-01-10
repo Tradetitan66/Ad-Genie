@@ -81,7 +81,7 @@ export default function Navigation({ onLoginSuccess, onLoginClick }: NavigationP
               </Link>
             </motion.div>
 
-            {user ? (
+            {user && (
               <div className="relative">
                 <motion.button
                   onClick={() => setShowUserMenu(!showUserMenu)}
@@ -117,16 +117,6 @@ export default function Navigation({ onLoginSuccess, onLoginClick }: NavigationP
                   )}
                 </AnimatePresence>
               </div>
-            ) : (
-              <motion.button
-                onClick={() => onLoginClick ? onLoginClick() : setShowLogin(true)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 px-6 py-2 bg-purple-700 text-white font-bold rounded-full shadow-lg hover:bg-purple-800 transition-all"
-              >
-                <ArrowRight size={18} />
-                <span className="font-medium">Login</span>
-              </motion.button>
             )}
           </div>
         </div>

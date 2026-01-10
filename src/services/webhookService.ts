@@ -1,12 +1,12 @@
 // Webhook service for sending brand data to n8n
 // Production URLs - different webhooks for different content types
 //const IMAGE_ONLY_WEBHOOK_URL = 'https://n8n.srv1004168.hstgr.cloud/webhook/07be41b0-cf
-const IMAGE_ONLY_WEBHOOK_URL = 'https://n8n.srv1004168.hstgr.cloud/webhook/27850a35-32bc-438c-b194-a5b86e192820';
-const DEFAULT_WEBHOOK_URL = 'https://n8n.srv1004168.hstgr.cloud/webhook/27850a35-32bc-438c-b194-a5b86e192820';
+const IMAGE_ONLY_WEBHOOK_URL = 'https://n8n.srv1004168.hstgr.cloud/webhook/9a8ab83f-3bf6-48bf-a332-c9c8668602a4';
+const DEFAULT_WEBHOOK_URL = 'https://n8n.srv1004168.hstgr.cloud/webhook/9a8ab83f-3bf6-48bf-a332-c9c8668602a4';
 // Production URL - n8n workflow is complete with "Respond to Webhook" connected
 //const WEBHOOK_URL = 'https://n8n.srv1004168.hstgr.cloud/webhook/07be41b0-cf9a-4cc3-8ba8-1fcc9652be51';
 //const WEBHOOK_URL = 'https://n8n.srv1114357.hstgr.cloud/webhook/da5b80b8-dbc3-4b2a-8df6-ca86340a106c';
-const WEBHOOK_URL = 'https://n8n.srv1004168.hstgr.cloud/webhook/27850a35-32bc-438c-b194-a5b86e192820';
+const WEBHOOK_URL = 'https://n8n.srv1004168.hstgr.cloud/webhook/9a8ab83f-3bf6-48bf-a332-c9c8668602a4';
 
 export interface BrandWebhookData {
   user_id: string;

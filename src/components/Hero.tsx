@@ -1,5 +1,6 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Sparkles, ArrowDown } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Hero() {
   const { scrollY } = useScroll();
@@ -41,9 +42,9 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-white mb-6 leading-tight"
         >
-          Create Stunning Ads in
+          You Don't Need a Designer
           <span className="block bg-gradient-to-r from-amber-400 via-orange-500 to-pink-500 text-transparent bg-clip-text">
-            Minutes, Not Hours
+            When You Have Ad-Genie
           </span>
         </motion.h1>
 
@@ -53,8 +54,7 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="text-xl sm:text-2xl text-slate-200 mb-12 max-w-3xl mx-auto"
         >
-          Transform your marketing with AI-generated ads tailored for the Indian market. 
-          No design skills needed.
+          Professional ads for India. Ready in minutes. No design skills needed.
         </motion.p>
 
         <motion.div
@@ -63,23 +63,29 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.6 }}
           className="flex flex-col sm:flex-row gap-4 justify-center items-center"
         >
-          <motion.a
-            href="/login"
+          <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="px-8 py-4 bg-gradient-to-r from-orange-500 to-pink-600 text-white font-bold rounded-full text-lg shadow-2xl hover:shadow-orange-500/50 transition-all"
           >
-            Start Creating Free
-          </motion.a>
-          
-          <motion.a
-            href="#how-it-works"
+            <a
+              href="#how-it-works"
+              className="px-8 py-4 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white font-bold rounded-full text-lg hover:bg-white/20 transition-all inline-block"
+            >
+              See the Magic Happen
+            </a>
+          </motion.div>
+
+          <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="px-8 py-4 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white font-bold rounded-full text-lg hover:bg-white/20 transition-all"
           >
-            See How It Works
-          </motion.a>
+            <Link
+              to="/waitlist"
+              className="px-8 py-4 bg-gradient-to-r from-orange-500 to-pink-600 text-white font-bold rounded-full text-lg shadow-2xl hover:shadow-orange-500/50 transition-all inline-block"
+            >
+              Join VIP Waitlist
+            </Link>
+          </motion.div>
         </motion.div>
 
         <motion.div
