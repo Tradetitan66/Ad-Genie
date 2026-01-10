@@ -31,6 +31,12 @@ const features = [
     title: 'Lightning Fast',
     description: 'Minutes, not weeks. No design skills needed.',
     gradient: 'from-cyan-500 to-blue-500'
+  },
+  {
+    icon: Languages,
+    title: 'Multi-Language Support',
+    description: 'Create ads in Hindi, Tamil, Bengali, and 10+ Indian languages - reach every audience',
+    gradient: 'from-orange-500 to-red-500'
   }
 ];
 
