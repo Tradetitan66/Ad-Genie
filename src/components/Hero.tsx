@@ -40,7 +40,7 @@ export default function Hero() {
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-white mb-6 leading-tight"
+          className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white mb-4 sm:mb-6 leading-tight"
         >
           You Don't Need a Designer
           <span className="block bg-gradient-to-r from-amber-400 via-orange-500 to-pink-500 text-transparent bg-clip-text">
@@ -52,7 +52,7 @@ export default function Hero() {
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="text-xl sm:text-2xl text-slate-200 mb-12 max-w-3xl mx-auto"
+          className="text-lg sm:text-xl md:text-2xl text-slate-200 mb-8 sm:mb-12 max-w-3xl mx-auto px-4"
         >
           Professional ads for India. Ready in minutes. No design skills needed.
         </motion.p>
@@ -61,15 +61,16 @@ export default function Hero() {
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.6 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+          className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4"
         >
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            className="w-full sm:w-auto"
           >
             <a
               href="#how-it-works"
-              className="px-8 py-4 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white font-bold rounded-full text-lg hover:bg-white/20 transition-all inline-block"
+              className="w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white font-bold rounded-full text-base sm:text-lg hover:bg-white/20 transition-all inline-block text-center min-h-[44px] flex items-center justify-center"
             >
               See the Magic Happen
             </a>
@@ -78,10 +79,11 @@ export default function Hero() {
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            className="w-full sm:w-auto"
           >
             <Link
               to="/waitlist"
-              className="px-8 py-4 bg-gradient-to-r from-orange-500 to-pink-600 text-white font-bold rounded-full text-lg shadow-2xl hover:shadow-orange-500/50 transition-all inline-block"
+              className="w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-orange-500 to-pink-600 text-white font-bold rounded-full text-base sm:text-lg shadow-2xl hover:shadow-orange-500/50 transition-all inline-block text-center min-h-[44px] flex items-center justify-center"
             >
               Join VIP Waitlist
             </Link>
@@ -92,14 +94,14 @@ export default function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 1 }}
-          className="mt-16 text-center"
+          className="mt-12 sm:mt-16 text-center px-4"
         >
-          <div className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-400/20 to-orange-500/20 backdrop-blur-sm rounded-full border border-amber-400/30">
-            <Sparkles className="text-amber-400 w-6 h-6" />
-            <span className="text-2xl font-bold text-white">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 px-4 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-amber-400/20 to-orange-500/20 backdrop-blur-sm rounded-full border border-amber-400/30">
+            <Sparkles className="text-amber-400 w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
+            <span className="text-lg sm:text-xl md:text-2xl font-bold text-white">
               Ad-Genie: Make Your Marketing Wishes Real
             </span>
-            <Sparkles className="text-amber-400 w-6 h-6" />
+            <Sparkles className="text-amber-400 w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
           </div>
         </motion.div>
       </motion.div>

@@ -89,9 +89,9 @@ export default function LoginPage() {
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 md:p-12">
-          <h1 className="text-3xl font-bold text-[#2D3142] mb-2">Welcome Back</h1>
-          <p className="text-[#6B7280] mb-8">Sign in to continue to Ad-Genie</p>
+        <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8 lg:p-12">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#2D3142] mb-2">Welcome Back</h1>
+          <p className="text-sm sm:text-base text-[#6B7280] mb-6 sm:mb-8">Sign in to continue to Ad-Genie</p>
 
           <div className="space-y-6">
             {/* Name Input */}
@@ -130,9 +130,9 @@ export default function LoginPage() {
                   setEmail(e.target.value);
                   setErrors({ ...errors, email: '' });
                 }}
-                className={`w-full px-4 py-3 rounded-lg border ${
+                className={`w-full px-4 py-3 rounded-lg border text-base ${
                   errors.email ? 'border-[#EF4444]' : 'border-[#E5E7EB]'
-                } text-[#2D3142] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all`}
+                } text-[#2D3142] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all min-h-[44px]`}
                 placeholder="Enter your email"
               />
               {errors.email && (
@@ -158,7 +158,7 @@ export default function LoginPage() {
             <button
               onClick={handleLogin}
               disabled={loading}
-              className="w-full px-6 py-3 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-bold rounded-lg shadow-md hover:from-orange-500 hover:to-orange-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+              className="w-full px-6 py-3 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-bold rounded-lg shadow-md hover:from-orange-500 hover:to-orange-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 min-h-[44px] text-base"
             >
               {loading ? (
                 'Please wait...'

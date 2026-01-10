@@ -27,7 +27,7 @@ export default function Footer() {
                 <a 
                   href="#features" 
                   onClick={(e) => handleSmoothScroll(e, 'features')}
-                  className="hover:text-teal-400 transition-colors cursor-pointer"
+                  className="hover:text-teal-400 transition-colors cursor-pointer block py-2 min-h-[44px] flex items-center"
                 >
                   Features
                 </a>
@@ -36,7 +36,7 @@ export default function Footer() {
                 <a 
                   href="#how-it-works" 
                   onClick={(e) => handleSmoothScroll(e, 'how-it-works')}
-                  className="hover:text-teal-400 transition-colors cursor-pointer"
+                  className="hover:text-teal-400 transition-colors cursor-pointer block py-2 min-h-[44px] flex items-center"
                 >
                   How It Works
                 </a>
@@ -45,7 +45,7 @@ export default function Footer() {
                 <a 
                   href="#faq" 
                   onClick={(e) => handleSmoothScroll(e, 'faq')}
-                  className="hover:text-teal-400 transition-colors cursor-pointer"
+                  className="hover:text-teal-400 transition-colors cursor-pointer block py-2 min-h-[44px] flex items-center"
                 >
                   FAQ
                 </a>
@@ -59,17 +59,17 @@ export default function Footer() {
             Made with <Heart className="text-red-500 fill-red-500" size={16} /> for Indian businesses
           </p>
 
-          <div className="flex items-center gap-6">
-            <a href="#" className="hover:text-teal-400 transition-colors">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <a href="#" className="hover:text-teal-400 transition-colors p-2 min-w-[44px] min-h-[44px] flex items-center justify-center">
               <Mail size={20} />
             </a>
-            <a href="#" className="hover:text-teal-400 transition-colors">
+            <a href="#" className="hover:text-teal-400 transition-colors p-2 min-w-[44px] min-h-[44px] flex items-center justify-center">
               <Twitter size={20} />
             </a>
-            <a href="#" className="hover:text-teal-400 transition-colors">
+            <a href="#" className="hover:text-teal-400 transition-colors p-2 min-w-[44px] min-h-[44px] flex items-center justify-center">
               <Linkedin size={20} />
             </a>
-            <a href="#" className="hover:text-teal-400 transition-colors">
+            <a href="#" className="hover:text-teal-400 transition-colors p-2 min-w-[44px] min-h-[44px] flex items-center justify-center">
               <Instagram size={20} />
             </a>
           </div>

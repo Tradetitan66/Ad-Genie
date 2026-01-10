@@ -39,10 +39,10 @@ export default function FAQ() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-4">
             Questions? We Have Answers
           </h2>
-          <p className="text-xl text-slate-600">Everything you need to know about Ad-Genie</p>
+          <p className="text-lg sm:text-xl text-slate-600 px-4">Everything you need to know about Ad-Genie</p>
         </motion.div>
 
         <div className="space-y-4">
@@ -57,18 +57,18 @@ export default function FAQ() {
             >
               <button
                 onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                className="w-full px-8 py-6 flex items-center justify-between text-left hover:bg-slate-50 transition-colors duration-200"
+                className="w-full px-4 py-4 sm:px-8 sm:py-6 flex items-center justify-between text-left hover:bg-slate-50 transition-colors duration-200 min-h-[44px]"
               >
-                <span className="text-xl font-bold text-slate-900 pr-4">
+                <span className="text-lg sm:text-xl font-bold text-slate-900 pr-4 flex-1">
                   {faq.question}
                 </span>
-                <div className={`flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center transition-transform duration-300 ${
+                <div className={`flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center transition-transform duration-300 ${
                   openIndex === index ? 'rotate-180' : ''
                 }`}>
                   {openIndex === index ? (
-                    <Minus className="text-white" size={20} />
+                    <Minus className="text-white" size={18} style={{ width: '18px', height: '18px' }} />
                   ) : (
-                    <Plus className="text-white" size={20} />
+                    <Plus className="text-white" size={18} style={{ width: '18px', height: '18px' }} />
                   )}
                 </div>
               </button>
@@ -82,7 +82,7 @@ export default function FAQ() {
                 transition={{ duration: 0.3 }}
                 className="overflow-hidden"
               >
-                <div className="px-8 pb-6 text-slate-600 leading-relaxed whitespace-pre-line">
+                <div className="px-4 py-4 sm:px-8 sm:pb-6 text-sm sm:text-base text-slate-600 leading-relaxed whitespace-pre-line">
                   {faq.answer}
                 </div>
               </motion.div>
@@ -100,7 +100,7 @@ export default function FAQ() {
           <p className="text-slate-600 mb-4">Still have questions?</p>
           <Link
             to="/waitlist"
-            className="inline-flex items-center gap-2 text-amber-600 font-semibold hover:text-amber-700 transition-colors"
+            className="inline-flex items-center gap-2 text-amber-600 font-semibold hover:text-amber-700 transition-colors text-sm sm:text-base px-4 py-2 min-h-[44px]"
           >
             Join the waitlist and we'll answer them personally
           </Link>

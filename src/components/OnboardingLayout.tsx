@@ -87,7 +87,7 @@ export default function OnboardingLayout({
 
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-[44px]"
               aria-label="Logout"
             >
               <LogOut size={18} />
@@ -98,12 +98,12 @@ export default function OnboardingLayout({
       </header>
 
       <main className="pt-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <div className="mb-6 sm:mb-8">
             <div className="flex items-center justify-between mb-3">
-              <div className="flex-1">
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden min-w-0">
                     <motion.div
                       className="h-full rounded-full"
                       style={{
@@ -121,14 +121,14 @@ export default function OnboardingLayout({
                       aria-label={`Step ${currentStep} of ${totalSteps}`}
                     />
                   </div>
-                  <span className="text-sm font-semibold text-slate-600 whitespace-nowrap">
+                  <span className="text-xs sm:text-sm font-semibold text-slate-600 whitespace-nowrap flex-shrink-0">
                     Step {currentStep} of {totalSteps}
                   </span>
                 </div>
               </div>
             </div>
             {stepLabel && (
-              <p className="text-sm text-slate-500 mt-1" aria-live="polite">
+              <p className="text-xs sm:text-sm text-slate-500 mt-1" aria-live="polite">
                 {stepLabel}
               </p>
             )}

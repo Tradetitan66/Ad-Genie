@@ -45,17 +45,17 @@ export default function Features() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-4">
             Why Our Genie Outshines the Rest
           </h2>
-          <p className="text-xl text-slate-600">Built for India, powered by cutting-edge AI</p>
+          <p className="text-lg sm:text-xl text-slate-600 px-4">Built for India, powered by cutting-edge AI</p>
         </motion.div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
             <motion.div
               key={index}
-              className="group relative bg-white rounded-xl p-8 shadow-md hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+              className="group relative bg-white rounded-xl p-6 sm:p-8 shadow-md hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
@@ -65,15 +65,15 @@ export default function Features() {
               <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-teal-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
               <div className="relative">
-                <div className={`inline-flex p-3 rounded-lg bg-gradient-to-br ${feature.gradient} mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                  <feature.icon className="text-white" size={28} />
+                <div className={`inline-flex p-2 sm:p-3 rounded-lg bg-gradient-to-br ${feature.gradient} mb-3 sm:mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                  <feature.icon className="text-white" size={24} style={{ width: '24px', height: '24px' }} />
                 </div>
 
-                <h3 className="text-xl font-bold text-slate-900 mb-3">
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2 sm:mb-3">
                   {feature.title}
                 </h3>
 
-                <p className="text-slate-600 leading-relaxed">
+                <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
                   {feature.description}
                 </p>
               </div>

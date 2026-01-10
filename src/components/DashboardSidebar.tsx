@@ -85,7 +85,7 @@ export default function DashboardSidebar({ mobileOpen = false, setMobileOpen }: 
         <Sparkles className="text-genie-accent w-4 h-4 ml-1" />
         {/* Close button on mobile */}
         {setMobileOpen && (
-          <button className="md:hidden absolute right-4 top-4" onClick={handleCloseDrawer} aria-label="Close sidebar">
+          <button className="md:hidden absolute right-4 top-4 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center" onClick={handleCloseDrawer} aria-label="Close sidebar">
             <CloseIcon size={24} className="text-slate-600" />
           </button>
         )}
@@ -99,7 +99,7 @@ export default function DashboardSidebar({ mobileOpen = false, setMobileOpen }: 
               <Link
                 key={item.href}
                 to={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium text-base ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium text-base min-h-[44px] ${
                   active
                     ? 'bg-blue-50 text-[#2563EB] shadow-inner'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
@@ -139,7 +139,7 @@ export default function DashboardSidebar({ mobileOpen = false, setMobileOpen }: 
                     <Link
                       key={subItem.tab}
                       to={`/dashboard/settings?tab=${subItem.tab}`}
-                      className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm ${
+                      className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm min-h-[44px] ${
                         subActive
                           ? 'bg-blue-50 text-[#2563EB] font-semibold'
                           : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
@@ -169,7 +169,7 @@ export default function DashboardSidebar({ mobileOpen = false, setMobileOpen }: 
         <div className="flex flex-col gap-2">
           <Link
             to="/dashboard/settings"
-            className="flex items-center gap-3 px-4 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-3 px-4 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 transition-colors min-h-[44px]"
             onClick={handleCloseDrawer}
           >
             <Settings size={18} />
@@ -177,7 +177,7 @@ export default function DashboardSidebar({ mobileOpen = false, setMobileOpen }: 
           </Link>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-2 rounded-md text-sm text-red-600 hover:bg-red-50 transition-colors w-full"
+            className="flex items-center gap-3 px-4 py-2 rounded-md text-sm text-red-600 hover:bg-red-50 transition-colors w-full min-h-[44px]"
           >
             <LogOut size={18} />
             Logout

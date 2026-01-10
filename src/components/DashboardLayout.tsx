@@ -21,11 +21,11 @@ export default function DashboardLayout({
       <div className="flex-1 ml-0 md:ml-64">
         {/* Hamburger button (only visible on mobile) */}
         <button
-          className="md:hidden fixed top-4 left-4 z-50 bg-white rounded-lg border border-[#E5E7EB] shadow-md p-2 flex items-center justify-center"
+          className="md:hidden fixed top-4 left-4 z-50 bg-white rounded-lg border border-[#E5E7EB] shadow-md p-2 flex items-center justify-center min-w-[44px] min-h-[44px]"
           onClick={() => setMobileSidebarOpen(true)}
           aria-label="Open menu"
         >
-          <MenuIcon size={28} className="text-[#2D3142]" />
+          <MenuIcon size={24} className="text-[#2D3142]" />
         </button>
         {breadcrumbs && breadcrumbs.length > 0 && (
           <div className="bg-white border-b border-[#E5E7EB]">
@@ -54,7 +54,7 @@ export default function DashboardLayout({
             </div>
           </div>
         )}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">{children}</div>
       </div>
     </div>
   );

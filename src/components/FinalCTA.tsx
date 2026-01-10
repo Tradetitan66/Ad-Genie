@@ -28,21 +28,22 @@ export default function FinalCTA() {
           <Sparkles className="inline-block text-amber-400 animate-pulse" size={48} />
         </div>
 
-        <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold text-white mb-4 sm:mb-6 px-4">
           Ready to Make Your Marketing Wishes Come True?
         </h2>
 
-        <p className="text-xl text-teal-100 mb-8 max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg md:text-xl text-teal-100 mb-6 sm:mb-8 max-w-2xl mx-auto px-4">
           Be among the first to experience Ad-Genie magic
         </p>
 
         <Link
           to="/waitlist"
-          className="group relative inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-xl rounded-full shadow-2xl hover:shadow-amber-500/50 transition-all duration-300 hover:scale-110"
+          className="group relative inline-flex items-center gap-2 sm:gap-3 px-6 py-3 sm:px-10 sm:py-5 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-base sm:text-lg md:text-xl rounded-full shadow-2xl hover:shadow-amber-500/50 transition-all duration-300 hover:scale-110 min-h-[44px] sm:min-h-[56px]"
         >
-          <span className="relative z-10 flex items-center gap-3">
-            Join Waitlist - Ad-Genie Magic
-            <ArrowRight className="group-hover:translate-x-2 transition-transform" size={24} />
+          <span className="relative z-10 flex items-center gap-2 sm:gap-3">
+            <span className="hidden sm:inline">Join Waitlist - Ad-Genie Magic</span>
+            <span className="sm:hidden">Join Waitlist</span>
+            <ArrowRight className="group-hover:translate-x-2 transition-transform" size={20} style={{ width: '20px', height: '20px' }} />
           </span>
           <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 opacity-0 group-hover:opacity-100 blur-2xl transition-opacity duration-300"></div>
         </Link>

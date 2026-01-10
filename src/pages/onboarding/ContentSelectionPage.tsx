@@ -249,13 +249,13 @@ export default function ContentSelectionPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-lg shadow-lg p-8"
+        className="bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8"
       >
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
             Choose Your Content Type
           </h1>
-          <p className="text-slate-600">Select the campaign format for this project</p>
+          <p className="text-sm sm:text-base text-slate-600">Select the campaign format for this project</p>
         </div>
 
           <div className="space-y-8">
@@ -263,7 +263,7 @@ export default function ContentSelectionPage() {
               <label className="block text-sm font-semibold text-slate-700 mb-4">
                 Content Type <span className="text-red-500">*</span>
               </label>
-              <div className="grid md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                 {contentTypes.map((type) => {
                   const Icon = type.icon;
                   return (
@@ -272,7 +272,7 @@ export default function ContentSelectionPage() {
                       whileHover={type.id === 'image-ugc' ? {} : { scale: 1.02, y: -5 }}
                       whileTap={type.id === 'image-ugc' ? {} : { scale: 0.98 }}
                       onClick={() => type.id !== 'image-ugc' && setSelectedType(type.id)}
-                      className={`relative rounded-lg border-2 p-6 transition-all ${
+                      className={`relative rounded-lg border-2 p-4 sm:p-6 transition-all min-h-[44px] ${
                         type.id === 'image-ugc'
                           ? 'opacity-60 cursor-not-allowed border-slate-200 bg-gray-50'
                           : selectedType === type.id
@@ -288,17 +288,17 @@ export default function ContentSelectionPage() {
                         </div>
                       )}
 
-                      <div className={`w-16 h-16 rounded-full bg-gradient-to-r ${type.color} flex items-center justify-center mb-4 mx-auto`}>
-                        <Icon size={32} className="text-white" />
+                      <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-r ${type.color} flex items-center justify-center mb-3 sm:mb-4 mx-auto`}>
+                        <Icon size={24} style={{ width: '24px', height: '24px' }} className="sm:w-8 sm:h-8 text-white" />
                       </div>
 
-                      <h3 className="text-xl font-bold text-slate-900 text-center mb-1">
+                      <h3 className="text-lg sm:text-xl font-bold text-slate-900 text-center mb-1">
                         {type.title}
                       </h3>
-                      <p className="text-sm font-semibold text-slate-600 text-center mb-3">
+                      <p className="text-xs sm:text-sm font-semibold text-slate-600 text-center mb-2 sm:mb-3">
                         {type.subtitle}
                       </p>
-                      <p className="text-sm text-slate-500 text-center">
+                      <p className="text-xs sm:text-sm text-slate-500 text-center">
                         {type.description}
                       </p>
 
@@ -324,16 +324,16 @@ export default function ContentSelectionPage() {
               <p className="text-xs text-slate-500 mb-3">Which market is this marketing campaign focusing on?</p>
               <div className="space-y-2">
                 {campaignMarkets.map(market => (
-                  <label key={market.value} className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-all">
+                  <label key={market.value} className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-all min-h-[44px]">
                     <input
                       type="radio"
                       name="market"
                       value={market.value}
                       checked={selectedMarket === market.value}
                       onChange={(e) => setSelectedMarket(e.target.value)}
-                      className="w-4 h-4 text-[#2563EB] focus:ring-[#2563EB]"
+                      className="w-5 h-5 text-[#2563EB] focus:ring-[#2563EB] flex-shrink-0"
                     />
-                    <span className="text-slate-700 font-medium">{market.label}</span>
+                    <span className="text-sm sm:text-base text-slate-700 font-medium">{market.label}</span>
                   </label>
                 ))}
               </div>
@@ -341,18 +341,18 @@ export default function ContentSelectionPage() {
 
           </div>
 
-          <div className="mt-8 pt-6 border-t border-slate-200">
-            <div className="flex gap-4">
+          <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-200">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <button
                 onClick={() => navigate('/onboarding/welcome')}
-                className="px-6 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition-all"
+                className="w-full sm:w-auto px-6 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition-all min-h-[44px] text-base"
               >
                 Back
               </button>
               <button
                 onClick={handleContinue}
                 disabled={!selectedType || !selectedMarket || saving || selectedType === 'image-ugc'}
-                className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="flex-1 px-6 py-3 bg-[#2563EB] text-white font-semibold rounded-lg shadow-md hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-all min-h-[44px] text-base"
               >
                 {saving ? 'Saving...' : 'Continue →'}
               </button>

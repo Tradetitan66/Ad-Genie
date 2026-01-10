@@ -33,10 +33,10 @@ export default function HowItWorks() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-4">
             How Ad-Genie Works
           </h2>
-          <p className="text-xl text-slate-600">From product photo to perfect campaign in minutes</p>
+          <p className="text-lg sm:text-xl text-slate-600 px-4">From product photo to perfect campaign in minutes</p>
         </motion.div>
 
         <div className="grid md:grid-cols-3 gap-8 items-stretch mb-16">
@@ -56,7 +56,7 @@ export default function HowItWorks() {
               </div>
 
               <div className="relative bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col w-full">
-                <div className="relative h-80 overflow-hidden bg-slate-100 flex items-center justify-center">
+                <div className="relative h-48 sm:h-64 md:h-80 overflow-hidden bg-slate-100 flex items-center justify-center">
                   <img
                     src={step.image}
                     alt={step.title}
@@ -64,9 +64,9 @@ export default function HowItWorks() {
                   />
                 </div>
 
-                <div className="p-6">
-                  <h3 className="text-2xl font-bold text-slate-900 mb-3">{step.title}</h3>
-                  <p className="text-slate-600 leading-relaxed">{step.description}</p>
+                <div className="p-4 sm:p-6">
+                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2 sm:mb-3">{step.title}</h3>
+                  <p className="text-sm sm:text-base text-slate-600 leading-relaxed">{step.description}</p>
                 </div>
               </div>
 
@@ -92,8 +92,8 @@ export default function HowItWorks() {
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.6 }}
         >
-          <div className="inline-block bg-gradient-to-r from-teal-50 to-purple-50 rounded-2xl px-8 py-6 shadow-md">
-            <p className="text-2xl font-bold text-slate-900">
+          <div className="inline-block bg-gradient-to-r from-teal-50 to-purple-50 rounded-2xl px-4 sm:px-8 py-4 sm:py-6 shadow-md mx-4">
+            <p className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 text-center">
               Marketing Made Simple -
               <span className="bg-gradient-to-r from-amber-600 to-orange-600 text-transparent bg-clip-text"> Minutes, Not Months</span>
             </p>

@@ -121,7 +121,7 @@ export default function WaitlistPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full"
+        className="bg-white rounded-lg shadow-lg p-6 sm:p-8 max-w-lg w-full"
       >
         {/* Minimal Ad-Genie branding */}
         <div className="text-center mb-6">
@@ -145,9 +145,9 @@ export default function WaitlistPage() {
               id="fullName"
               value={formData.fullName}
               onChange={(e) => handleChange('fullName', e.target.value)}
-              className={`w-full px-4 py-3 rounded-lg border ${
+              className={`w-full px-4 py-3 rounded-lg border text-base ${
                 errors.fullName ? 'border-red-500' : 'border-slate-300'
-              } focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-colors`}
+              } focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-colors min-h-[44px]`}
               placeholder="Enter your full name"
             />
             {errors.fullName && (
@@ -165,9 +165,9 @@ export default function WaitlistPage() {
               id="mobileNumber"
               value={formData.mobileNumber}
               onChange={(e) => handleChange('mobileNumber', e.target.value)}
-              className={`w-full px-4 py-3 rounded-lg border ${
+              className={`w-full px-4 py-3 rounded-lg border text-base ${
                 errors.mobileNumber ? 'border-red-500' : 'border-slate-300'
-              } focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-colors`}
+              } focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-colors min-h-[44px]`}
               placeholder="+1 234 567 8900"
             />
             {errors.mobileNumber && (
@@ -185,9 +185,9 @@ export default function WaitlistPage() {
               id="email"
               value={formData.email}
               onChange={(e) => handleChange('email', e.target.value)}
-              className={`w-full px-4 py-3 rounded-lg border ${
+              className={`w-full px-4 py-3 rounded-lg border text-base ${
                 errors.email ? 'border-red-500' : 'border-slate-300'
-              } focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-colors`}
+              } focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-colors min-h-[44px]`}
               placeholder="your.email@example.com"
             />
             {errors.email && (
@@ -205,9 +205,9 @@ export default function WaitlistPage() {
               id="inspiration"
               value={formData.inspiration}
               onChange={(e) => handleChange('inspiration', e.target.value)}
-              className={`w-full px-4 py-3 rounded-lg border ${
+              className={`w-full px-4 py-3 rounded-lg border text-base ${
                 errors.inspiration ? 'border-red-500' : 'border-slate-300'
-              } focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-colors`}
+              } focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-colors min-h-[44px]`}
               placeholder="Tell us what inspired you..."
             />
             {errors.inspiration && (
@@ -225,7 +225,7 @@ export default function WaitlistPage() {
               id="linkedinProfile"
               value={formData.linkedinProfile}
               onChange={(e) => handleChange('linkedinProfile', e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-colors"
+              className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-colors min-h-[44px]"
               placeholder="https://linkedin.com/in/yourprofile"
             />
           </div>
@@ -234,7 +234,7 @@ export default function WaitlistPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full px-6 py-4 bg-gradient-to-r from-orange-400 to-pink-500 hover:from-orange-500 hover:to-pink-600 text-white font-semibold rounded-lg shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full px-6 py-4 bg-gradient-to-r from-orange-400 to-pink-500 hover:from-orange-500 hover:to-pink-600 text-white font-semibold rounded-lg shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[44px] text-base"
           >
             {isSubmitting ? (
               <>
