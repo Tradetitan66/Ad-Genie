@@ -1,4 +1,4 @@
-import { Sparkles, Shapes, Video, Calendar, Zap } from 'lucide-react';
+import { Sparkles, Shapes, Video, Calendar, Zap, Languages } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const features = [
