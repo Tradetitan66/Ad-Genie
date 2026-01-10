@@ -44,7 +44,7 @@ export default function PageHeader({
     <header className={`bg-[#2D3142] shadow-sm h-16 flex items-center justify-between px-6 md:px-8 fixed top-0 left-0 right-0 z-50 ${className}`}>
       <div className="flex items-center gap-4 md:gap-6">
         <Link
-          to="/dashboard/campaign-hub"
+          to="/"
           className="flex items-center gap-3"
           aria-label="Ad-Genie"
         >

@@ -28,11 +28,11 @@ export default function Hero() {
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
         >
-          <div className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 mb-8">
-            <Sparkles className="text-amber-400 w-5 h-5" />
-            <span className="text-white font-medium">AI-Powered Ad Creation</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
+            <Sparkles className="text-amber-400 w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-white text-sm sm:text-base font-medium">AI-Powered Ad Creation</span>
           </div>
         </motion.div>
 
@@ -96,12 +96,12 @@ export default function Hero() {
           transition={{ duration: 1, delay: 1 }}
           className="mt-12 sm:mt-16 text-center px-4"
         >
-          <div className="inline-flex flex-wrap items-center justify-center gap-2 px-4 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-amber-400/20 to-orange-500/20 backdrop-blur-sm rounded-full border border-amber-400/30">
-            <Sparkles className="text-amber-400 w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
+          <div className="inline-flex flex-wrap items-center justify-center gap-1 sm:gap-2 px-4 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-amber-400/20 to-orange-500/20 backdrop-blur-sm rounded-full border border-amber-400/30">
+            <Sparkles className="text-amber-400 w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 flex-shrink-0" />
             <span className="text-lg sm:text-xl md:text-2xl font-bold text-white">
               Ad-Genie: Make Your Marketing Wishes Real
             </span>
-            <Sparkles className="text-amber-400 w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
+            <Sparkles className="text-amber-400 w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 flex-shrink-0" />
           </div>
         </motion.div>
       </motion.div>
