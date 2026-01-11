@@ -85,6 +85,11 @@ export default function OnboardingLayout({
               to="/"
               className="flex items-center gap-3"
               aria-label="Ad-Genie"
+              onClick={() => {
+                // #region agent log
+                fetch('http://127.0.0.1:7243/ingest/1f05fac3-9d5b-456a-b58e-d045d6d2998f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'OnboardingLayout.tsx:84', message: 'Logo clicked', data: { component: 'OnboardingLayout', currentPath: window.location.pathname, targetPath: '/' }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'D' }) }).catch(() => {});
+                // #endregion
+              }}
             >
               <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-orange-500 shadow-md bg-white flex-shrink-0">
                 <img
@@ -147,7 +152,16 @@ export default function OnboardingLayout({
               <div className="flex flex-col h-full">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-white/10">
-                  <div className="flex items-center gap-3">
+                  <Link
+                    to="/"
+                    onClick={() => {
+                      // #region agent log
+                      fetch('http://127.0.0.1:7243/ingest/1f05fac3-9d5b-456a-b58e-d045d6d2998f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'OnboardingLayout.tsx:150', message: 'Mobile menu logo clicked', data: { component: 'OnboardingLayout-mobile', currentPath: window.location.pathname, targetPath: '/' }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'E' }) }).catch(() => {});
+                      setMobileMenuOpen(false);
+                      // #endregion
+                    }}
+                    className="flex items-center gap-3"
+                  >
                     <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-500 shadow-md bg-white flex-shrink-0">
                       <img
                         src="/enhanced_design_a_contemporary_professional_logo_combining_a_streamlined_genie_figure_with_modern_tech_symbo_g4d4ei5j85xa3vwd3mit_1 (1).png"
@@ -156,7 +170,7 @@ export default function OnboardingLayout({
                       />
                     </div>
                     <span className="text-lg font-bold text-orange-500">Ad-Genie</span>
-                  </div>
+                  </Link>
                   <button
                     onClick={() => setMobileMenuOpen(false)}
                     className="p-2 text-white hover:text-amber-400 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"

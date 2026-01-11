@@ -72,17 +72,28 @@ export default function DashboardSidebar({ mobileOpen = false, setMobileOpen }: 
   const sidebarContent = (
     <div className="flex flex-col h-full w-64 bg-white border-r border-slate-200 shadow-sm">
       <div className="flex items-center gap-2 h-16 px-6 border-b border-slate-100 relative">
-        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-genie-primary shadow-md bg-white flex-shrink-0">
-          <img
-            src="/enhanced_design_a_contemporary_professional_logo_combining_a_streamlined_genie_figure_with_modern_tech_symbo_g4d4ei5j85xa3vwd3mit_1 (1).png"
-            alt="Ad-Genie Logo"
-            className="w-full h-full object-contain"
-          />
-        </div>
-        <span className="text-xl font-bold bg-gradient-to-r from-genie-primary via-genie-secondary to-genie-accent text-transparent bg-clip-text">
-          Ad-Genie
-        </span>
-        <Sparkles className="text-genie-accent w-4 h-4 ml-1" />
+        {/* #region agent log */}
+        <Link
+          to="/"
+          className="flex items-center gap-2"
+          aria-label="Ad-Genie"
+          onClick={() => {
+            fetch('http://127.0.0.1:7243/ingest/1f05fac3-9d5b-456a-b58e-d045d6d2998f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardSidebar.tsx:75', message: 'Logo clicked', data: { component: 'DashboardSidebar', currentPath: location.pathname, targetPath: '/' }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => {});
+          }}
+        >
+          {/* #endregion */}
+          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-genie-primary shadow-md bg-white flex-shrink-0">
+            <img
+              src="/enhanced_design_a_contemporary_professional_logo_combining_a_streamlined_genie_figure_with_modern_tech_symbo_g4d4ei5j85xa3vwd3mit_1 (1).png"
+              alt="Ad-Genie Logo"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <span className="text-xl font-bold bg-gradient-to-r from-genie-primary via-genie-secondary to-genie-accent text-transparent bg-clip-text">
+            Ad-Genie
+          </span>
+          <Sparkles className="text-genie-accent w-4 h-4 ml-1" />
+        </Link>
         {/* Close button on mobile */}
         {setMobileOpen && (
           <button className="md:hidden absolute right-4 top-4 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center" onClick={handleCloseDrawer} aria-label="Close sidebar">
