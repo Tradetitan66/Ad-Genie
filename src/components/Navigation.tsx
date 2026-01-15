@@ -36,7 +36,7 @@ export default function Navigation({ onLoginSuccess, onLoginClick }: NavigationP
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'bg-slate-900/95 backdrop-blur-lg shadow-2xl' : 'bg-transparent'
+        scrolled ? 'bg-purple-950/95 backdrop-blur-lg shadow-2xl' : 'bg-transparent'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -53,7 +53,7 @@ export default function Navigation({ onLoginSuccess, onLoginClick }: NavigationP
                 className="w-full h-full object-contain"
               />
             </div>
-            <span className="text-xl font-bold text-orange-500">
+            <span className="text-xl font-bold text-white">
               Ad-Genie
             </span>
             <Sparkles className="text-amber-400 w-4 h-4" />
@@ -75,7 +75,7 @@ export default function Navigation({ onLoginSuccess, onLoginClick }: NavigationP
             >
               <Link
                 to="/waitlist"
-                className="px-6 py-2 bg-gradient-to-r from-orange-400 to-orange-600 text-white font-bold rounded-full shadow-lg hover:shadow-orange-500/50 transition-all inline-block"
+                className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold rounded-full shadow-lg hover:shadow-orange-500/50 transition-all inline-block"
               >
                 Join Waitlist
               </Link>
@@ -122,9 +122,9 @@ export default function Navigation({ onLoginSuccess, onLoginClick }: NavigationP
                 onClick={() => onLoginClick ? onLoginClick() : setShowLogin(true)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 px-6 py-2 bg-purple-700 text-white font-bold rounded-full shadow-lg hover:bg-purple-800 transition-all"
+                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold rounded-full shadow-lg hover:shadow-orange-500/50 transition-all"
               >
-                <ArrowRight size={18} />
+                <LogIn size={18} />
                 <span className="font-medium">Login</span>
               </motion.button>
             )}

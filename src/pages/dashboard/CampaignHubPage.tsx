@@ -162,6 +162,7 @@ export default function CampaignHubPage() {
         logo_url: brandProfile.logo || null,
         product_images: Array.isArray(brandProfile.product_images) ? brandProfile.product_images : [],
         brand_colors: formattedBrandColors,
+        preferred_language: brandProfile.preferred_language || undefined,
         content_type: preferences?.content_type || undefined,
         campaign_goal: actualCampaignGoal,
         campaign_market: campaignMarket,

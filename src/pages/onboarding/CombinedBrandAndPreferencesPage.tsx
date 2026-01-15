@@ -15,6 +15,13 @@ const industries = [
   'Home & Garden', 'Sports & Fitness', 'Other'
 ];
 
+const preferredLanguages = [
+  'English',
+  'Hindi',
+  'Telugu',
+  'Tamil'
+];
+
 const targetAudienceOptions = [
   'Young Professionals (25-35)',
   'Health-Conscious Consumers',
@@ -39,10 +46,9 @@ const commonCampaignGoals = [
 ];
 
 export default function CombinedBrandAndPreferencesPage() {
-  console.log('🚀 CombinedBrandAndPreferencesPage: Component mounting...');
-  console.log('📍 Current URL:', window.location.href);
-  console.log('📍 Current pathname:', window.location.pathname);
-  console.trace('Stack trace for component mount');
+  // Debug logging removed to reduce console noise
+  // Uncomment below if needed for debugging:
+  // console.log('🚀 CombinedBrandAndPreferencesPage: Component mounting...');
   
   const navigate = useNavigate();
   const { success, error } = useToast();
@@ -59,14 +65,16 @@ export default function CombinedBrandAndPreferencesPage() {
     brandName: '',
     industry: '',
     audience: '',
-    websiteUrl: ''
+    websiteUrl: '',
+    preferredLanguage: ''
   });
   const [selectedAudience, setSelectedAudience] = useState<string>('');
   const [customAudience, setCustomAudience] = useState<string>('');
   const [brandErrors, setBrandErrors] = useState({
     brandName: '',
     industry: '',
-    websiteUrl: ''
+    websiteUrl: '',
+    preferredLanguage: ''
   });
 
   // Visual Assets Section
@@ -320,7 +328,8 @@ export default function CombinedBrandAndPreferencesPage() {
           brandName: brandProfile.brand_name,
           industry: brandProfile.industry,
           audience: audience,
-          websiteUrl: brandProfile.website_url || ''
+          websiteUrl: brandProfile.website_url || '',
+          preferredLanguage: brandProfile.preferred_language || ''
         });
         
         if (targetAudienceOptions.includes(audience)) {
@@ -394,7 +403,8 @@ export default function CombinedBrandAndPreferencesPage() {
         brandName: '',
         industry: '',
         audience: '',
-        websiteUrl: ''
+        websiteUrl: '',
+        preferredLanguage: ''
       });
       setPreferencesData({
         campaignGoal: [],
@@ -575,7 +585,8 @@ export default function CombinedBrandAndPreferencesPage() {
         return brandData.brandName.trim() !== '' && 
                brandData.industry !== '' && 
                selectedAudience !== '' && 
-               (selectedAudience !== 'Others' || customAudience.trim() !== '');
+               (selectedAudience !== 'Others' || customAudience.trim() !== '') &&
+               brandData.preferredLanguage !== '';
       case 'visual':
         return productImages.length >= 1 && brandColors.primary !== '';
       case 'preferences':
@@ -594,7 +605,8 @@ export default function CombinedBrandAndPreferencesPage() {
     const newErrors = {
       brandName: '',
       industry: '',
-      websiteUrl: ''
+      websiteUrl: '',
+      preferredLanguage: ''
     };
 
     if (!brandData.brandName.trim()) {
@@ -612,6 +624,12 @@ export default function CombinedBrandAndPreferencesPage() {
     }
     if (selectedAudience === 'Others' && !customAudience.trim()) {
       error('Please enter your target audience');
+      return;
+    }
+    if (!brandData.preferredLanguage) {
+      newErrors.preferredLanguage = 'Please select your preferred language';
+      setBrandErrors(newErrors);
+      error('Please select your preferred language');
       return;
     }
     if (productImages.length < 1) {
@@ -659,7 +677,8 @@ export default function CombinedBrandAndPreferencesPage() {
           website_url: brandData.websiteUrl.trim() || '',
           contact_email: contactEmail,
           product_images: productImages,
-          brand_colors: brandColors
+          brand_colors: brandColors,
+          preferred_language: brandData.preferredLanguage
         });
       } else {
         const newProfile = await brandProfileService.create({
@@ -671,7 +690,8 @@ export default function CombinedBrandAndPreferencesPage() {
           contact_email: contactEmail,
           logo: null,
           product_images: productImages,
-          brand_colors: brandColors
+          brand_colors: brandColors,
+          preferred_language: brandData.preferredLanguage
         });
         setBrandProfileId(newProfile.id);
       }
@@ -774,15 +794,17 @@ export default function CombinedBrandAndPreferencesPage() {
     );
   }
 
-  console.log('✅ CombinedBrandAndPreferencesPage: Rendering page content', {
-    userId,
-    hasBrandData: !!brandData.industry,
-    loading,
-    brandData,
-    preferencesData,
-    campaignGoalType: typeof preferencesData.campaignGoal,
-    campaignGoalIsArray: Array.isArray(preferencesData.campaignGoal)
-  });
+  // Debug logging removed to reduce console noise
+  // Uncomment below if needed for debugging:
+  // console.log('✅ CombinedBrandAndPreferencesPage: Rendering page content', {
+  //   userId,
+  //   hasBrandData: !!brandData.industry,
+  //   loading,
+  //   brandData,
+  //   preferencesData,
+  //   campaignGoalType: typeof preferencesData.campaignGoal,
+  //   campaignGoalIsArray: Array.isArray(preferencesData.campaignGoal)
+  // });
 
   // Safety check - ensure campaignGoal is always an array
   if (!Array.isArray(preferencesData.campaignGoal)) {
@@ -953,6 +975,33 @@ export default function CombinedBrandAndPreferencesPage() {
                       </div>
                       <p className="text-xs text-slate-500 mt-1">{customAudience.length}/200</p>
                     </motion.div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Preferred Language <span className="text-red-500">*</span>
+                  </label>
+                  <p className="text-xs text-slate-500 mb-3">Select your preferred language for campaign content</p>
+                  <div className="relative">
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <select
+                      value={brandData.preferredLanguage}
+                      onChange={(e) => {
+                        setBrandData({ ...brandData, preferredLanguage: e.target.value });
+                        setBrandErrors({ ...brandErrors, preferredLanguage: '' });
+                      }}
+                      className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent bg-white text-slate-900"
+                      aria-label="Select your preferred language"
+                    >
+                      <option value="">Select language</option>
+                      {preferredLanguages.map(language => (
+                        <option key={language} value={language}>{language}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {brandErrors.preferredLanguage && (
+                    <p className="text-red-500 text-sm mt-1">{brandErrors.preferredLanguage}</p>
                   )}
                 </div>
 
@@ -1174,7 +1223,7 @@ export default function CombinedBrandAndPreferencesPage() {
                       <label className="block text-xs text-slate-600 mb-2">Secondary</label>
                       <input
                         type="color"
-                        value={brandColors.secondary}
+                        value={brandColors.secondary || '#000000'}
                         onChange={(e) => setBrandColors({ ...brandColors, secondary: e.target.value })}
                         className="w-full h-12 rounded-lg cursor-pointer border border-slate-300"
                       />
@@ -1184,7 +1233,7 @@ export default function CombinedBrandAndPreferencesPage() {
                       <label className="block text-xs text-slate-600 mb-2">Accent</label>
                       <input
                         type="color"
-                        value={brandColors.accent}
+                        value={brandColors.accent || '#000000'}
                         onChange={(e) => setBrandColors({ ...brandColors, accent: e.target.value })}
                         className="w-full h-12 rounded-lg cursor-pointer border border-slate-300"
                       />

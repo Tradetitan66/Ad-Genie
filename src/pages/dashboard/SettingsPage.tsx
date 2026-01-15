@@ -33,6 +33,13 @@ const industries = [
   'Other',
 ];
 
+const preferredLanguages = [
+  'English',
+  'Hindi',
+  'Telugu',
+  'Tamil',
+];
+
 const localEvents = [
   'Diwali',
   'Holi',
@@ -82,6 +89,7 @@ export default function SettingsPage() {
     audience: '',
     websiteUrl: '',
     contactEmail: '',
+    preferredLanguage: '',
     brandColors: {
       primary: '#2563EB',
       secondary: '',
@@ -135,6 +143,7 @@ export default function SettingsPage() {
           audience: brandProfile.audience || '',
           websiteUrl: brandProfile.website_url,
           contactEmail: brandProfile.contact_email,
+          preferredLanguage: brandProfile.preferred_language || '',
           brandColors: brandProfile.brand_colors || { primary: '#2563EB', secondary: '', accent: '' },
         });
       }
@@ -213,6 +222,7 @@ export default function SettingsPage() {
           audience: brandData.audience,
           website_url: brandData.websiteUrl,
           contact_email: brandData.contactEmail,
+          preferred_language: brandData.preferredLanguage || null,
           brand_colors: brandData.brandColors,
         });
       } else {
@@ -223,6 +233,7 @@ export default function SettingsPage() {
           audience: brandData.audience,
           website_url: brandData.websiteUrl,
           contact_email: brandData.contactEmail,
+          preferred_language: brandData.preferredLanguage || null,
           brand_colors: brandData.brandColors,
           logo: null,
           product_images: [],
@@ -408,6 +419,24 @@ export default function SettingsPage() {
                 className="w-full px-4 py-3 rounded-lg border border-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
                 placeholder="e.g., Young professionals aged 25-35"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#2D3142] mb-2">
+                Preferred Language
+              </label>
+              <select
+                value={brandData.preferredLanguage}
+                onChange={(e) => setBrandData({ ...brandData, preferredLanguage: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg border border-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+              >
+                <option value="">Select language</option>
+                {preferredLanguages.map((language) => (
+                  <option key={language} value={language}>
+                    {language}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-[#6B7280] mt-1">Select your preferred language for campaign content</p>
             </div>
             <div>
               <label className="block text-sm font-semibold text-[#2D3142] mb-2">

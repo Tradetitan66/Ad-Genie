@@ -92,7 +92,8 @@ export default function ReviewPage() {
           contactEmail: brandProfile.contact_email,
           logo: brandProfile.logo,
           productImages: brandProfile.product_images || [],
-          brandColors: brandProfile.brand_colors
+          brandColors: brandProfile.brand_colors,
+          preferredLanguage: brandProfile.preferred_language || null
         } : null,
         contentType
       });
@@ -240,6 +241,7 @@ export default function ReviewPage() {
           logo_url: brandProfile.logo || null,
           product_images: productImages,
           brand_colors: formattedBrandColors,
+          preferred_language: brandProfile.preferred_language || undefined,
           content_type: contentType, // CRITICAL: This is now guaranteed to be set (validated above)
           campaign_goal: actualCampaignGoal,
           campaign_market: campaignMarket,
@@ -415,6 +417,7 @@ export default function ReviewPage() {
                   {userData.brandProfile.audience && (
                     <div><span className="font-semibold text-[#2D3142]">Target Audience:</span> <p className="text-[#6B7280] mt-1">{userData.brandProfile.audience}</p></div>
                   )}
+                  <div><span className="font-semibold text-[#2D3142]">Preferred Language:</span> <span className="text-[#6B7280]">{userData.brandProfile.preferredLanguage || 'Not specified'}</span></div>
                   <div><span className="font-semibold text-[#2D3142]">Website:</span> <a href={userData.brandProfile.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-600 ml-2 transition-colors">{userData.brandProfile.websiteUrl}</a></div>
                 </div>
               )}

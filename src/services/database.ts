@@ -87,6 +87,7 @@ export interface BrandProfile {
     secondary?: string;
     accent?: string;
   };
+  preferred_language?: string | null;
   created_at: string;
   updated_at: string;
 }

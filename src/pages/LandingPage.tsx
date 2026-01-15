@@ -18,7 +18,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-b from-purple-950 via-purple-900 to-purple-800">
       <CursorTrail />
       <Navigation onLoginClick={handleLoginClick} />
       <Hero />
